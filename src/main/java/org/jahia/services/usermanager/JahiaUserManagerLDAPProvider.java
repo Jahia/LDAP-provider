@@ -58,7 +58,40 @@ import org.jahia.utils.JahiaTools;
  * but is not yet implemented.
  */
 public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
-// ------------------------------ FIELDS ------------------------------
+
+	/**
+	 * <p>Title: Jahia user wrapper.</p>
+	 * <p>Description: Stores users even if they are null to avoid some requests/queries against providers.</p>
+	 *
+	 * @author EP
+	 * @version 1.0
+	 */
+	public static class JahiaUserWrapper implements Serializable {
+
+		private static final long serialVersionUID = -2955706620534674310L;
+		
+		// the internal user, only defined when creating object         	
+		private JahiaUser user;
+		
+		/**
+		 * Constructor.
+		 *
+		 * @param ju JahiaUser, a user from a provider.
+		 */	
+		public JahiaUserWrapper (JahiaUser ju) {
+			user = ju;
+		}
+		
+		/**
+		 * Get the internal user.
+		 *
+		 * @return JahiaUser, the internal user.
+		 */
+		public JahiaUser getUser() {
+			return user;
+		}
+	}	
+	// ------------------------------ FIELDS ------------------------------
 
     public static final String PROVIDER_NAME = "ldap";
 
