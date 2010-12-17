@@ -41,12 +41,12 @@ import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
+import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
-import org.jahia.utils.JahiaTools;
 
 /**
  * An LDAP provider implementation for the management of users.
@@ -392,11 +392,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 String filterValue = filters.getProperty(filterName);
                 // we do all the RFC 2254 replacement *except* the "*" character
                 // since this is actually something we want to use.
-                filterValue = JahiaTools.replacePattern(filterValue, "\\",
+                filterValue = StringUtils.replace(filterValue, "\\",
                         "\\5c");
-                filterValue = JahiaTools.replacePattern(filterValue, "(",
+                filterValue = StringUtils.replace(filterValue, "(",
                         "\\28");
-                filterValue = JahiaTools.replacePattern(filterValue, ")",
+                filterValue = StringUtils.replace(filterValue, ")",
                         "\\29");
 
                 if ("*".equals(filterName)) {
@@ -761,7 +761,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         Attributes attributes = null;
         try {
             if (dn != null && dn.indexOf('/') != -1) {
-                dn = JahiaTools.replacePattern(dn, "/", "\\/");
+                dn = StringUtils.replace(dn, "/", "\\/");
             }
             attributes = ctx.getAttributes(dn);
         } catch (javax.naming.NoInitialContextException nice) {
@@ -1014,10 +1014,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return String a resulting string that has
      */
     private String makeLIKEString (String input) {
-        String result = JahiaTools.replacePattern(input, "*", "%");
-        result = JahiaTools.replacePattern(result, "'", "\\'");
-        result = JahiaTools.replacePattern(result, "\"", "\\\"");
-        result = JahiaTools.replacePattern(result, "_", "\\_");
+        String result = StringUtils.replace(input, "*", "%");
+        result = StringUtils.replace(result, "'", "\\'");
+        result = StringUtils.replace(result, "\"", "\\\"");
+        result = StringUtils.replace(result, "_", "\\_");
         return result;
     }
 

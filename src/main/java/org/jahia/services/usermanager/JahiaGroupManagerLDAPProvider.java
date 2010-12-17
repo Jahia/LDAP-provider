@@ -48,6 +48,7 @@ import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
+import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.registries.ServicesRegistry;
@@ -55,7 +56,6 @@ import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.sites.JahiaSite;
 import org.jahia.services.sites.JahiaSiteTools;
-import org.jahia.utils.JahiaTools;
 
 
 /**
@@ -149,9 +149,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     private static String escapeFilterValue(String value) {
-        String filterValue = JahiaTools.replacePattern(value, "\\", "\\5c");
-        filterValue = JahiaTools.replacePattern(filterValue, "(", "\\28");
-        filterValue = JahiaTools.replacePattern(filterValue, ")", "\\29");
+        String filterValue = StringUtils.replace(value, "\\", "\\5c");
+        filterValue = StringUtils.replace(filterValue, "(", "\\28");
+        filterValue = StringUtils.replace(filterValue, ")", "\\29");
 
         return filterValue;
     }
