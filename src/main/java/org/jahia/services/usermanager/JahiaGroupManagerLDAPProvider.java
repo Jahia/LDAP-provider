@@ -52,6 +52,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.registries.ServicesRegistry;
+import org.jahia.security.license.LicenseChecker;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.sites.JahiaSite;
@@ -1344,5 +1345,14 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         mProvidersGroupCache.put ("k"+jahiaGroup.getGroupKey(), jahiaGroup);
         mProvidersGroupCache.put ("n"+jahiaGroup.getSiteID()+"_"+jahiaGroup.getGroupname(), jahiaGroup);
     }
-    
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+    	if (LicenseChecker.isAllowed("org.jahia.ldap")) {
+    		super.afterPropertiesSet();
+    	} else {
+			logger.warn("LDAP feature is not permitted by the current license."
+					+ " Skip registering LDAP user group provider.");
+    	} 
+    }
 }

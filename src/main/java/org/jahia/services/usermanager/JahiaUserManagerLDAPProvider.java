@@ -44,6 +44,7 @@ import javax.naming.directory.SearchResult;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
+import org.jahia.security.license.LicenseChecker;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
@@ -1159,5 +1160,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
 
         return user;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+    	if (LicenseChecker.isAllowed("org.jahia.ldap")) {
+    		super.afterPropertiesSet();
+    	} else {
+			logger.warn("LDAP feature is not permitted by the current license."
+					+ " Skip registering LDAP user provider.");
+    	} 
     }
 }
