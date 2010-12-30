@@ -17,12 +17,13 @@
 
 package org.jahia.services.usermanager;
 
-import org.apache.log4j.Logger;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.content.JCRStoreService;
 import org.jahia.services.usermanager.jcr.JCRUser;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ import javax.jcr.RepositoryException;
  * @version 1.0
  */
 public class JahiaLDAPUser extends JahiaBasePrincipal implements JahiaUser {
-    private static Logger logger = Logger.getLogger (JahiaLDAPUser.class);
+    private static Logger logger = LoggerFactory.getLogger (JahiaLDAPUser.class);
 
     private static final long serialVersionUID = 949596639726348808L;
 

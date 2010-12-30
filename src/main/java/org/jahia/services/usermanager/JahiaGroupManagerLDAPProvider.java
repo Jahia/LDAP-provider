@@ -56,6 +56,8 @@ import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.sites.JahiaSite;
 import org.jahia.services.sites.JahiaSiteTools;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -83,8 +85,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public static final String PROVIDER_NAME = "ldap";
 
     /** logging */
-    private static org.apache.log4j.Logger logger =
-            org.apache.log4j.Logger.getLogger (JahiaGroupManagerLDAPProvider.class);
+    private static Logger logger = LoggerFactory.getLogger (JahiaGroupManagerLDAPProvider.class);
 
     private static String CONTEXT_FACTORY_PROP = "context.factory";
     private static String LDAP_URL_PROP = "url";
@@ -718,7 +719,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 }
                 return group;
             } catch (JahiaException e) {
-                logger.warn (e);
+                logger.warn (e.getMessage(), e);
                 return null;
             }
         } else {
@@ -843,7 +844,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         try {
             ctx.close ();
         } catch (Exception e) {
-            logger.warn (e);
+            logger.warn (e.getMessage(), e);
         } finally {
         	ctx = null;
         }
@@ -974,7 +975,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 }
             }
         } catch (NamingException e) {
-            logger.warn (e);
+            logger.warn (e.getMessage(), e);
             return new ArrayList<String>();
         } finally {
             invalidateCtx(ctx);
@@ -1209,7 +1210,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                     this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
         } catch (PartialResultException pre) {
-            logger.warn (pre);
+            logger.warn (pre.getMessage(), pre);
         } catch (NamingException ne) {
             logger.warn ("JNDI warning",ne);
             result = new HashSet<JahiaGroup>();
@@ -1295,7 +1296,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                     " first results...");
             group = null;
         } catch (PartialResultException pre) {
-            logger.warn (pre);
+            logger.warn (pre.getMessage(), pre);
         } catch (NamingException ne) {
             logger.warn ("JNDI warning",ne);
             group = null;

@@ -18,12 +18,13 @@
 package org.jahia.services.usermanager;
 
 import org.apache.commons.collections.iterators.EnumerationIterator;
-import org.apache.log4j.Logger;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.Principal;
 import java.util.Iterator;
@@ -44,7 +45,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class JahiaLDAPGroup extends JahiaGroup {
     
-    private static final transient Logger logger = Logger
+	private static final long serialVersionUID = -2201602968581239379L;
+
+	private static final transient Logger logger = LoggerFactory
             .getLogger(JahiaLDAPGroup.class);
 
     /** Group's unique identification number */
@@ -219,7 +222,8 @@ public class JahiaLDAPGroup extends JahiaGroup {
 
         output.append ("  - properties :");
 
-        Iterator names = new EnumerationIterator(mProperties.propertyNames ());
+        @SuppressWarnings("unchecked")
+		Iterator<String> names = new EnumerationIterator(mProperties.propertyNames ());
         String name;
         if (names.hasNext ()) {
             output.append ("\n");

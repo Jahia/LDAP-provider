@@ -47,6 +47,8 @@ import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An LDAP provider implementation for the management of users.
@@ -108,8 +110,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public static final int GUEST_USER_ID = 1;
 
     /** logging */
-    private static org.apache.log4j.Logger logger =
-        org.apache.log4j.Logger.getLogger(JahiaUserManagerLDAPProvider.class);
+    private static Logger logger = LoggerFactory.getLogger(JahiaUserManagerLDAPProvider.class);
 
     private static String CONTEXT_FACTORY_PROP = "context.factory";
     private static String LDAP_URL_PROP = "url";
@@ -640,7 +641,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             ctx.close ();
             ctx = null;
         } catch (Exception e) {
-            logger.warn (e);
+            logger.warn (e.getMessage(), e);
         }
     }
 
@@ -958,7 +959,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 }
             }
         } catch (PartialResultException pre) {
-            logger.warn (pre);
+            logger.warn (pre.getMessage(), pre);
         } catch (SizeLimitExceededException slee) {
             // logger.error(slee);
             // we just return the list as it is
@@ -1002,23 +1003,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
 
         return userKeys;
-    }
-
-    /**
-     * Transforms a search with "*" characters into a valid LIKE statement
-     * with "%" characters. Also escapes the string to remove all "'" and
-     * other chars that might disturb the request construct.
-     *
-     * @param input the original String
-     *
-     * @return String a resulting string that has
-     */
-    private String makeLIKEString (String input) {
-        String result = StringUtils.replace(input, "*", "%");
-        result = StringUtils.replace(result, "'", "\\'");
-        result = StringUtils.replace(result, "\"", "\\\"");
-        result = StringUtils.replace(result, "_", "\\_");
-        return result;
     }
 
     //--------------------------------------------------------------------------
