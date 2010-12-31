@@ -8,7 +8,7 @@ Jahia LDAP Connector
   
 * Registering LDAP providers
 
-  The following steps show how to enable and configure custom user and user group LDAP providers
+  The following steps show how to enable and configure the user and user group LDAP providers
   declaring them in a custom Jahia module.
   
   [[1]] Create the following folder structure for your module:
@@ -33,9 +33,9 @@ Jahia LDAP Connector
   
   <<<depends>>> attribute defines a dependency to the <Jahia LDAP connector> module (this module).
   
-  <<<package-name>>> specifies the module ID
+  <<<package-name>>> specifies your module ID
 
-  <<<root-folder>>> contains the name of the module folder, the content of the module will be extracted into (a sub-folder of the <<</modules>>> folder). 
+  <<<root-folder>>> contains the name of the folder, the content of the module will be extracted into (a sub-folder of the <<</modules>>> folder). 
   
   All other attributes in <<<MANIFEST.MF>>> file are optional.  
 
@@ -94,7 +94,7 @@ Jahia LDAP Connector
   
   
   The <<<users.xml>>> file name is arbitrary and the file itself can be omitted,
-  if no custom user provider is needed.
+  if no LDAP user provider is needed.
 
   [[4]] LDAP user group provide configuration in <<<group.xml>>>
   
@@ -154,7 +154,7 @@ Jahia LDAP Connector
   
   
   The <<<groups.xml>>> file name is arbitrary and the file itself can be omitted,
-  if no custom user provider is needed.
+  if no LDAP user provider is needed.
 
   [[5]] Zip the content of your module into a file with <<<.war>>>, e.g. <<<my-custom-ldap-provider.war>>>
   
