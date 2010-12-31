@@ -62,6 +62,8 @@ import org.slf4j.LoggerFactory;
  */
 public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
+    public static final String FEATURE = "org.jahia.ldap";
+
 	/**
 	 * <p>Title: Jahia user wrapper.</p>
 	 * <p>Description: Stores users even if they are null to avoid some requests/queries against providers.</p>
@@ -1164,7 +1166,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-    	if (LicenseChecker.isAllowed("org.jahia.ldap")) {
+    	if (LicenseChecker.isAllowed(FEATURE)) {
     		super.afterPropertiesSet();
     	} else {
 			logger.warn("LDAP feature is not permitted by the current license."

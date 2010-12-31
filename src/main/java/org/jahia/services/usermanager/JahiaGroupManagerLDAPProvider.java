@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 // ------------------------------ FIELDS ------------------------------
 
-    // the LDAP Group cache name.
+	// the LDAP Group cache name.
     public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
 
     /** the overall provider Group cache name. */
@@ -1348,7 +1348,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-    	if (LicenseChecker.isAllowed("org.jahia.ldap")) {
+    	if (LicenseChecker.isAllowed(JahiaUserManagerLDAPProvider.FEATURE)) {
     		super.afterPropertiesSet();
     	} else {
 			logger.warn("LDAP feature is not permitted by the current license."
