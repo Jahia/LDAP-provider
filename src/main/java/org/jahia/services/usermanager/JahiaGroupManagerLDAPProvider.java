@@ -108,7 +108,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private static String DYNGROUP_MEMBERS_ATTRIBUTE = "dynamic.members.attribute";
 
     private static String LDAP_REFFERAL_PROP = "refferal";
-    private static String USE_CONNECTION_POOL = "groups.ldap.connect.pool";
+    private static String USE_CONNECTION_POOL = "ldap.connect.pool";
+
+    public static String CONNECTION_TIMEOUT = "ldap.connect.timeout";
 
     private static String AD_RANGE_STEP = "ad.range.step";    
     
@@ -626,6 +628,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         // Enable connection pooling
         publicEnv.put("com.sun.jndi.ldap.connect.pool", ldapProperties
                 .getProperty(USE_CONNECTION_POOL, "true"));                
+        String timeout = ldapProperties.getProperty(CONNECTION_TIMEOUT, "-1");
+        if (!timeout.equals("-1") && !timeout.equals("0")) {
+            publicEnv.put("com.sun.jndi.ldap.connect.timeout", timeout);
+        }
         if (ldapProperties.getProperty (PUBLIC_BIND_PASSWORD_PROP) != null) {
             logger.debug ("Using authentification mode to connect to public dir...");
             publicEnv.put (Context.SECURITY_CREDENTIALS,

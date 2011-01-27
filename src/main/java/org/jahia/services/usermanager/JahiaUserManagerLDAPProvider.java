@@ -137,7 +137,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private static String LDAP_USERNAME_ATTRIBUTE =
         "username.attribute.map";
-    private static String USE_CONNECTION_POOL = "users.ldap.connect.pool"; 
+    private static String USE_CONNECTION_POOL = "ldap.connect.pool"; 
+
+    public static String CONNECTION_TIMEOUT = "ldap.connect.timeout";
     
     private Properties ldapProperties = null;
 
@@ -506,7 +508,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                        ldapProperties.getProperty (LDAP_REFFERAL_PROP, "ignore"));
         // Enable connection pooling
         publicEnv.put("com.sun.jndi.ldap.connect.pool", ldapProperties
-                .getProperty(USE_CONNECTION_POOL, "true"));        
+                .getProperty(USE_CONNECTION_POOL, "true"));
+        String timeout = ldapProperties.getProperty(CONNECTION_TIMEOUT, "-1");
+        if (!timeout.equals("-1") && !timeout.equals("0")) {
+            publicEnv.put("com.sun.jndi.ldap.connect.timeout", timeout);
+        }
+        
         if (ldapProperties.getProperty (PUBLIC_BIND_PASSWORD_PROP) != null) {
             logger.debug ("Using authentification mode to connect to public dir...");
             publicEnv.put (Context.SECURITY_CREDENTIALS,

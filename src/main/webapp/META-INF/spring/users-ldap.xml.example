@@ -21,6 +21,7 @@
                 <entry key="j:email.attribute.map" value="mail"/>
                 <entry key="j:organization.attribute.map" value="ou"/>
                 <entry key="ldap.connect.pool" value="true"/>
+                <entry key="ldap.connect.timeout" value="5000"/>                    
             </map>
         </property>
     </bean>

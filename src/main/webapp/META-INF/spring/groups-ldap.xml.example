@@ -23,7 +23,8 @@
                 <entry key="groupname.attribute.map" value="cn"/>
                 <entry key="description.attribute.map" value="description"/>
                 <entry key="ad.range.step" value="0"/>
-                <entry key="ldap.connect.pool" value="true"/>                
+                <entry key="ldap.connect.pool" value="true"/>
+                <entry key="ldap.connect.timeout" value="5000"/>                    
             </map>
         </property>
     </bean>
