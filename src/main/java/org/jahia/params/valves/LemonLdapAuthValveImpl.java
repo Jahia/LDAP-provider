@@ -1,7 +1,7 @@
 /**
  * Jahia Enterprise Edition v6.5
  *
- * Copyright (C) 2002-2010 Jahia Solutions Group. All rights reserved.
+ * Copyright (C) 2002-2011 Jahia Solutions Group. All rights reserved.
  *
  * Jahia delivers the first Open Source Web Content Integration Software by combining Enterprise Web Content Management
  * with Document Management and Portal features.
