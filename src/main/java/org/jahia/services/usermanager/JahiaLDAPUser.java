@@ -39,7 +39,7 @@ import javax.jcr.RepositoryException;
  * @author Serge Huber
  * @version 1.0
  */
-public class JahiaLDAPUser extends JahiaBasePrincipal implements JahiaUser {
+public class JahiaLDAPUser implements JahiaUser {
     private static Logger logger = LoggerFactory.getLogger (JahiaLDAPUser.class);
 
     private static final long serialVersionUID = 949596639726348808L;
