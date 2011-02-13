@@ -27,10 +27,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.Principal;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 
 /**
@@ -95,9 +96,8 @@ public class JahiaLDAPGroup extends JahiaGroup {
         mSiteID = siteID;
 
         if (preloadedGroups || members != null && members.size() >  0) {
-            mMembers = members != null ? (members instanceof ConcurrentHashMap ? members
-                    : new ConcurrentHashMap<String, Principal>(members))
-                    : new ConcurrentHashMap<String, Principal>();
+            mMembers = members != null ? new HashSet<Principal>(members.values())
+                    : new HashSet<Principal>();
         }
 
         if (properties != null) {
@@ -241,8 +241,8 @@ public class JahiaLDAPGroup extends JahiaGroup {
         
         if (mMembers != null) {
             if (mMembers.size() > 0) {
-                for (String member : mMembers.keySet()) {
-                    output.append (member + "/");
+                for (Principal member : mMembers) {
+                    output.append ((member != null ? member.getName() : null) + "/");
                 }
             } else {
                 output.append (" -no members-\n");
@@ -290,9 +290,9 @@ public class JahiaLDAPGroup extends JahiaGroup {
     }
 
    @Override
-    protected Map<String, Principal> getMembersMap() {
+    protected Set<Principal> getMembersMap() {
         if (mMembers == null) {
-            mMembers = new ConcurrentHashMap<String, Principal>(myProvider.getGroupMembers(getGroupname(), isDynamic()));
+            mMembers = new HashSet<Principal>(myProvider.getGroupMembers(getGroupname(), isDynamic()).values());
             preloadedGroups = true;
         }
         return mMembers;
