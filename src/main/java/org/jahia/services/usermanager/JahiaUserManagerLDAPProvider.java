@@ -183,11 +183,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     // -------------------------- OTHER METHODS --------------------------
 
-    public void start ()
-        throws JahiaInitializationException {
-        mUserCache = cacheService.createCacheInstance(LDAP_USER_CACHE
-                + (PROVIDER_NAME.equals(getKey()) ? "" : "-" + getKey()));
-        mProvidersUserCache = cacheService.createCacheInstance(PROVIDERS_USER_CACHE);
+    public void start () throws JahiaInitializationException {
+        mUserCache = cacheService.getCache(LDAP_USER_CACHE
+                + (PROVIDER_NAME.equals(getKey()) ? "" : "-" + getKey()), true);
+        mProvidersUserCache = cacheService.getCache(PROVIDERS_USER_CACHE, true);
 
         if (!ldapProperties.containsKey(LDAP_USERNAME_ATTRIBUTE)) {
             ldapProperties.put(LDAP_USERNAME_ATTRIBUTE, ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));

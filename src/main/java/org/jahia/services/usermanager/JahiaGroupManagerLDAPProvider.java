@@ -278,10 +278,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         this.ldapProperties.putAll(ldapProperties);
     }
 
-    public void start()
-            throws JahiaInitializationException {
-        // instanciates the cache
-        mProvidersGroupCache = cacheService.createCacheInstance(PROVIDERS_GROUP_CACHE);
+    public void start() throws JahiaInitializationException {
+        // instantiates the cache
+        mProvidersGroupCache = cacheService.getCache(PROVIDERS_GROUP_CACHE, true);
 
         String wildCardAttributeStr = ldapProperties.getProperty (JahiaGroupManagerLDAPProvider.
                 SEARCH_WILDCARD_ATTRIBUTE_LIST);
