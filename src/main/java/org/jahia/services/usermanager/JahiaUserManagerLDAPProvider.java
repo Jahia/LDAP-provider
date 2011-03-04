@@ -64,83 +64,91 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     public static final String FEATURE = "org.jahia.ldap";
 
-	/**
-	 * <p>Title: Jahia user wrapper.</p>
-	 * <p>Description: Stores users even if they are null to avoid some requests/queries against providers.</p>
-	 *
-	 * @author EP
-	 * @version 1.0
-	 */
-	public static class JahiaUserWrapper implements Serializable {
+    /**
+     * <p>Title: Jahia user wrapper.</p>
+     * <p>Description: Stores users even if they are null to avoid some requests/queries against providers.</p>
+     *
+     * @author EP
+     * @version 1.0
+     */
+    public static class JahiaUserWrapper implements Serializable {
 
-		private static final long serialVersionUID = -2955706620534674310L;
-		
-		// the internal user, only defined when creating object         	
-		private JahiaUser user;
-		
-		/**
-		 * Constructor.
-		 *
-		 * @param ju JahiaUser, a user from a provider.
-		 */	
-		public JahiaUserWrapper (JahiaUser ju) {
-			user = ju;
-		}
-		
-		/**
-		 * Get the internal user.
-		 *
-		 * @return JahiaUser, the internal user.
-		 */
-		public JahiaUser getUser() {
-			return user;
-		}
-	}	
-	// ------------------------------ FIELDS ------------------------------
+        private static final long serialVersionUID = -2955706620534674310L;
+
+        // the internal user, only defined when creating object
+        private JahiaUser user;
+
+        /**
+         * Constructor.
+         *
+         * @param ju JahiaUser, a user from a provider.
+         */
+        public JahiaUserWrapper(JahiaUser ju) {
+            user = ju;
+        }
+
+        /**
+         * Get the internal user.
+         *
+         * @return JahiaUser, the internal user.
+         */
+        public JahiaUser getUser() {
+            return user;
+        }
+    }
+    // ------------------------------ FIELDS ------------------------------
 
     public static final String PROVIDER_NAME = "ldap";
 
     // the LDAP User cache name.
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
 
-    /** the overall provider User cache name. */
+    /**
+     * the overall provider User cache name.
+     */
     public static final String PROVIDERS_USER_CACHE = "ProvidersUsersCache";
 
-    /** Root user unique identification number */
+    /**
+     * Root user unique identification number
+     */
     public static final int ROOT_USER_ID = 0;
 
-    /** Guest user unique identification number */
+    /**
+     * Guest user unique identification number
+     */
     public static final int GUEST_USER_ID = 1;
 
-    /** logging */
+    /**
+     * logging
+     */
     private static Logger logger = LoggerFactory.getLogger(JahiaUserManagerLDAPProvider.class);
 
     private static String CONTEXT_FACTORY_PROP = "context.factory";
     private static String LDAP_URL_PROP = "url";
     private static String AUTHENTIFICATION_MODE_PROP =
-        "authentification.mode";
+            "authentification.mode";
     private static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
     private static String PUBLIC_BIND_PASSWORD_PROP =
-        "public.bind.password";
+            "public.bind.password";
 
     private static String UID_SEARCH_ATTRIBUTE_PROP =
-        "uid.search.attribute";
+            "uid.search.attribute";
     private static String UID_SEARCH_NAME_PROP = "uid.search.name";
     private static String USERS_OBJECTCLASS_ATTRIBUTE =
-        "search.objectclass";
+            "search.objectclass";
 
     private static String LDAP_REFFERAL_PROP = "refferal";
     private static String SEARCH_COUNT_LIMIT_PROP =
-        "search.countlimit";
+            "search.countlimit";
     private static String SEARCH_WILDCARD_ATTRIBUTE_LIST =
-        "search.wildcards.attributes";
+            "search.wildcards.attributes";
 
     private static String LDAP_USERNAME_ATTRIBUTE =
-        "username.attribute.map";
-    private static String USE_CONNECTION_POOL = "ldap.connect.pool"; 
+            "username.attribute.map";
+    private static String USE_CONNECTION_POOL = "ldap.connect.pool";
 
     public static String CONNECTION_TIMEOUT = "ldap.connect.timeout";
-    
+
     private Properties ldapProperties = null;
 
     private List<String> searchWildCardAttributeList = null;
@@ -161,8 +169,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *                        able to run correctly. If one of these services are not instanciated then a
      *                        JahiaException exception is thrown.
      */
-    protected JahiaUserManagerLDAPProvider ()
-        throws JahiaException {
+    protected JahiaUserManagerLDAPProvider()
+            throws JahiaException {
 
     }
 
@@ -183,7 +191,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     // -------------------------- OTHER METHODS --------------------------
 
-    public void start () throws JahiaInitializationException {
+    public void start() throws JahiaInitializationException {
         mUserCache = cacheService.getCache(LDAP_USER_CACHE
                 + (PROVIDER_NAME.equals(getKey()) ? "" : "-" + getKey()), true);
         mProvidersUserCache = cacheService.getCache(PROVIDERS_USER_CACHE, true);
@@ -193,11 +201,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
 
         String wildCardAttributeStr = ldapProperties.getProperty(
-            JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);
+                JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);
         if (wildCardAttributeStr != null) {
             this.searchWildCardAttributeList = new ArrayList<String>();
             StringTokenizer wildCardTokens = new StringTokenizer(
-                wildCardAttributeStr, ", ");
+                    wildCardAttributeStr, ", ");
             while (wildCardTokens.hasMoreTokens()) {
                 String curAttrName = wildCardTokens.nextToken().trim();
                 this.searchWildCardAttributeList.add(curAttrName);
@@ -218,7 +226,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @param password   User password
      * @param properties User additional parameters. If the user has no additional
      *                   attributes, give a NULL pointer to this parameter.
-     *
      * @return a JahiaUser object containing an instance of the created user,
      *         in this case a instance of JahiaLDAPUser.
      */
@@ -229,6 +236,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * This method removes a user from the system. All the user's attributes are
      * remove, and also all the related objects belonging to the user. On success,
@@ -236,27 +244,25 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * on any failure.
      *
      * @param user reference on the user to be deleted.
-     *
      * @return Return true on success, or false on any failure.
      */
-    public synchronized boolean deleteUser (JahiaUser user) {
+    public synchronized boolean deleteUser(JahiaUser user) {
         return false;
-            /** @todo not yet supported since the LDAP is read-only. */
+        /** @todo not yet supported since the LDAP is read-only. */
     }
 
     /**
      * Return the amount of users in the database.
      *
      * @return The amount of users.
-     *
      * @throws JahiaException in case there's a problem retrieving the number
      *                        of users from the storage
      */
-    public synchronized int getNbUsers () {
+    public synchronized int getNbUsers() {
         return -1;
     }
 
-    public String getUrl () {
+    public String getUrl() {
         return ldapProperties.getProperty(LDAP_URL_PROP);
     }
 
@@ -265,14 +271,14 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *
      * @return Return a List of strings holding the user identification key .
      */
-    public List<String> getUserList () {
+    public List<String> getUserList() {
         List<String> result = new ArrayList<String>();
 
 
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            List<SearchResult> answer = getUsers(ctx, new Properties(), ldapProperties.getProperty (UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
+            List<SearchResult> answer = getUsers(ctx, new Properties(), ldapProperties.getProperty(UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
             for (SearchResult sr : answer) {
                 JahiaUser curUser = ldapToJahiaUser(sr);
                 if (curUser != null) {
@@ -282,11 +288,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
             logger.debug(
-                "Search generated more than configured maximum search limit, limiting to " +
-                this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
-                " first results...");
+                    "Search generated more than configured maximum search limit, limiting to " +
+                            this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
+                            " first results...");
         } catch (NamingException ne) {
-            logger.warn ("JNDI warning",ne);
+            logger.warn("JNDI warning", ne);
             result = new ArrayList<String>();
         } finally {
             invalidateCtx(ctx);
@@ -296,6 +302,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * This method returns the list of all the user names registed into the system.
      *
@@ -307,20 +314,20 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            List<SearchResult> answer = getUsers(ctx, new Properties(), ldapProperties.getProperty (UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
+            List<SearchResult> answer = getUsers(ctx, new Properties(), ldapProperties.getProperty(UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
             for (SearchResult sr : answer) {
                 JahiaUser curUser = ldapToJahiaUser(sr);
                 if (curUser != null) {
-                    result.add (curUser.getUsername ());
+                    result.add(curUser.getUsername());
                 }
             }
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
-            logger.debug ("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+            logger.debug("Search generated more than configured maximum search limit, limiting to " +
+                    this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
         } catch (NamingException ne) {
-            logger.warn ("JNDI warning",ne);
+            logger.warn("JNDI warning", ne);
             result = new ArrayList<String>();
         } finally {
             invalidateCtx(ctx);
@@ -332,19 +339,17 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     /**
      * Retrieves users from the LDAP public repository.
      *
-     * @param ctx     the current context in which to search for the user
-     * @param filters a set of name=value string that contain RFC 2254 format
-     *                filters in the value, or null if we want to look in the full repository
-     *
+     * @param ctx        the current context in which to search for the user
+     * @param filters    a set of name=value string that contain RFC 2254 format
+     *                   filters in the value, or null if we want to look in the full repository
      * @param searchBase
      * @param scope
      * @return NamingEnumeration a naming Iterator of SearchResult objects
      *         that contains the LDAP user entries that correspond to the filter
-     *
      * @throws NamingException
      */
-    private List<SearchResult> getUsers (DirContext ctx, Properties filters, String searchBase, int scope)
-        throws NamingException {
+    private List<SearchResult> getUsers(DirContext ctx, Properties filters, String searchBase, int scope)
+            throws NamingException {
         if (ctx == null) {
             throw new NamingException("Context is null !");
         }
@@ -371,21 +376,25 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     intScope = SearchControls.SUBTREE_SCOPE;
                 }
                 if (filters.containsKey("user.key")) {
-                    thisFilter = "(&("+ldapProperties.getProperty (UID_SEARCH_ATTRIBUTE_PROP)+"="+filters.get("user.key")+")("+thisFilter+"))";
+                    thisFilter = "(&(" + ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP) + "=" + filters.get("user.key") + ")(" + thisFilter + "))";
                 }
 
                 return getUsers(ctx, thisFilter, thisBase, intScope);
             } catch (Exception e) {
-                logger.error("Cannot get users for url : "+url);
-                throw new PartialResultException("Cannot get users for url : "+url);
+                logger.error("Cannot get users for url : " + url);
+                throw new PartialResultException("Cannot get users for url : " + url);
             }
         } else {
             filterString.append("(&(objectClass=" + ldapProperties.getProperty(
-                            USERS_OBJECTCLASS_ATTRIBUTE, "*") + ")");
+                    USERS_OBJECTCLASS_ATTRIBUTE, "*") + ")");
 
+            String uidFilter = filters.getProperty(ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP));
             // let's translate Jahia properties to LDAP properties
-            mapJahiaPropertiesToLDAP(filters);
+            filters = mapJahiaPropertiesToLDAP(filters);
 
+            if (uidFilter != null) {
+                filters.put(ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP), uidFilter);
+            }
 
             if (filters.size() > 1) {
                 filterString.append("(|");
@@ -452,19 +461,20 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *
      * @param userProps
      */
-    private void mapJahiaPropertiesToLDAP (Properties userProps) {
+    private Properties mapJahiaPropertiesToLDAP(Properties userProps) {
+        Properties p = new Properties();
         for (Iterator<?> iterator = ldapProperties.keySet().iterator();
-             iterator.hasNext(); ) {
-            String key = (String)iterator.next();
+             iterator.hasNext();) {
+            String key = (String) iterator.next();
             if (key.endsWith(".attribute.map")) {
                 String jahiaProperty = key.substring(0, key.length() - 14);
                 String curProperty = ldapProperties.getProperty(key);
                 if (userProps.getProperty(jahiaProperty) != null) {
-                    userProps.setProperty(curProperty,
-                                          (String) userProps.remove(jahiaProperty));
+                    p.setProperty(curProperty, (String) userProps.get(jahiaProperty));
                 }
             }
         }
+        return p;
     }
 
     /**
@@ -472,9 +482,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * keep this connection open as long as possible, in order to reuser the
      * connection.
      *
-     *
      * @return DirContext the current public context.
-     *
      * @throws NamingException
      */
     public DirContext getPublicContext() throws NamingException {
@@ -488,23 +496,23 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
 
-    private DirContext connectToPublicDir ()
+    private DirContext connectToPublicDir()
             throws NamingException {
         // Identify service provider to use
-        logger.debug ("Attempting connection to LDAP repository on " +
-                ldapProperties.getProperty (LDAP_URL_PROP) + "...");
+        logger.debug("Attempting connection to LDAP repository on " +
+                ldapProperties.getProperty(LDAP_URL_PROP) + "...");
 
-        Hashtable<String, String> publicEnv = new Hashtable<String, String> (11);
-        publicEnv.put (Context.INITIAL_CONTEXT_FACTORY,
-                ldapProperties.getProperty (CONTEXT_FACTORY_PROP));
-        publicEnv.put (Context.PROVIDER_URL,
-                ldapProperties.getProperty (LDAP_URL_PROP));
-        publicEnv.put (Context.SECURITY_AUTHENTICATION,
-                ldapProperties.getProperty (AUTHENTIFICATION_MODE_PROP));
-        publicEnv.put (Context.SECURITY_PRINCIPAL,
-                ldapProperties.getProperty (PUBLIC_BIND_DN_PROP));
-        publicEnv.put (Context.REFERRAL,
-                       ldapProperties.getProperty (LDAP_REFFERAL_PROP, "ignore"));
+        Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
+        publicEnv.put(Context.INITIAL_CONTEXT_FACTORY,
+                ldapProperties.getProperty(CONTEXT_FACTORY_PROP));
+        publicEnv.put(Context.PROVIDER_URL,
+                ldapProperties.getProperty(LDAP_URL_PROP));
+        publicEnv.put(Context.SECURITY_AUTHENTICATION,
+                ldapProperties.getProperty(AUTHENTIFICATION_MODE_PROP));
+        publicEnv.put(Context.SECURITY_PRINCIPAL,
+                ldapProperties.getProperty(PUBLIC_BIND_DN_PROP));
+        publicEnv.put(Context.REFERRAL,
+                ldapProperties.getProperty(LDAP_REFFERAL_PROP, "ignore"));
         // Enable connection pooling
         publicEnv.put("com.sun.jndi.ldap.connect.pool", ldapProperties
                 .getProperty(USE_CONNECTION_POOL, "true"));
@@ -512,15 +520,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (!timeout.equals("-1") && !timeout.equals("0")) {
             publicEnv.put("com.sun.jndi.ldap.connect.timeout", timeout);
         }
-        
-        if (ldapProperties.getProperty (PUBLIC_BIND_PASSWORD_PROP) != null) {
-            logger.debug ("Using authentification mode to connect to public dir...");
-            publicEnv.put (Context.SECURITY_CREDENTIALS,
-                    ldapProperties.getProperty (PUBLIC_BIND_PASSWORD_PROP));
+
+        if (ldapProperties.getProperty(PUBLIC_BIND_PASSWORD_PROP) != null) {
+            logger.debug("Using authentification mode to connect to public dir...");
+            publicEnv.put(Context.SECURITY_CREDENTIALS,
+                    ldapProperties.getProperty(PUBLIC_BIND_PASSWORD_PROP));
         }
 
         // Create the initial directory context
-        return new InitialDirContext (publicEnv);
+        return new InitialDirContext(publicEnv);
     }
 
     /**
@@ -530,36 +538,36 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * extract multiple values. Note that if a value ALREADY contains a line
      * feed characters this will cause unexpected behavior.
      *
-     * @param sr      result of a search on a LDAP directory context
+     * @param sr result of a search on a LDAP directory context
      * @return JahiaLDAPUser a user initialized with the properties loaded
      *         from the LDAP database, or null if no userKey could be determined for
      *         the user.
      */
-    private JahiaLDAPUser ldapToJahiaUser (SearchResult sr) {
+    private JahiaLDAPUser ldapToJahiaUser(SearchResult sr) {
         Attributes attrs = sr.getAttributes();
-        String dn = sr.getName() + "," + ldapProperties.getProperty (UID_SEARCH_NAME_PROP);
+        String dn = sr.getName() + "," + ldapProperties.getProperty(UID_SEARCH_NAME_PROP);
         return ldapToJahiaUser(attrs, dn);
     }
 
-    private List<SearchResult> getUsers (DirContext ctx, String filterString, String searchBase, int scope)
+    private List<SearchResult> getUsers(DirContext ctx, String filterString, String searchBase, int scope)
             throws NamingException {
         // Search for objects that have those matching attributes
-        SearchControls searchCtl = new SearchControls ();
-        searchCtl.setSearchScope (scope);
+        SearchControls searchCtl = new SearchControls();
+        searchCtl.setSearchScope(scope);
         List<SearchResult> answerList = new ArrayList<SearchResult>();
-        int countLimit = Integer.parseInt (
-                ldapProperties.getProperty (
+        int countLimit = Integer.parseInt(
+                ldapProperties.getProperty(
                         JahiaUserManagerLDAPProvider.SEARCH_COUNT_LIMIT_PROP));
-        searchCtl.setCountLimit (countLimit);
-        logger.debug ("Using filter string [" + filterString.toString () + "]...");
+        searchCtl.setCountLimit(countLimit);
+        logger.debug("Using filter string [" + filterString.toString() + "]...");
         try {
-            NamingEnumeration<SearchResult> enumeration = ctx.search (
+            NamingEnumeration<SearchResult> enumeration = ctx.search(
                     searchBase,
-                    filterString.toString (),
+                    filterString.toString(),
                     searchCtl);
             while (enumeration.hasMore()) {
                 answerList.add(enumeration.next());
-            } 
+            }
         } catch (javax.naming.NoInitialContextException nice) {
             logger.warn("Reconnection required", nice);
         } catch (javax.naming.CannotProceedException cpe) {
@@ -573,8 +581,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         } catch (SizeLimitExceededException e) {
             logger.warn(
                     "User search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+                            this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
+                            " first results...");
         }
         return answerList;
     }
@@ -584,16 +592,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *
      * @param userKey      the user identifier defined in this service properties
      * @param userPassword the password of the user
-     *
      * @return String a string that contains the common name of this user
      *         whithin the repository.
      */
-    public synchronized boolean login (String userKey, String userPassword) {
+    public synchronized boolean login(String userKey, String userPassword) {
         String dn = null;
         String userFinalKey = userKey;
 
-        if ("".equals (userPassword)) {
-            logger.debug ("Empty passwords are not authorized for LDAP login ! Failing user " +
+        if ("".equals(userPassword)) {
+            logger.debug("Empty passwords are not authorized for LDAP login ! Failing user " +
                     userKey + " login request.");
             return false;
         }
@@ -604,99 +611,99 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         try {
             dn = ((JahiaLDAPUser) lookupUserByKey(userFinalKey)).getDN();
 
-            privateCtx = connectToPrivateDir (dn, userPassword);
+            privateCtx = connectToPrivateDir(dn, userPassword);
 
             if (privateCtx == null) {
                 dn = null;
             }
         } catch (javax.naming.CommunicationException ce) {
-            logger.warn ("CommunicationException", ce);
-            logger.debug ("Invalidading connection to public LDAP context...");
+            logger.warn("CommunicationException", ce);
+            logger.debug("Invalidading connection to public LDAP context...");
             dn = null;
         } catch (NamingException ne) {
             logger.debug("Login refused, server message : " + ne.getMessage());
             dn = null;
         } finally {
-            invalidateCtx (privateCtx);            
+            invalidateCtx(privateCtx);
         }
         return (dn != null);
     }
 
-    private DirContext connectToPrivateDir (String dn, String personPassword)
+    private DirContext connectToPrivateDir(String dn, String personPassword)
             throws NamingException {
 
         // Identify service provider to use
-        Hashtable<String, String> privateEnv = new Hashtable<String, String> (11);
-        privateEnv.put (Context.INITIAL_CONTEXT_FACTORY,
-                ldapProperties.getProperty (CONTEXT_FACTORY_PROP));
-        privateEnv.put (Context.PROVIDER_URL,
-                ldapProperties.getProperty (LDAP_URL_PROP));
-        privateEnv.put (Context.SECURITY_AUTHENTICATION,
-                ldapProperties.getProperty (AUTHENTIFICATION_MODE_PROP));
-        privateEnv.put (Context.SECURITY_PRINCIPAL, dn );
-        privateEnv.put (Context.SECURITY_CREDENTIALS,
+        Hashtable<String, String> privateEnv = new Hashtable<String, String>(11);
+        privateEnv.put(Context.INITIAL_CONTEXT_FACTORY,
+                ldapProperties.getProperty(CONTEXT_FACTORY_PROP));
+        privateEnv.put(Context.PROVIDER_URL,
+                ldapProperties.getProperty(LDAP_URL_PROP));
+        privateEnv.put(Context.SECURITY_AUTHENTICATION,
+                ldapProperties.getProperty(AUTHENTIFICATION_MODE_PROP));
+        privateEnv.put(Context.SECURITY_PRINCIPAL, dn);
+        privateEnv.put(Context.SECURITY_CREDENTIALS,
                 personPassword);
 
         // Create the initial directory context
-        return new InitialDirContext (privateEnv);
+        return new InitialDirContext(privateEnv);
     }
 
-    private void invalidateCtx (DirContext ctx) {
+    private void invalidateCtx(DirContext ctx) {
         if (ctx == null) {
-            logger.debug ("Context passed is null, ignoring it...");
+            logger.debug("Context passed is null, ignoring it...");
             return;
         }
         try {
-            ctx.close ();
+            ctx.close();
             ctx = null;
         } catch (Exception e) {
-            logger.warn (e.getMessage(), e);
+            logger.warn(e.getMessage(), e);
         }
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * Load all the user data and attributes. On success a reference on the user
      * is returned, otherwise NULL is returned.
      *
      * @param userKey User's identification name.
-     *
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey, String searchAttributeName) {
-        if (!userKey.startsWith("{"+getKey()+"}")) {
+        if (!userKey.startsWith("{" + getKey() + "}")) {
             return null;
         }
 
         /* 2004-16-06 : update by EP
         new cache to use : cross providers only based upon names... */
-        JahiaUser user = mProvidersUserCache.get ("k"+userKey);
+        JahiaUser user = mProvidersUserCache.get("k" + userKey);
 
         // 2004-23-07 : use wrappers
         if (user == null) {
             // then look into the local cache
-            JahiaUserWrapper juw = (JahiaUserWrapper) mUserCache.get ("k"+userKey);
+            JahiaUserWrapper juw = (JahiaUserWrapper) mUserCache.get("k" + userKey);
 
             if (juw == null) {
                 //logger.debug(" user with key=" + userKey + " is not found in cache");
-                user = lookupUserInLDAP (removeKeyPrefix(userKey), searchAttributeName);
+                user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
 
                 if (user != null) {
                     /* 2004-16-06 : update by EP
                     new cache to populate : cross providers only based upon names... */
-                    mProvidersUserCache.put("k"+userKey, user);
+                    mProvidersUserCache.put("k" + userKey, user);
 
                     // name storage for speed
-                    mUserCache.put("n"+user.getUsername(), new JahiaUserWrapper(user));
-                    mProvidersUserCache.put("n"+user.getUsername(), user);
+                    mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
+                    mProvidersUserCache.put("n" + user.getUsername(), user);
                 }
                 // use wrappers in local cache
-                   mUserCache.put ("k"+userKey, new JahiaUserWrapper(user));
+                mUserCache.put("k" + userKey, new JahiaUserWrapper(user));
             } else {
                 user = juw.getUser();
             }
         }
-           return user;
+        return user;
     }
 
     /**
@@ -705,28 +712,28 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * you have to use lookupUserInLDAP (userDn, "distinguishedName").
      * If your properties file are correctly defined, you could use the value of the
      * JahiaGroupManagerLDAPProvider.SEARCH_USER_ATTRIBUTE_NAME for searchAttributeName.
-     *
+     * <p/>
      * This method is only called by lookupUser (String userKey, String searchAttributeName)
      * which was only called by JahiaGroupManagerLDAPProvider.getGroupMembers()
      */
-    private JahiaLDAPUser lookupUserInLDAP (String userKey, String searchAttributeName) {
+    private JahiaLDAPUser lookupUserInLDAP(String userKey, String searchAttributeName) {
         JahiaLDAPUser user = null;
 
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            SearchResult sr = getPublicUser (ctx, searchAttributeName, userKey);
+            SearchResult sr = getPublicUser(ctx, searchAttributeName, userKey);
             if (sr == null) {
                 return null;
             }
-            user = ldapToJahiaUser (sr);
+            user = ldapToJahiaUser(sr);
         } catch (SizeLimitExceededException slee) {
-            logger.debug ("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+            logger.debug("Search generated more than configured maximum search limit, limiting to " +
+                    this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
             user = null;
         } catch (NamingException ne) {
-            logger.warn ("JNDI warning",ne);
+            logger.warn("JNDI warning", ne);
             user = null;
         } finally {
             invalidateCtx(ctx);
@@ -735,10 +742,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public JahiaLDAPUser lookupUserFromDN(String dn) {
-        logger.debug ("Lookup user from dn " + dn);
+        logger.debug("Lookup user from dn " + dn);
         JahiaLDAPUser user = null;
-        if (mUserCache.containsKey("d"+dn)) {
-            JahiaLDAPUser result = (JahiaLDAPUser) mUserCache.get("d"+dn);
+        if (mUserCache.containsKey("d" + dn)) {
+            JahiaLDAPUser result = (JahiaLDAPUser) mUserCache.get("d" + dn);
             if (result != null) {
                 return result;
             }
@@ -746,19 +753,19 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            Attributes attributes = getUser (ctx, dn);
-            user = ldapToJahiaUser (attributes, dn);
+            Attributes attributes = getUser(ctx, dn);
+            user = ldapToJahiaUser(attributes, dn);
             if (user != null) {
-                mUserCache.put("d"+dn, user);
-                mUserCache.put("k"+user.getUserKey(), new JahiaUserWrapper(user));
-                mUserCache.put("n"+user.getUsername(), new JahiaUserWrapper(user));
-                mProvidersUserCache.put("n"+user.getUsername(), user);
+                mUserCache.put("d" + dn, user);
+                mUserCache.put("k" + user.getUserKey(), new JahiaUserWrapper(user));
+                mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
+                mProvidersUserCache.put("n" + user.getUsername(), user);
             }
         } catch (NameNotFoundException nnfe) {
             user = null;
-            mUserCache.put("d"+dn, null);
+            mUserCache.put("d" + dn, null);
         } catch (NamingException ne) {
-            logger.warn ("JNDI warning",ne);
+            logger.warn("JNDI warning", ne);
             user = null;
         } finally {
             invalidateCtx(ctx);
@@ -766,7 +773,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return user;
     }
 
-    private Attributes getUser (DirContext ctx, String dn)
+    private Attributes getUser(DirContext ctx, String dn)
             throws NamingException {
         Attributes attributes = null;
         try {
@@ -790,7 +797,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private JahiaLDAPUser ldapToJahiaUser(Attributes attrs, String dn) {
         JahiaLDAPUser user = null;
-        UserProperties userProps = new UserProperties ();
+        UserProperties userProps = new UserProperties();
         String usingUserKey = null;
 
         Enumeration<?> attrsEnum = attrs.getAll();
@@ -802,35 +809,35 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 Enumeration<?> curAttrValueEnum = curAttr.getAll();
                 while (curAttrValueEnum.hasMoreElements()) {
                     Object curAttrValueObj = curAttrValueEnum.nextElement();
-                    if ( (curAttrValueObj instanceof String)) {
-                        attrValueBuf.append( (String) curAttrValueObj);
+                    if ((curAttrValueObj instanceof String)) {
+                        attrValueBuf.append((String) curAttrValueObj);
                     } else {
                         logger.debug("Converting attribute <" + attrName +
-                                     "> from class " +
-                                     curAttrValueObj.getClass().toString() +
-                                     " to String...");
+                                "> from class " +
+                                curAttrValueObj.getClass().toString() +
+                                " to String...");
                         /** @todo FIXME : for the moment we convert everything to String */
                         attrValueBuf.append(curAttrValueObj);
                     }
                     attrValueBuf.append('\n');
                 }
             } catch (NamingException ne) {
-                logger.warn ("JNDI warning",ne);
-                attrValueBuf = new StringBuffer ();
+                logger.warn("JNDI warning", ne);
+                attrValueBuf = new StringBuffer();
             }
             String attrValue = attrValueBuf.toString();
             if (attrValue.endsWith("\n")) {
                 attrValue = attrValue.substring(0, attrValue.length() - 1);
             }
-            if ( (attrName != null) && (attrValue != null)) {
+            if ((attrName != null) && (attrValue != null)) {
                 if (usingUserKey == null) {
                     if (attrName.equalsIgnoreCase(
-                        ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP))) {
+                            ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP))) {
                         int multiValueMarkerPos = attrValue.indexOf('\n');
                         if (multiValueMarkerPos != -1) {
                             // we have detected a multi-valued UID_SEARCH_ATTRIBUTE_PROP, we will take only
                             // the first value for the user key.
-                            usingUserKey = attrValue.substring(0, multiValueMarkerPos);   
+                            usingUserKey = attrValue.substring(0, multiValueMarkerPos);
                         } else {
                             usingUserKey = attrValue;
                         }
@@ -842,7 +849,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
         }
         if (usingUserKey != null) {
-            mapLDAPToJahiaProperties(userProps);
             // FIXME : Quick hack for merging Jahia DB user properties with LDAP user
 //            mapDBToJahiaProperties (userProps, JahiaLDAPUser.USERKEY_LDAP_PREFIX + usingUserKey);
             /* EP : changes the code to handle the name of the user as defined in properties file.
@@ -853,22 +859,23 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     && ldapProperties.getProperty(LDAP_USERNAME_ATTRIBUTE).length() > 0) {
                 name = userProps
                         .getProperty
-                        (ldapProperties
-                        .getProperty(
-                        LDAP_USERNAME_ATTRIBUTE));
+                                (ldapProperties
+                                        .getProperty(
+                                                LDAP_USERNAME_ATTRIBUTE));
             }
 
-               user = new JahiaLDAPUser (0,
-                        name,
-                        "",
-                        usingUserKey,
-                        0,
-                        userProps,
-                        dn, this);
+            userProps = mapLDAPToJahiaProperties(userProps);
+            user = new JahiaLDAPUser(0,
+                    name,
+                    "",
+                    usingUserKey,
+                    0,
+                    userProps,
+                    dn, this);
         } else {
-            logger.debug ("Ignoring entry " + dn +
+            logger.debug("Ignoring entry " + dn +
                     " because it has no valid " +
-                    ldapProperties.getProperty (UID_SEARCH_ATTRIBUTE_PROP) +
+                    ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP) +
                     " attribute to be mapped onto user key...");
         }
 
@@ -885,36 +892,38 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *                  we do is copy LDAP properties to standard Jahia properties. This is
      *                  defined in the user ldap properties file. Warning this object is modified
      *                  by this method !
-     *
      * @todo FIXME : if properties exist in LDAP that have the same name as
      * Jahia properties these will be erased. We should probably look into
      * making the properties names more unique such as org.jahia.propertyname
      */
-    private void mapLDAPToJahiaProperties (UserProperties userProps) {
+    private UserProperties mapLDAPToJahiaProperties(UserProperties userProps) {
+        UserProperties p = new UserProperties();
         // copy attribute to standard Jahia properties if they exist both in
         // the mapping and in the repository
         for (Iterator<?> iterator = ldapProperties.keySet().iterator();
-             iterator.hasNext(); ) {
-            String key = (String)iterator.next();
+             iterator.hasNext();) {
+            String key = (String) iterator.next();
             if (key.endsWith(".attribute.map")) {
                 String jahiaProperty = key.substring(0, key.length() - 14);
                 String curProperty = ldapProperties.getProperty(key);
                 if (userProps.getUserProperty(curProperty) != null) {
                     UserProperty sourceProp = userProps.getUserProperty(curProperty);
                     UserProperty targetProp = new UserProperty(jahiaProperty, sourceProp.getValue(), sourceProp.isReadOnly());
-                    userProps.setUserProperty(jahiaProperty,
-                                              targetProp);
+                    p.setUserProperty(jahiaProperty,
+                            targetProp);
                 } else {
                     // for properties that don't have a value in LDAP, we still
                     // create a read-only Jahia property, in case it is added
                     // later in LDAP. We don't want to authorize edition of an
                     // LDAP-mapped property.
                     UserProperty targetProp = new UserProperty(jahiaProperty, "", true);
-                    userProps.setUserProperty(jahiaProperty,
-                                              targetProp);
+                    p.setUserProperty(jahiaProperty,
+                            targetProp);
                 }
             }
         }
+
+        return p;
     }
 
     /**
@@ -923,10 +932,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @param userProps    the user properties to set
      * @param usingUserKey the user whose the properties has to be extracted.
      */
-    public void mapDBToJahiaProperties (UserProperties userProps,
-                                         String usingUserKey) {
+    public void mapDBToJahiaProperties(UserProperties userProps,
+                                       String usingUserKey) {
         JahiaUser jahiaUser = jcrUserManagerProvider.lookupExternalUser(usingUserKey);
-        if(jahiaUser!=null) {
+        if (jahiaUser != null) {
             userProps.putAll(jahiaUser.getUserProperties());
         }
     }
@@ -939,13 +948,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @param searchCriterias a Properties object that contains search criterias
      *                        in the format name,value (for example "*"="*" or "username"="*test*") or
      *                        null to search without criterias
-     *
      * @return Set a set of JahiaUser elements that correspond to those
      *         search criterias, or an empty one if an error has occured. Note this will
      *         only return the configured limit of users at maxium. Check out the
      *         users.ldap.properties file to change the limit.
      */
-    public Set<JahiaUser> searchUsers (Properties searchCriterias) {
+    public Set<JahiaUser> searchUsers(Properties searchCriterias) {
         Set<JahiaUser> result = new HashSet<JahiaUser>();
         // first let's lookup the user by the properties in Jahia's DB
         Set<String> userKeys = searchLDAPUsersByDBProperties(searchCriterias);
@@ -960,7 +968,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         try {
             ctx = getPublicContext();
             List<SearchResult> ldapUsers = getUsers(ctx,
-                searchCriterias, ldapProperties.getProperty (UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
+                    searchCriterias, ldapProperties.getProperty(UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
             for (SearchResult sr : ldapUsers) {
                 JahiaLDAPUser user = ldapToJahiaUser(sr);
                 if (user != null) {
@@ -968,16 +976,16 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 }
             }
         } catch (PartialResultException pre) {
-            logger.warn (pre.getMessage(), pre);
+            logger.warn(pre.getMessage(), pre);
         } catch (SizeLimitExceededException slee) {
             // logger.error(slee);
             // we just return the list as it is
             logger.debug(
-                "Search generated more than configured maximum search limit, limiting to " +
-                this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
-                " first results...");
+                    "Search generated more than configured maximum search limit, limiting to " +
+                            this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
+                            " first results...");
         } catch (NamingException ne) {
-            logger.warn ("JNDI warning",ne);
+            logger.warn("JNDI warning", ne);
             result = new HashSet<JahiaUser>();
         } finally {
             invalidateCtx(ctx);
@@ -993,10 +1001,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @param searchCriterias a Properties object that contains search criterias
      *                        in the format name,value (for example "*"="*" or "username"="*test*") or
      *                        null to search without criterias
-     *
      * @return Set a set of JahiaUser elements that correspond to those
      *         search criterias
-     *
      * @todo this code could be cleaner if username was a real user property
      * but as it isn't we have to do a lot of custom handling.
      */
@@ -1015,39 +1021,39 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * Load all the user data and attributes. On success a reference on the user
      * is returned, otherwise NULL is returned.
      *
      * @param userKey User's identification name.
-     *
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey) {
         /* 2004-16-06 : update by EP
         new cache to use : cross providers only based upon names... */
-        JahiaUser user = mProvidersUserCache.get ("k"+userKey);
+        JahiaUser user = mProvidersUserCache.get("k" + userKey);
 
         // 2004-23-07 : use wrappers
         if (user == null) {
             // then look into the local cache
-            JahiaUserWrapper juw = (JahiaUserWrapper) mUserCache.get ("k"+userKey);
+            JahiaUserWrapper juw = (JahiaUserWrapper) mUserCache.get("k" + userKey);
 
             if (juw == null) {
                 //logger.debug(" user with key=" + userKey + " is not found in cache");
-                user = lookupUserInLDAP (removeKeyPrefix(userKey));
+                user = lookupUserInLDAP(removeKeyPrefix(userKey));
 
                 if (user != null) {
                     /* 2004-16-06 : update by EP
                     new cache to populate : cross providers only based upon names... */
-                    mProvidersUserCache.put("k"+userKey, user);
+                    mProvidersUserCache.put("k" + userKey, user);
 
                     // name storage for speed
-                    mUserCache.put("n"+user.getUsername(), new JahiaUserWrapper(user));
-                    mProvidersUserCache.put("n"+user.getUsername(), user);
+                    mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
+                    mProvidersUserCache.put("n" + user.getUsername(), user);
                 }
                 // use wrappers in local cache
-                   mUserCache.put ("k"+userKey, new JahiaUserWrapper(user));
+                mUserCache.put("k" + userKey, new JahiaUserWrapper(user));
             } else {
                 user = juw.getUser();
             }
@@ -1056,24 +1062,24 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return user;
     }
 
-    private JahiaLDAPUser lookupUserInLDAP (String userKey) {
+    private JahiaLDAPUser lookupUserInLDAP(String userKey) {
         JahiaLDAPUser user = null;
 
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            SearchResult sr = getPublicUser (ctx, ldapProperties.getProperty (UID_SEARCH_ATTRIBUTE_PROP), userKey);
+            SearchResult sr = getPublicUser(ctx, ldapProperties.getProperty(UID_SEARCH_ATTRIBUTE_PROP), userKey);
             if (sr == null) {
                 return null;
             }
-            user = ldapToJahiaUser (sr);
+            user = ldapToJahiaUser(sr);
         } catch (SizeLimitExceededException slee) {
-            logger.debug ("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+            logger.debug("Search generated more than configured maximum search limit, limiting to " +
+                    this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
             user = null;
         } catch (NamingException ne) {
-            logger.warn ("JNDI warning",ne);
+            logger.warn("JNDI warning", ne);
             user = null;
         } finally {
             invalidateCtx(ctx);
@@ -1084,21 +1090,19 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     /**
      * Retrieves a user from the LDAP public repository.
      *
-     * @param ctx the current context in which to search for the user
+     * @param ctx  the current context in which to search for the user
      * @param prop
-     * @param val the unique identifier for the user
-     *
+     * @param val  the unique identifier for the user
      * @return a SearchResult object, which is the *first* result matching the
      *         uid
-     *
      * @throws NamingException
      */
-    private SearchResult getPublicUser (DirContext ctx, String prop, String val)
-        throws NamingException {
+    private SearchResult getPublicUser(DirContext ctx, String prop, String val)
+            throws NamingException {
         Properties filters = new Properties();
 
         filters.setProperty(prop, val);
-        List<SearchResult> answer = getUsers(ctx, filters, ldapProperties.getProperty (UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
+        List<SearchResult> answer = getUsers(ctx, filters, ldapProperties.getProperty(UID_SEARCH_NAME_PROP), SearchControls.SUBTREE_SCOPE);
         SearchResult sr = null;
         if (!answer.isEmpty()) {
             // we only take the first value if there are multiple answers, which
@@ -1106,34 +1110,34 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             sr = answer.get(0);
             if (answer.size() > 1) {                // there is at least a second result.
                 logger.debug(
-                    "Warning : multiple users with same UID in LDAP repository.");
+                        "Warning : multiple users with same UID in LDAP repository.");
             }
         }
         return sr;
     }
 
-    private String removeKeyPrefix (String userKey) {
-        if (userKey.startsWith("{"+getKey()+"}")) {
-            return userKey.substring(getKey().length()+2);
+    private String removeKeyPrefix(String userKey) {
+        if (userKey.startsWith("{" + getKey() + "}")) {
+            return userKey.substring(getKey().length() + 2);
         } else {
             return userKey;
         }
     }
 
     public void updateCache(JahiaUser jahiaUser) {
-        mUserCache.put("k"+jahiaUser.getUserKey(), new JahiaUserWrapper(jahiaUser));
-        mProvidersUserCache.put("k"+jahiaUser.getUserKey(), jahiaUser);
-        mUserCache.put("n"+jahiaUser.getUsername(), new JahiaUserWrapper(jahiaUser));
-        mProvidersUserCache.put("n"+jahiaUser.getUsername(), jahiaUser);
+        mUserCache.put("k" + jahiaUser.getUserKey(), new JahiaUserWrapper(jahiaUser));
+        mProvidersUserCache.put("k" + jahiaUser.getUserKey(), jahiaUser);
+        mUserCache.put("n" + jahiaUser.getUsername(), new JahiaUserWrapper(jahiaUser));
+        mProvidersUserCache.put("n" + jahiaUser.getUsername(), jahiaUser);
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * This function checks into the system if the name has already been
      * assigned to another user.
      *
-     * @param name   User login name.
-     *
+     * @param name User login name.
      * @return Return true if the specified name has not been assigned yet,
      *         return false on any failure.
      */
@@ -1152,19 +1156,19 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     // @author  NK
+
     /**
      * Load all the user data and attributes. On success a reference on the user
      * is returned, otherwise NULL is returned.
      *
-     * @param name   User's identification name.
-     *
+     * @param name User's identification name.
      * @return Return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUser(String name) {
-        JahiaUser user = lookupUserByKey("{"+getKey()+"}"+name);
+        JahiaUser user = lookupUserByKey("{" + getKey() + "}" + name);
         if (user != null) {
             // user.setSiteID (siteID);
-            mProvidersUserCache.put("n"+user.getUsername(), user);
+            mProvidersUserCache.put("n" + user.getUsername(), user);
         }
 
         return user;
@@ -1172,11 +1176,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-    	if (LicenseChecker.isAllowed(FEATURE)) {
-    		super.afterPropertiesSet();
-    	} else {
-			logger.warn("LDAP feature is not permitted by the current license."
-					+ " Skip registering LDAP user provider.");
-    	} 
+        if (LicenseChecker.isAllowed(FEATURE)) {
+            super.afterPropertiesSet();
+        } else {
+            logger.warn("LDAP feature is not permitted by the current license."
+                    + " Skip registering LDAP user provider.");
+        }
     }
 }
