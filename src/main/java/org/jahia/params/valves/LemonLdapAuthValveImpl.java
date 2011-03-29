@@ -33,17 +33,16 @@ import java.util.List;
 
 /**
  * User: toto
- * Date: 15 d�c. 2004
- * Time: 13:03:08
  */
 public class LemonLdapAuthValveImpl extends BaseAuthValve {
     private static final transient Logger logger = LoggerFactory
             .getLogger(LemonLdapAuthValveImpl.class);
 
-    public LemonLdapAuthValveImpl() {
-    }
-
     public void invoke(Object context, ValveContext valveContext) throws PipelineException {
+        if (!isEnabled()) {
+            valveContext.invokeNext(context);
+            return;
+        }
 
         AuthValveContext authContext = (AuthValveContext) context;
         HttpServletRequest request = authContext.getRequest();
@@ -87,6 +86,4 @@ public class LemonLdapAuthValveImpl extends BaseAuthValve {
         valveContext.invokeNext(context);
     }
 
-    public void initialize() {
-    }
 }
