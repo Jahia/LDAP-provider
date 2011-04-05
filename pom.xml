@@ -22,7 +22,7 @@
     <parent>
         <artifactId>jahia-ee-modules</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>6.5-SNAPSHOT</version>
+        <version>6.5-BETA2</version>
     </parent>
     <groupId>org.jahia.modules</groupId>
     <artifactId>ldap</artifactId>
