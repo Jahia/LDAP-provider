@@ -19,7 +19,9 @@ package org.jahia.services.usermanager;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -62,13 +64,9 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * <p>Title: </p>
- * <p>Description: </p>
- * <p>Copyright: Copyright (c) 2003</p>
- * <p>Company: </p>
- *
+ * LDAP group manager provider.
+ * 
  * @author Viceic Predrag <Predrag.Viceic@ci.unil.ch>
- * @version 1.0
  */
 
 public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
@@ -122,7 +120,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     private Cache<String, JahiaGroup> mProvidersGroupCache;
 
-    private Properties ldapProperties = null;
+    private Map<String, String> ldapProperties = null;
+
+    private Map<String, String> mappedProperties = null;
 
     private List<String> searchWildCardAttributeList = null;
 
@@ -253,7 +253,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * Default constructor.
      *
      * @throws JahiaException Raise a JahiaException when during initialization
-     *                        one of the needed services could not be instanciated.
+     *                        one of the needed services could not be instantiated.
      */
     protected JahiaGroupManagerLDAPProvider ()
             throws JahiaException {
@@ -274,15 +274,23 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     public void setLdapProperties(Map<Object, Object> ldapProperties) {
-        this.ldapProperties = new Properties();
-        this.ldapProperties.putAll(ldapProperties);
+        this.ldapProperties = new HashMap<String, String>(ldapProperties.size());
+        this.mappedProperties = new HashMap<String, String>();
+        for (Object key : ldapProperties.keySet()) {
+            String keyString = key.toString();
+            String value = ldapProperties.get(keyString) != null ? ldapProperties.get(keyString).toString() : null;
+            this.ldapProperties.put(keyString, value);
+            if (keyString.endsWith(".attribute.map")) {
+                mappedProperties.put(StringUtils.substringBeforeLast(keyString, ".attribute.map"), value);
+            }
+        }
     }
 
     public void start() throws JahiaInitializationException {
         // instantiates the cache
         mProvidersGroupCache = cacheService.getCache(PROVIDERS_GROUP_CACHE, true);
 
-        String wildCardAttributeStr = ldapProperties.getProperty (JahiaGroupManagerLDAPProvider.
+        String wildCardAttributeStr = ldapProperties.get (JahiaGroupManagerLDAPProvider.
                 SEARCH_WILDCARD_ATTRIBUTE_LIST);
         if (wildCardAttributeStr != null) {
             this.searchWildCardAttributeList = new ArrayList<String>();
@@ -427,7 +435,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
             logger.debug ("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+                    this.ldapProperties.get (SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
         } catch (NamingException ne) {
             logger.warn ("JNDI warning",ne);
@@ -463,7 +471,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
             logger.debug ("Search generated more than configured maximum search limit in, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+                    this.ldapProperties.get (SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
         } catch (NamingException ne) {
             logger.warn ("JNDI warning",ne);
@@ -495,9 +503,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
         StringBuffer filterString = new StringBuffer();
         filterString.append("(|(objectClass=").append(
-                ldapProperties.getProperty (JahiaGroupManagerLDAPProvider.GROUP_OBJECTCLASS_ATTRIBUTE, "groupOfNames")).append(
+                StringUtils.defaultString(ldapProperties.get (JahiaGroupManagerLDAPProvider.GROUP_OBJECTCLASS_ATTRIBUTE), "groupOfNames")).append(
                 ")(objectClass=").append(
-                ldapProperties.getProperty (JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE, "groupOfURLs")).append("))");
+                        StringUtils.defaultString(ldapProperties.get (JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE), "groupOfURLs")).append("))");
 
         if (filters == null) {
             filters = new Properties ();
@@ -553,7 +561,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         // Search for objects that have those matching attributes
         SearchControls searchCtl = new SearchControls ();
         searchCtl.setSearchScope (SearchControls.SUBTREE_SCOPE);
-        int countLimit = Integer.parseInt (ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP));
+        int countLimit = Integer.parseInt (ldapProperties.get (SEARCH_COUNT_LIMIT_PROP));
         searchCtl.setCountLimit (countLimit);
         return getGroups(ctx, searchCtl, filterString);
     }
@@ -566,14 +574,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param groupProps
      */
     private void mapJahiaPropertiesToLDAP (Properties groupProps) {
-        for (Iterator<?> iterator = ldapProperties.keySet().iterator(); iterator.hasNext();) {
-            String key = (String) iterator.next();
-            if (key.endsWith(".attribute.map")) {
-                String jahiaProperty = key.substring(0,key.length()-14);
-                String curProperty = ldapProperties.getProperty(key);
-                if (groupProps.getProperty (jahiaProperty) != null) {
-                    groupProps.put(curProperty, groupProps.remove(jahiaProperty));
-                }
+        for (Map.Entry<String, String> prop : mappedProperties.entrySet()) {
+            if (groupProps.getProperty (prop.getKey()) != null) {
+                groupProps.put(prop.getValue(), groupProps.remove(prop.getKey()));
             }
         }
         if (groupProps.containsKey("members")) {
@@ -612,29 +615,29 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
         // Identify service provider to use
         logger.debug ("Attempting connection to LDAP repository on " +
-                ldapProperties.getProperty (LDAP_URL_PROP) + "...");
+                ldapProperties.get (LDAP_URL_PROP) + "...");
         Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
         publicEnv.put (Context.INITIAL_CONTEXT_FACTORY,
-                ldapProperties.getProperty (CONTEXT_FACTORY_PROP));
+                ldapProperties.get (CONTEXT_FACTORY_PROP));
         publicEnv.put (Context.PROVIDER_URL,
-                ldapProperties.getProperty (LDAP_URL_PROP));
+                ldapProperties.get (LDAP_URL_PROP));
         publicEnv.put (Context.SECURITY_AUTHENTICATION,
-                ldapProperties.getProperty (AUTHENTIFICATION_MODE_PROP));
+                ldapProperties.get (AUTHENTIFICATION_MODE_PROP));
         publicEnv.put (Context.SECURITY_PRINCIPAL,
-                ldapProperties.getProperty (PUBLIC_BIND_DN_PROP));
+                ldapProperties.get (PUBLIC_BIND_DN_PROP));
         publicEnv.put (Context.REFERRAL,
-                ldapProperties.getProperty (LDAP_REFFERAL_PROP, "ignore"));
+                StringUtils.defaultString(ldapProperties.get (LDAP_REFFERAL_PROP), "ignore"));
         // Enable connection pooling
-        publicEnv.put("com.sun.jndi.ldap.connect.pool", ldapProperties
-                .getProperty(USE_CONNECTION_POOL, "true"));                
-        String timeout = ldapProperties.getProperty(CONNECTION_TIMEOUT, "-1");
+        publicEnv.put("com.sun.jndi.ldap.connect.pool", StringUtils.defaultString(ldapProperties
+                .get(USE_CONNECTION_POOL), "true"));                
+        String timeout = StringUtils.defaultString(ldapProperties.get(CONNECTION_TIMEOUT), "-1");
         if (!timeout.equals("-1") && !timeout.equals("0")) {
             publicEnv.put("com.sun.jndi.ldap.connect.timeout", timeout);
         }
-        if (ldapProperties.getProperty (PUBLIC_BIND_PASSWORD_PROP) != null) {
+        if (ldapProperties.get (PUBLIC_BIND_PASSWORD_PROP) != null) {
             logger.debug ("Using authentification mode to connect to public dir...");
             publicEnv.put (Context.SECURITY_CREDENTIALS,
-                    ldapProperties.getProperty (PUBLIC_BIND_PASSWORD_PROP));
+                    ldapProperties.get (PUBLIC_BIND_PASSWORD_PROP));
         }
 
         // Create the initial directory context
@@ -688,7 +691,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
             if ((attrName != null) && (attrValue != null)) {
                 if (usingGroupKey == null) {
-                    if (attrName.equals (ldapProperties.getProperty (
+                    if (attrName.equals (ldapProperties.get (
                             SEARCH_ATTRIBUTE_PROP))) {
                         usingGroupKey = attrValue;
                     }
@@ -705,9 +708,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             mapLDAPToJahiaProperties (groupProps);
             // FIXME : Quick hack for merging Jahia DB group properties with LDAP group
             mapDBToJahiaProperties (groupProps, usingGroupKey);
-            boolean dynamic = groupProps.getProperty("objectClass").indexOf(ldapProperties.getProperty (JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE, "groupOfURLs")) != -1;
+            boolean dynamic = groupProps.getProperty("objectClass").indexOf(StringUtils.defaultString(ldapProperties.get (JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE), "groupOfURLs")) != -1;
             try {
-                if (ldapProperties.getProperty(PRELOAD_GROUP_MEMBERS, "true").equalsIgnoreCase("true")) {
+                if (StringUtils.defaultString(ldapProperties.get(PRELOAD_GROUP_MEMBERS), "true").equalsIgnoreCase("true")) {
                     Map<String, Principal> members = null;
                     try {
                         members = getGroupMembers (sr, dynamic);
@@ -731,7 +734,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         } else {
             logger.debug ("Ignoring entry " + sr.getName () +
                     " because it has no valid " +
-                    ldapProperties.getProperty (SEARCH_ATTRIBUTE_PROP) +
+                    ldapProperties.get (SEARCH_ATTRIBUTE_PROP) +
                     " attribute to be mapped onto user key...");
             return null;
         }
@@ -754,14 +757,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private void mapLDAPToJahiaProperties (Properties groupProps) {
         // copy attribute to standard Jahia properties if they exist both in
         // the mapping and in the repository
-        for (Iterator<?> iterator = ldapProperties.keySet().iterator(); iterator.hasNext();) {
-            String key = (String) iterator.next();
-            if (key.endsWith(".attribute.map")) {
-                String jahiaProperty = key.substring(0,key.length()-14);
-                String curProperty = ldapProperties.getProperty(key);
-                if (groupProps.getProperty (curProperty) != null) {
-                    groupProps.setProperty (jahiaProperty, groupProps.getProperty (curProperty));
-                }
+        for (Map.Entry<String, String> prop : mappedProperties.entrySet()) {
+            if (groupProps.getProperty (prop.getValue()) != null) {
+                groupProps.setProperty (prop.getKey(), groupProps.getProperty (prop.getValue()));
             }
         }
     }
@@ -786,11 +784,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         NamingEnumeration<?> answer = null;
         try {
             if (dynamic) {
-                answer = attr.get (ldapProperties.getProperty (
-                        DYNGROUP_MEMBERS_ATTRIBUTE, "memberurl")).
+                answer = attr.get (StringUtils.defaultString(ldapProperties.get (
+                        DYNGROUP_MEMBERS_ATTRIBUTE), "memberurl")).
                         getAll ();
             } else {
-                answer = attr.get (ldapProperties.getProperty (
+                answer = attr.get (ldapProperties.get (
                         GROUP_MEMBERS_ATTRIBUTE)).
                         getAll ();
             }
@@ -799,13 +797,13 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         }
 
 //        // test if the properties file contains the SEARCH_USER_ATTRIBUTE_NAME value
-//        if (ldapProperties.getProperty(SEARCH_USER_ATTRIBUTE_NAME) == null) {
+//        if (ldapProperties.get(SEARCH_USER_ATTRIBUTE_NAME) == null) {
 //        	logger.error("Missing the attribute type stored in the " + GROUP_MEMBERS_ATTRIBUTE + " group attribute.");
 //        	return members;
 //        }
 
         // EP : 2004-21-07 : refactoring : uses old way if SEARCH_USER_ATTRIBUTE_NAME not defined
-        String searchProperties = ldapProperties.getProperty (SEARCH_USER_ATTRIBUTE_NAME);
+        String searchProperties = ldapProperties.get (SEARCH_USER_ATTRIBUTE_NAME);
         boolean searchUserDefined = (!(searchProperties == null) && (searchProperties.length() > 0));
 
         logger.debug ("Getting members for group, dynamic="+dynamic+", searchUserDefined="+searchUserDefined);
@@ -827,7 +825,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         user = getUserManagerProvider().
                                 lookupUserByKey(userKey,
                                         ldapProperties
-                                        .getProperty (
+                                        .get(
                                         SEARCH_USER_ATTRIBUTE_NAME));
                     } else { // use DN
                         user = getUserManagerProvider()
@@ -869,15 +867,19 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             return null;
     }
 
-    public synchronized JahiaUserManagerLDAPProvider getUserManagerProvider() {
+    public JahiaUserManagerLDAPProvider getUserManagerProvider() {
         if (userProvider == null) {
-            List<? extends JahiaUserManagerProvider> v = jahiaUserManagerService.getProviderList();
-            for (Iterator<? extends JahiaUserManagerProvider> iterator = v.iterator(); iterator.hasNext();) {
-                JahiaUserManagerProvider userManagerProviderBean = (JahiaUserManagerProvider) iterator.next();
-                if (userManagerProviderBean.getClass().getName().equals(JahiaUserManagerLDAPProvider.class.getName())) {
-                    JahiaUserManagerLDAPProvider jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider)userManagerProviderBean;
-                    if (jahiaUserManagerLDAPProvider.getUrl().equals(ldapProperties.get(LDAP_URL_PROP))) {
-                        userProvider = jahiaUserManagerLDAPProvider;
+            synchronized (JahiaGroupManagerLDAPProvider.class) {
+                if (userProvider == null) {
+                    List<? extends JahiaUserManagerProvider> v = jahiaUserManagerService.getProviderList();
+                    for (Iterator<? extends JahiaUserManagerProvider> iterator = v.iterator(); iterator.hasNext();) {
+                        JahiaUserManagerProvider userManagerProviderBean = (JahiaUserManagerProvider) iterator.next();
+                        if (userManagerProviderBean.getClass().getName().equals(JahiaUserManagerLDAPProvider.class.getName())) {
+                            JahiaUserManagerLDAPProvider jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider)userManagerProviderBean;
+                            if (jahiaUserManagerLDAPProvider.getUrl().equals(ldapProperties.get(LDAP_URL_PROP))) {
+                                userProvider = jahiaUserManagerLDAPProvider;
+                            }
+                        }
                     }
                 }
             }
@@ -909,10 +911,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
         StringBuffer filterBuffer = new StringBuffer ();
         filterBuffer.append ("(&(objectclass=");
-        filterBuffer.append (ldapProperties.getProperty (JahiaGroupManagerLDAPProvider.
-                GROUP_OBJECTCLASS_ATTRIBUTE, "groupOfNames"));
+        filterBuffer.append (StringUtils.defaultString(ldapProperties.get (JahiaGroupManagerLDAPProvider.
+                GROUP_OBJECTCLASS_ATTRIBUTE), "groupOfNames"));
         filterBuffer.append (")(");
-        filterBuffer.append (ldapProperties.getProperty (GROUP_MEMBERS_ATTRIBUTE)); //memberUid
+        filterBuffer.append (ldapProperties.get (GROUP_MEMBERS_ATTRIBUTE)); //memberUid
         filterBuffer.append ("="); //=
         filterBuffer.append ( ((JahiaLDAPUser) user).getDN() ); //user
         filterBuffer.append ("))");
@@ -920,7 +922,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         SearchControls searchCtl = new SearchControls ();
         searchCtl.setSearchScope (SearchControls.SUBTREE_SCOPE);
         String[] retattrs = new String[1];
-        retattrs[0] = ldapProperties.getProperty (SEARCH_ATTRIBUTE_PROP);
+        retattrs[0] = ldapProperties.get (SEARCH_ATTRIBUTE_PROP);
         searchCtl.setReturningAttributes (retattrs);
 
         DirContext ctx = null;
@@ -929,7 +931,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             for (SearchResult searchResult : getGroups(ctx, searchCtl, filterBuffer)) {
                 String groupKey = searchResult.
                         getAttributes ().
-                        get (ldapProperties.getProperty (
+                        get (ldapProperties.get (
                                 SEARCH_ATTRIBUTE_PROP)).get ().
                         toString ();
                 result.add ("{ldap}"+groupKey);
@@ -940,28 +942,28 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             filterBuffer = new StringBuffer();
             filterBuffer.append("(objectclass=");
             filterBuffer
-                    .append(ldapProperties
-                            .getProperty(
-                                    JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE,
+                    .append(StringUtils.defaultString(ldapProperties
+                            .get(
+                                    JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE),
                                     "groupOfURLs"));
             filterBuffer.append(")");
 
             searchCtl = new SearchControls();
             searchCtl.setSearchScope(SearchControls.SUBTREE_SCOPE);
             searchCtl.setReturningAttributes(new String[] {
-                    ldapProperties.getProperty(SEARCH_ATTRIBUTE_PROP),
-                    ldapProperties.getProperty(DYNGROUP_MEMBERS_ATTRIBUTE,
+                    ldapProperties.get(SEARCH_ATTRIBUTE_PROP),
+                    StringUtils.defaultString(ldapProperties.get(DYNGROUP_MEMBERS_ATTRIBUTE),
                             "memberurl") });
 
             for (SearchResult sr : getGroups(ctx, searchCtl, filterBuffer)) {
                 Attributes attr = sr.getAttributes();
                 String groupKey = attr.get(
-                        ldapProperties.getProperty(SEARCH_ATTRIBUTE_PROP))
+                        ldapProperties.get(SEARCH_ATTRIBUTE_PROP))
                         .get().toString();
 
                 logger.debug ("groupKey=" + groupKey);
                 NamingEnumeration<?> answer2 = null;
-                Attribute attribute = attr.get (ldapProperties.getProperty (DYNGROUP_MEMBERS_ATTRIBUTE, "memberurl"));
+                Attribute attribute = attr.get (StringUtils.defaultString(ldapProperties.get (DYNGROUP_MEMBERS_ATTRIBUTE), "memberurl"));
                 if (attribute != null) {
                     answer2 = attribute.getAll ();
                     while (answer2.hasMore ()) {
@@ -1022,10 +1024,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             logger.debug("Using filter string [" + filterString + "]...");
         }
         List<SearchResult> answerList = new ArrayList<SearchResult>();
-        String searchNameProp = ldapProperties.getProperty(SEARCH_NAME_PROP);
-        String groupSearchAttributeName = ldapProperties.getProperty(SEARCH_ATTRIBUTE_PROP);
+        String searchNameProp = ldapProperties.get(SEARCH_NAME_PROP);
+        String groupSearchAttributeName = ldapProperties.get(SEARCH_ATTRIBUTE_PROP);
 
-        int rangeStep = Integer.parseInt(ldapProperties.getProperty(AD_RANGE_STEP, "0"));
+        int rangeStep = Integer.parseInt(StringUtils.defaultString(ldapProperties.get(AD_RANGE_STEP), "0"));
         if (rangeStep == 0 || searchCtl.getReturningAttributes() != null) {
             NamingEnumeration<SearchResult> enumeration = ctx.search(searchNameProp, filterString, searchCtl);
             try {
@@ -1035,14 +1037,14 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             } catch (SizeLimitExceededException e) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Search generated more than configured maximum search limit," + " limiting to "
-                            + this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) + " first results...", e);
+                            + this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) + " first results...", e);
                 } else {
                     logger.warn("Search generated more than configured maximum search limit," + " limiting to "
-                            + this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) + " first results...");
+                            + this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) + " first results...");
                 }
             }
         } else {
-            String membersAttribute = ldapProperties.getProperty(GROUP_MEMBERS_ATTRIBUTE);
+            String membersAttribute = ldapProperties.get(GROUP_MEMBERS_ATTRIBUTE);
 
             try {
                 NamingEnumeration<SearchResult> srcResults = ctx.search(searchNameProp, filterString, searchCtl);
@@ -1061,10 +1063,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             } catch (SizeLimitExceededException e) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Search generated more than configured maximum search limit," + " limiting to "
-                            + this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) + " first results...", e);
+                            + this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) + " first results...", e);
                 } else {
                     logger.warn("Search generated more than configured maximum search limit," + " limiting to "
-                            + this.ldapProperties.getProperty(SEARCH_COUNT_LIMIT_PROP) + " first results...");
+                            + this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) + " first results...");
                 }
             }
         }
@@ -1166,7 +1168,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @return Return true on success, or false on any failure.
      */
 
-    public synchronized boolean removeUserFromAllGroups (JahiaUser user) {
+    public boolean removeUserFromAllGroups (JahiaUser user) {
         if (user != null && PROVIDER_NAME.equals(user.getProviderName())) {
             return false;
         }
@@ -1179,20 +1181,20 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * properties. ie *=test* will match every property that starts with "test"
      *
      * @param siteID          site identifier
-     * @param searchCriterias a Properties object that contains search criterias
+     * @param searchcriteria a Properties object that contains search criteria
      *                        in the format name,value (for example "*"="*" or "groupname"="*test*") or
-     *                        null to search without criterias
+     *                        null to search without criteria
      *
      * @return Set a set of JahiaGroup elements that correspond to those
-     *         search criterias, or an empty one if an error has occured. Note this will
+     *         search criteria, or an empty one if an error has occured. Note this will
      *         only return the configured limit of groups at maxium. Check out the
      *         groups.ldap.properties file to change the limit.
      */
-    public Set<JahiaGroup> searchGroups (int siteID, Properties searchCriterias) {
+    public Set<JahiaGroup> searchGroups (int siteID, Properties searchcriteria) {
         Set<JahiaGroup> result = new HashSet<JahiaGroup>();
 
         // first let's lookup the user by the properties in Jahia's DB
-        Set<String> groupKeys = searchLDAPGroupsByDBProperties(siteID, searchCriterias);
+        Set<String> groupKeys = searchLDAPGroupsByDBProperties(siteID, searchcriteria);
         // now that we have the keys, let's load all the users.
         Iterator<String> groupKeyEnum = groupKeys.iterator();
         while (groupKeyEnum.hasNext()) {
@@ -1205,7 +1207,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext ();
-            for (SearchResult sr : getGroups (ctx, searchCriterias)) {
+            for (SearchResult sr : getGroups (ctx, searchcriteria)) {
                 JahiaLDAPGroup group = ldapToJahiaGroup (sr);
                 if (group != null) {
                     result.add (group);
@@ -1213,7 +1215,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
         } catch (SizeLimitExceededException slee) {
             logger.debug ("Search generated more than configured maximum search limit in, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+                    this.ldapProperties.get (SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
         } catch (PartialResultException pre) {
             logger.warn (pre.getMessage(), pre);
@@ -1226,23 +1228,17 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         return result;
     }
 
-    private synchronized Set<String> searchLDAPGroupsByDBProperties (int siteID,
-        Properties searchCriterias) {
-        Set<String> groupKeys = new HashSet<String>();
+    private Set<String> searchLDAPGroupsByDBProperties (int siteID,
+        Properties searchcriteria) {
+        // TODO implement it with jcr properties ..
 
-        if (searchCriterias == null) {
-            searchCriterias = new Properties();
-            searchCriterias.setProperty("*", "*");
-        }
-        //todo implement it with jcr properties ..
-
-        return groupKeys;
+        return Collections.emptySet();
     }
 
     /**
-     * Lookup the group information from the underlaying system (DB, LDAP, ... )
+     * Lookup the group information from the underlying system (DB, LDAP, ... )
      * Try to lookup the group into the cache, if it's not in the cache, then
-     * load it into the cahce from the database.
+     * load it into the cache from the database.
      *
      * EP : 2004/23/07 : big refactoring
      *
@@ -1298,7 +1294,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             group = ldapToJahiaGroup (sr);
         } catch (SizeLimitExceededException slee) {
             logger.warn ("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.getProperty (SEARCH_COUNT_LIMIT_PROP) +
+                    this.ldapProperties.get (SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
             group = null;
         } catch (PartialResultException pre) {
@@ -1327,7 +1323,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             throws NamingException {
         Properties filters = new Properties ();
 
-        filters.setProperty (ldapProperties.getProperty (SEARCH_ATTRIBUTE_PROP),
+        filters.setProperty (ldapProperties.get (SEARCH_ATTRIBUTE_PROP),
                 cn);
         List<SearchResult> answer = getGroups (ctx, filters);
         SearchResult sr = null;
