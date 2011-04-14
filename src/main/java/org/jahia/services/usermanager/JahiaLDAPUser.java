@@ -19,6 +19,7 @@ package org.jahia.services.usermanager;
 
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
+import org.jahia.services.content.JCRContentUtils;
 import org.jahia.services.content.JCRStoreService;
 import org.jahia.services.usermanager.jcr.JCRUser;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
@@ -75,8 +76,8 @@ public class JahiaLDAPUser implements JahiaUser {
     private static final String mLANGUAGES_ORDER_PROP = "language_codes";
     private static final String mLANGUAGES_ORDER_PROP_SEPARATOR = ",";
 
-    private transient JahiaUserManagerLDAPProvider provider;
     private transient boolean propLoaded = false;
+    private String path = null;
 
     /**
      * Create a new JahiaDBUser class instance. The passed in password must
@@ -92,18 +93,17 @@ public class JahiaLDAPUser implements JahiaUser {
      */
     protected JahiaLDAPUser (int id, String name, String password,
                              String userKey, int siteID,
-                           UserProperties properties, String dn, JahiaUserManagerLDAPProvider provider)
+                           UserProperties properties, String dn)
     {
         mID = id;
         mUsername = name;
         mPassword = password;
-        mUserKey = "{"+provider.getKey()+"}" + userKey;
+        mUserKey = "{"+getLDAPProvider().getKey()+"}" + userKey;
         mSiteID = siteID;
         mDn         = dn;
         if (properties != null) {
             mProperties = properties;
         }
-        this.provider = provider;
     }
 
 
@@ -185,7 +185,7 @@ public class JahiaLDAPUser implements JahiaUser {
      */
     public UserProperties getUserProperties() {
         if (!propLoaded ) {
-            provider.mapDBToJahiaProperties(mProperties, getName());
+            getLDAPProvider().mapDBToJahiaProperties(mProperties, this);
             propLoaded = true;
         }
         return mProperties;
@@ -239,7 +239,7 @@ public class JahiaLDAPUser implements JahiaUser {
 
         if ((key != null) && (key.length () > 0) && (!mProperties.isReadOnly(key))) {
             JCRUserManagerProvider userManager = (JCRUserManagerProvider) SpringContextSingleton.getBean("JCRUserManagerProvider");
-            JCRUser jcrUser = (JCRUser) userManager.lookupExternalUser(getName());
+            JCRUser jcrUser = (JCRUser) userManager.lookupExternalUser(this);
             if(jcrUser!=null) {
                 jcrUser.removeProperty(key);
                 result = true;
@@ -294,12 +294,12 @@ public class JahiaLDAPUser implements JahiaUser {
         if ((key != null) && (value != null) && (!mProperties.isReadOnly(key))) {
             // Remove these lines if LDAP problem --------------------
             JCRUserManagerProvider userManager = (JCRUserManagerProvider) SpringContextSingleton.getBean("JCRUserManagerProvider");
-            JCRUser jcrUser = (JCRUser) userManager.lookupExternalUser(getName());
+            JCRUser jcrUser = (JCRUser) userManager.lookupExternalUser(this);
             if (jcrUser == null) {
                 // deploy
                 try {
-                    JCRStoreService.getInstance().deployExternalUser(getName(), getProviderName());
-                    jcrUser = (JCRUser) userManager.lookupExternalUser(getName());
+                    JCRStoreService.getInstance().deployExternalUser(this);
+                    jcrUser = (JCRUser) userManager.lookupExternalUser(this);
                 } catch (RepositoryException e) {
                     logger.error("Error deploying external user '" + getName() + "' for provider '" + getProviderName()
                             + "' into JCR repository. Cause: " + e.getMessage(), e);
@@ -391,7 +391,7 @@ public class JahiaLDAPUser implements JahiaUser {
 				// parameter
 				// forward to the ldap authN in case of there was a ldap
 				// password change from the last user's visit.
-				boolean loginResult = provider.login(mUserKey, password);
+				boolean loginResult = getLDAPProvider().login(mUserKey, password);
 				if (loginResult) {
 					/**
 					 * @todo here we must now update the properties of the user
@@ -407,6 +407,10 @@ public class JahiaLDAPUser implements JahiaUser {
 
 		}
         return false;
+    }
+
+    private JahiaUserManagerLDAPProvider getLDAPProvider() {
+        return ((JahiaUserManagerLDAPProvider) SpringContextSingleton.getModuleBean("jahiaUserLDAPProvider"));
     }
 
     /**
@@ -515,4 +519,10 @@ public class JahiaLDAPUser implements JahiaUser {
         return JahiaUserManagerLDAPProvider.PROVIDER_NAME;
     }
 
+    public String getLocalPath() {
+        if (path == null) {
+            path = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getPathForUsername(getUsername());
+        }
+        return path;
+    }
 }

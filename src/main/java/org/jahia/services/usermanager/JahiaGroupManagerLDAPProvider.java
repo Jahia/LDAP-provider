@@ -718,13 +718,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         logger.warn ("JNDI warning",ne);
                     }
 
-                    group = new JahiaLDAPGroup (0, usingGroupKey, usingGroupKey, 0,
-                            members,
-                            groupProps, dynamic, true, this);
+                    group = new JahiaLDAPGroup (0, usingGroupKey, usingGroupKey, 0, members, groupProps, dynamic, true);
                 } else {
-                    group = new JahiaLDAPGroup (0, usingGroupKey, usingGroupKey, 0,
-                            null,
-                            groupProps, dynamic, false, this);
+                    group = new JahiaLDAPGroup (0, usingGroupKey, usingGroupKey, 0, null, groupProps, dynamic, false);
                 }
                 return group;
             } catch (JahiaException e) {

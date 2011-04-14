@@ -882,7 +882,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     usingUserKey,
                     0,
                     userProps,
-                    dn, this);
+                    dn);
         } else {
             logger.debug("Ignoring entry " + dn +
                     " because it has no valid " +
@@ -936,7 +936,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @param usingUserKey the user whose the properties has to be extracted.
      */
     public void mapDBToJahiaProperties(UserProperties userProps,
-                                       String usingUserKey) {
+                                       JahiaLDAPUser usingUserKey) {
         JahiaUser jahiaUser = jcrUserManagerProvider.lookupExternalUser(usingUserKey);
         if (jahiaUser != null) {
             userProps.putAll(jahiaUser.getUserProperties());

@@ -69,8 +69,6 @@ public class JahiaLDAPGroup extends JahiaGroup {
     // LDAP dynamic group (groupOfURLs)
     private boolean dynamic;
 
-    private JahiaGroupManagerLDAPProvider myProvider;
-
     /**
      * 
      *
@@ -81,7 +79,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
      * @param dynamic
      */
     protected JahiaLDAPGroup (int id, String groupname, String groupKey, int siteID,
-                              Map<String, Principal> members, Properties properties, boolean dynamic, boolean preloadedGroups, JahiaGroupManagerLDAPProvider provider)
+                              Map<String, Principal> members, Properties properties, boolean dynamic, boolean preloadedGroups)
             throws JahiaException {
         ServicesRegistry registry = ServicesRegistry.getInstance ();
         if (registry == null) {
@@ -92,7 +90,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
 
         mID = id;
         mGroupname = groupname;
-        mGroupKey ="{"+provider.getKey()+"}"+ groupKey;
+        mGroupKey ="{"+getLDAPProvider().getKey()+"}"+ groupKey;
         mSiteID = siteID;
 
         if (preloadedGroups || members != null && members.size() >  0) {
@@ -105,9 +103,11 @@ public class JahiaLDAPGroup extends JahiaGroup {
         }
         this.dynamic = dynamic;
         this.preloadedGroups = preloadedGroups;
-        this.myProvider = provider;        
     }
 
+    private JahiaGroupManagerLDAPProvider getLDAPProvider() {
+        return ((JahiaGroupManagerLDAPProvider) SpringContextSingleton.getModuleBean("jahiaGroupLDAPProvider"));
+    }
 
     /**
      * Returns the group's home page id.
@@ -282,7 +282,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
             return true;
         }
         if (!preloadedGroups && user instanceof JahiaUser) {
-            boolean result = myProvider.getUserMembership((JahiaUser)principal).contains(getGroupKey());
+            boolean result = getLDAPProvider().getUserMembership((JahiaUser)principal).contains(getGroupKey());
             membership.put(JahiaUserManagerService.getKey(principal), Boolean.valueOf(result));
             return result;
         }
@@ -292,7 +292,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
    @Override
     protected Set<Principal> getMembersMap() {
         if (mMembers == null) {
-            mMembers = new HashSet<Principal>(myProvider.getGroupMembers(getGroupname(), isDynamic()).values());
+            mMembers = new HashSet<Principal>(getLDAPProvider().getGroupMembers(getGroupname(), isDynamic()).values());
             preloadedGroups = true;
         }
         return mMembers;
