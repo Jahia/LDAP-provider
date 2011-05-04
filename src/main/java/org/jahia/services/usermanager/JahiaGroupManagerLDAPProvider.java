@@ -95,46 +95,50 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public static final String ADMINISTRATORS_GROUPNAME = null;
     public static final String GUEST_GROUPNAME = null;
 
-    public static final String PROVIDER_NAME = "ldap";
-
     /** logging */
     private static Logger logger = LoggerFactory.getLogger (JahiaGroupManagerLDAPProvider.class);
 
-    private static String CONTEXT_FACTORY_PROP = "context.factory";
-    private static String LDAP_URL_PROP = "url";
-    private static String AUTHENTIFICATION_MODE_PROP = "authentification.mode";
-    private static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
-    private static String PUBLIC_BIND_PASSWORD_PROP = "public.bind.password";
+    public static String CONTEXT_FACTORY_PROP = "context.factory";
+    public static String LDAP_URL_PROP = "url";
+    public static String AUTHENTIFICATION_MODE_PROP = "authentification.mode";
+    public static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
+    public static String PUBLIC_BIND_PASSWORD_PROP = "public.bind.password";
 
-    private static String PRELOAD_GROUP_MEMBERS = "preload";
+    public static String PRELOAD_GROUP_MEMBERS = "preload";
 
-    private static String SEARCH_ATTRIBUTE_PROP = "search.attribute";
-    private static String SEARCH_NAME_PROP = "search.name";
-    private static String GROUP_OBJECTCLASS_ATTRIBUTE = "search.objectclass";
-    private static String DYNGROUP_OBJECTCLASS_ATTRIBUTE = "dynamic.search.objectclass";
+    public static String SEARCH_ATTRIBUTE_PROP = "search.attribute";
+    public static String SEARCH_NAME_PROP = "search.name";
+    public static String GROUP_OBJECTCLASS_ATTRIBUTE = "search.objectclass";
+    public static String DYNGROUP_OBJECTCLASS_ATTRIBUTE = "dynamic.search.objectclass";
 
-    private static String SEARCH_COUNT_LIMIT_PROP = "search.countlimit";
-    private static String SEARCH_WILDCARD_ATTRIBUTE_LIST = "search.wildcards.attributes";
+    public static String SEARCH_COUNT_LIMIT_PROP = "search.countlimit";
+    public static String SEARCH_WILDCARD_ATTRIBUTE_LIST = "search.wildcards.attributes";
 
-    private static String GROUP_MEMBERS_ATTRIBUTE = "members.attribute";
-    private static String DYNGROUP_MEMBERS_ATTRIBUTE = "dynamic.members.attribute";
+    public static String GROUP_MEMBERS_ATTRIBUTE = "members.attribute";
+    public static String DYNGROUP_MEMBERS_ATTRIBUTE = "dynamic.members.attribute";
 
-    private static String LDAP_REFFERAL_PROP = "refferal";
-    private static String USE_CONNECTION_POOL = "ldap.connect.pool";
+    public static String LDAP_REFFERAL_PROP = "refferal";
+    public static String USE_CONNECTION_POOL = "ldap.connect.pool";
 
     public static String CONNECTION_TIMEOUT = "ldap.connect.timeout";
 
-    private static String AD_RANGE_STEP = "ad.range.step";    
+    public static String AD_RANGE_STEP = "ad.range.step";    
     
     /**
      * Added to handle the fact that the attribute used to define group users is
      * not always a DN or named as a DN...
      */
-    private static String SEARCH_USER_ATTRIBUTE_NAME = "members.user.attibute.map";
+    public static String SEARCH_USER_ATTRIBUTE_NAME = "members.user.attibute.map";
+
+    public static final String DEFAULT_CTX_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
+    
+    public static final String DEFAULT_AUTHENTIFICATION_MODE = "simple";
 
     private Cache<String, JahiaGroup> mProvidersGroupCache;
 
     private Map<String, String> ldapProperties = null;
+
+    private Map<String, String> defaultLdapProperties = null;
 
     private Map<String, String> mappedProperties = null;
 
@@ -150,7 +154,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     private JahiaUserManagerService jahiaUserManagerService;
 
-// -------------------------- STATIC METHODS --------------------------
+    private Map<String, String> overridenLdapProperties;
+
+    // -------------------------- STATIC METHODS --------------------------
 
     private static boolean containsMembersRange(Attributes attrs,
             String membersAttribute) throws NamingException {
@@ -287,17 +293,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         this.jahiaUserManagerService = jahiaUserManagerService;
     }
 
-    public void setLdapProperties(Map<Object, Object> ldapProperties) {
-        this.ldapProperties = new HashMap<String, String>(ldapProperties.size());
-        this.mappedProperties = new HashMap<String, String>();
-        for (Object key : ldapProperties.keySet()) {
-            String keyString = key.toString();
-            String value = ldapProperties.get(keyString) != null ? ldapProperties.get(keyString).toString() : null;
-            this.ldapProperties.put(keyString, value);
-            if (keyString.endsWith(".attribute.map")) {
-                mappedProperties.put(StringUtils.substringBeforeLast(keyString, ".attribute.map"), value);
-            }
-        }
+    public void setLdapProperties(Map<String, String> ldapProperties) {
+        overridenLdapProperties = ldapProperties;
     }
 
     public void start() throws JahiaInitializationException {
@@ -632,11 +629,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 ldapProperties.get (LDAP_URL_PROP) + "...");
         Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
         publicEnv.put (Context.INITIAL_CONTEXT_FACTORY,
-                ldapProperties.get (CONTEXT_FACTORY_PROP));
+                StringUtils.defaultString(ldapProperties.get(CONTEXT_FACTORY_PROP), DEFAULT_CTX_FACTORY));
         publicEnv.put (Context.PROVIDER_URL,
                 ldapProperties.get (LDAP_URL_PROP));
         publicEnv.put (Context.SECURITY_AUTHENTICATION,
-                ldapProperties.get (AUTHENTIFICATION_MODE_PROP));
+                StringUtils.defaultString(ldapProperties.get (AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
         publicEnv.put (Context.SECURITY_PRINCIPAL,
                 ldapProperties.get (PUBLIC_BIND_DN_PROP));
         publicEnv.put (Context.REFERRAL,
@@ -723,7 +720,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             // FIXME : Quick hack for merging Jahia DB group properties with LDAP group
             mapDBToJahiaProperties (groupProps, usingGroupKey);
             boolean dynamic = groupProps.getProperty("objectClass").indexOf(StringUtils.defaultString(ldapProperties.get (JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE), "groupOfURLs")) != -1;
-            try {
                 if (StringUtils.defaultString(ldapProperties.get(PRELOAD_GROUP_MEMBERS), "true").equalsIgnoreCase("true")) {
                     Map<String, Principal> members = null;
                     try {
@@ -732,15 +728,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         logger.warn ("JNDI warning",ne);
                     }
 
-                    group = new JahiaLDAPGroup (0, usingGroupKey, usingGroupKey, 0, members, groupProps, dynamic, true);
+                    group = new JahiaLDAPGroup (getKey(), 0, usingGroupKey, usingGroupKey, 0, members, groupProps, dynamic, true);
                 } else {
-                    group = new JahiaLDAPGroup (0, usingGroupKey, usingGroupKey, 0, null, groupProps, dynamic, false);
+                    group = new JahiaLDAPGroup (getKey(), 0, usingGroupKey, usingGroupKey, 0, null, groupProps, dynamic, false);
                 }
                 return group;
-            } catch (JahiaException e) {
-                logger.warn (e.getMessage(), e);
-                return null;
-            }
         } else {
             logger.debug ("Ignoring entry " + sr.getName () +
                     " because it has no valid " +
@@ -1179,7 +1171,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      */
 
     public boolean removeUserFromAllGroups (JahiaUser user) {
-        if (user != null && PROVIDER_NAME.equals(user.getProviderName())) {
+        if (user != null && getKey().equals(user.getProviderName())) {
             return false;
         }
         return true;
@@ -1357,4 +1349,33 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         mProvidersGroupCache.put ("n"+jahiaGroup.getSiteID()+"_"+jahiaGroup.getGroupname(), jahiaGroup);
     }
 
+    public Map<String, String> getLdapProperties() {
+        return ldapProperties;
+    }
+
+    public void setDefaultLdapProperties(Map<String, String> defaultLdapProperties) {
+        this.defaultLdapProperties = defaultLdapProperties;
+    }
+    
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (defaultLdapProperties == null) {
+            defaultLdapProperties = new HashMap<String, String>();
+        }
+         
+        ldapProperties = defaultLdapProperties != null ? new HashMap<String, String>(defaultLdapProperties) : new HashMap<String, String>();
+        if (overridenLdapProperties != null) {
+            ldapProperties.putAll(overridenLdapProperties);
+        }
+
+        this.mappedProperties = new HashMap<String, String>();
+        for (Map.Entry<String, String> entry : ldapProperties.entrySet()) {
+            if (entry.getKey().endsWith(".attribute.map")) {
+                mappedProperties.put(StringUtils.substringBeforeLast(entry.getKey(),
+                        ".attribute.map"), entry.getValue());
+            }
+        }
+        
+        super.afterPropertiesSet();
+    }
 }

@@ -34,7 +34,6 @@ package org.jahia.services.usermanager;
 
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.content.JCRContentUtils;
 import org.jahia.services.content.JCRStoreService;
 import org.jahia.services.usermanager.jcr.JCRUser;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
@@ -56,8 +55,6 @@ import javax.jcr.RepositoryException;
  * @version 1.0
  */
 public class JahiaLDAPUser implements JahiaUser {
-    private static Logger logger = LoggerFactory.getLogger (JahiaLDAPUser.class);
-
     private static final long serialVersionUID = 949596639726348808L;
 
     /** User unique identification number in the database. */
@@ -84,9 +81,6 @@ public class JahiaLDAPUser implements JahiaUser {
     /** User additional parameters. */
     private UserProperties mProperties = new UserProperties ();
 
-    /** User home page property * */
-    private static final String mHOMEPAGE_PROP = "user_homepage";
-
     // language property constants
     private static final String mLANGUAGES_ORDER_PROP = "language_codes";
     private static final String mLANGUAGES_ORDER_PROP_SEPARATOR = ",";
@@ -94,26 +88,30 @@ public class JahiaLDAPUser implements JahiaUser {
     private transient boolean propLoaded = false;
     private String path = null;
 
+    private String providerKey;
+
     /**
      * Create a new JahiaDBUser class instance. The passed in password must
-     * already be encrypted, no ecryption will be done. If the passed in
+     * already be encrypted, no encryption will be done. If the passed in
      * properties is null, then the user will have no additional parameter than
      * it's id, name and password.
      *
+     * @param providerKey the provider key
      * @param id         User unique identification number.
      * @param name       User identification name.
      * @param password   User password.
      *                   The site id
      * @param properties User properties.
      */
-    protected JahiaLDAPUser (int id, String name, String password,
+    protected JahiaLDAPUser (String providerKey, int id, String name, String password,
                              String userKey, int siteID,
                            UserProperties properties, String dn)
     {
+        this.providerKey = providerKey;
         mID = id;
         mUsername = name;
         mPassword = password;
-        mUserKey = "{"+getLDAPProvider().getKey()+"}" + userKey;
+        mUserKey = "{"+providerKey+"}" + userKey;
         mSiteID = siteID;
         mDn         = dn;
         if (properties != null) {
@@ -316,7 +314,7 @@ public class JahiaLDAPUser implements JahiaUser {
                     JCRStoreService.getInstance().deployExternalUser(this);
                     jcrUser = (JCRUser) userManager.lookupExternalUser(this);
                 } catch (RepositoryException e) {
-                    logger.error("Error deploying external user '" + getName() + "' for provider '" + getProviderName()
+                    LoggerFactory.getLogger (JahiaLDAPUser.class).error("Error deploying external user '" + getName() + "' for provider '" + getProviderName()
                             + "' into JCR repository. Cause: " + e.getMessage(), e);
                 }
             }
@@ -330,53 +328,12 @@ public class JahiaLDAPUser implements JahiaUser {
                 try {
                     mProperties.setProperty(key, value);
                 } catch (UserPropertyReadOnlyException uproe) {
-                    logger.warn("Cannot set read-only property " + key);
+                    LoggerFactory.getLogger (JahiaLDAPUser.class).warn("Cannot set read-only property " + key);
                 }
                 ServicesRegistry.getInstance().getJahiaUserManagerService().updateCache(this);
             }
         }
         return result;
-    }
-
-    //-------------------------------------------------------------------------
-    /**
-     * Returns the user's home page id.
-     * -1 : undefined
-     *
-     * @return int The user homepage id.
-     */
-    public int getHomepageID () {
-
-        if (getUserProperties() != null) {
-
-            try {
-                // Get the home page from the Jahia DB.
-                // By default an external user is represented with a -1 user ID.
-                String value = mProperties.getProperty (mHOMEPAGE_PROP);
-                if (value == null) {
-                    return -1;
-                }
-                return Integer.parseInt (value);
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        }
-        return -1;
-    }
-
-    //-------------------------------------------------------------------------
-    /**
-     * Set the home page id.
-     *
-     * @param id The user homepage id.
-     *
-     * @return false on error
-     */
-    public boolean setHomepageID (int id) {
-
-        // Set the home page into the Jahia DB.
-        // By default an external user is represented with a -1 user ID.
-        return setProperty (mHOMEPAGE_PROP, String.valueOf (id));
     }
 
     public List<String> getGroups() {
@@ -424,8 +381,8 @@ public class JahiaLDAPUser implements JahiaUser {
         return false;
     }
 
-    private JahiaUserManagerLDAPProvider getLDAPProvider() {
-        return ((JahiaUserManagerLDAPProvider) SpringContextSingleton.getModuleBean("jahiaUserLDAPProvider"));
+    protected JahiaUserManagerLDAPProvider getLDAPProvider() {
+        return (JahiaUserManagerLDAPProvider) ServicesRegistry.getInstance().getJahiaUserManagerService().getProvider(providerKey);
     }
 
     /**
@@ -531,7 +488,7 @@ public class JahiaLDAPUser implements JahiaUser {
      * @return String representation of the name of the provider of this user
      */
     public String getProviderName () {
-        return JahiaUserManagerLDAPProvider.PROVIDER_NAME;
+        return providerKey;
     }
 
     public String getLocalPath() {

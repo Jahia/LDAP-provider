@@ -111,8 +111,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
     // ------------------------------ FIELDS ------------------------------
 
-    public static final String PROVIDER_NAME = "ldap";
-
     // the LDAP User cache name.
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
 
@@ -136,33 +134,39 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     private static Logger logger = LoggerFactory.getLogger(JahiaUserManagerLDAPProvider.class);
 
-    private static String CONTEXT_FACTORY_PROP = "context.factory";
-    private static String LDAP_URL_PROP = "url";
-    private static String AUTHENTIFICATION_MODE_PROP =
+    public static String CONTEXT_FACTORY_PROP = "context.factory";
+    public static String LDAP_URL_PROP = "url";
+    public static String AUTHENTIFICATION_MODE_PROP =
             "authentification.mode";
-    private static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
-    private static String PUBLIC_BIND_PASSWORD_PROP =
+    public static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
+    public static String PUBLIC_BIND_PASSWORD_PROP =
             "public.bind.password";
 
-    private static String UID_SEARCH_ATTRIBUTE_PROP =
+    public static String UID_SEARCH_ATTRIBUTE_PROP =
             "uid.search.attribute";
-    private static String UID_SEARCH_NAME_PROP = "uid.search.name";
-    private static String USERS_OBJECTCLASS_ATTRIBUTE =
+    public static String UID_SEARCH_NAME_PROP = "uid.search.name";
+    public static String USERS_OBJECTCLASS_ATTRIBUTE =
             "search.objectclass";
 
-    private static String LDAP_REFFERAL_PROP = "refferal";
-    private static String SEARCH_COUNT_LIMIT_PROP =
+    public static String LDAP_REFFERAL_PROP = "refferal";
+    public static String SEARCH_COUNT_LIMIT_PROP =
             "search.countlimit";
-    private static String SEARCH_WILDCARD_ATTRIBUTE_LIST =
+    public static String SEARCH_WILDCARD_ATTRIBUTE_LIST =
             "search.wildcards.attributes";
 
-    private static String LDAP_USERNAME_ATTRIBUTE =
+    public static String LDAP_USERNAME_ATTRIBUTE =
             "username.attribute.map";
-    private static String USE_CONNECTION_POOL = "ldap.connect.pool";
+    public static String USE_CONNECTION_POOL = "ldap.connect.pool";
 
     public static String CONNECTION_TIMEOUT = "ldap.connect.timeout";
 
+    public static final String DEFAULT_CTX_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
+
+    public static final String DEFAULT_AUTHENTIFICATION_MODE = "simple";
+
     private Map<String, String> ldapProperties = null;
+
+    private Map<String, String> defaultLdapProperties = null;
 
     private Map<String, String> mappedProperties = null;
 
@@ -174,6 +178,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     //(-PredragV-) private JahiaGroupManagerDBService    groupService = null;
     private CacheService cacheService = null;
     private JCRUserManagerProvider jcrUserManagerProvider;
+
+    private Map<String, String> overridenLdapProperties;
 
 // --------------------------- CONSTRUCTORS ---------------------------
 
@@ -199,30 +205,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         this.jcrUserManagerProvider = jcrUserManagerProvider;
     }
 
-    public void setLdapProperties(Properties ldapProperties) {
-        if (!ldapProperties.containsKey(LDAP_USERNAME_ATTRIBUTE)) {
-            ldapProperties.put(LDAP_USERNAME_ATTRIBUTE,
-                    ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));
-        }
-
-        this.ldapProperties = new HashMap<String, String>();
-        this.mappedProperties = new HashMap<String, String>();
-        for (Object key : ldapProperties.keySet()) {
-            String keyString = key.toString();
-            String value = ldapProperties.getProperty(keyString);
-            this.ldapProperties.put(keyString, value);
-            if (keyString.endsWith(".attribute.map")) {
-                mappedProperties.put(StringUtils.substringBeforeLast(keyString,
-                        ".attribute.map"), value);
-            }
-        }
+    public void setLdapProperties(Map<String, String> ldapProperties) {
+        this.overridenLdapProperties = ldapProperties;
     }
 
     // -------------------------- OTHER METHODS --------------------------
 
     public void start() throws JahiaInitializationException {
         mUserCache = cacheService.getCache(LDAP_USER_CACHE
-                + (PROVIDER_NAME.equals(getKey()) ? "" : "-" + getKey()), true);
+                + "-" + getKey(), true);
         mProvidersUserCache = cacheService.getCache(PROVIDERS_USER_CACHE, true);
 
         String wildCardAttributeStr = ldapProperties.get(
@@ -532,11 +523,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
         Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
         publicEnv.put(Context.INITIAL_CONTEXT_FACTORY,
-                ldapProperties.get(CONTEXT_FACTORY_PROP));
+                StringUtils.defaultString(ldapProperties.get(CONTEXT_FACTORY_PROP), DEFAULT_CTX_FACTORY));
         publicEnv.put(Context.PROVIDER_URL,
                 ldapProperties.get(LDAP_URL_PROP));
         publicEnv.put(Context.SECURITY_AUTHENTICATION,
-                ldapProperties.get(AUTHENTIFICATION_MODE_PROP));
+                StringUtils.defaultString(ldapProperties.get (AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
         publicEnv.put(Context.SECURITY_PRINCIPAL,
                 ldapProperties.get(PUBLIC_BIND_DN_PROP));
         publicEnv.put(Context.REFERRAL,
@@ -663,11 +654,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         // Identify service provider to use
         Hashtable<String, String> privateEnv = new Hashtable<String, String>(11);
         privateEnv.put(Context.INITIAL_CONTEXT_FACTORY,
-                ldapProperties.get(CONTEXT_FACTORY_PROP));
+                StringUtils.defaultString(ldapProperties.get(CONTEXT_FACTORY_PROP), DEFAULT_CTX_FACTORY));
         privateEnv.put(Context.PROVIDER_URL,
                 ldapProperties.get(LDAP_URL_PROP));
         privateEnv.put(Context.SECURITY_AUTHENTICATION,
-                ldapProperties.get(AUTHENTIFICATION_MODE_PROP));
+                StringUtils.defaultString(ldapProperties.get (AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
         privateEnv.put(Context.SECURITY_PRINCIPAL, dn);
         privateEnv.put(Context.SECURITY_CREDENTIALS,
                 personPassword);
@@ -890,7 +881,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
 
             userProps = mapLDAPToJahiaProperties(userProps);
-            user = new JahiaLDAPUser(0,
+            user = new JahiaLDAPUser(getKey(), 0,
                     name,
                     "",
                     usingUserKey,
@@ -1182,4 +1173,37 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return user;
     }
 
+    public Map<String, String> getLdapProperties() {
+        return ldapProperties;
+    }
+
+    public void setDefaultLdapProperties(Map<String, String> globalLdapProperties) {
+        this.defaultLdapProperties = globalLdapProperties;
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        if (defaultLdapProperties == null) {
+            defaultLdapProperties = new HashMap<String, String>();
+        }
+         
+        ldapProperties = defaultLdapProperties != null ? new HashMap<String, String>(defaultLdapProperties) : new HashMap<String, String>();
+        if (overridenLdapProperties != null) {
+            ldapProperties.putAll(overridenLdapProperties);
+        }
+        if (!ldapProperties.containsKey(LDAP_USERNAME_ATTRIBUTE)) {
+            ldapProperties.put(LDAP_USERNAME_ATTRIBUTE,
+                    ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));
+        }
+
+        this.mappedProperties = new HashMap<String, String>();
+        for (Map.Entry<String, String> entry : ldapProperties.entrySet()) {
+            if (entry.getKey().endsWith(".attribute.map")) {
+                mappedProperties.put(StringUtils.substringBeforeLast(entry.getKey(),
+                        ".attribute.map"), entry.getValue());
+            }
+        }
+        
+        super.afterPropertiesSet();
+    }
 }

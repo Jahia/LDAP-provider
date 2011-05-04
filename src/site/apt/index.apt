@@ -16,8 +16,8 @@ Jahia LDAP Connector
 +------------------------------------------------
   META-INF
      | + spring
-     |     | - users.xml
-     |     | - groups.xml
+     |     | - users-ldap.xml
+     |     | - groups-ldap.xml
      | - MANIFEST.MF
 +------------------------------------------------
    
@@ -39,7 +39,7 @@ Jahia LDAP Connector
   
   All other attributes in <<<MANIFEST.MF>>> file are optional.  
 
-  [[3]] LDAP user provide configuration in <<<users.xml>>>
+  [[3]] LDAP user provide configuration in <<<users-ldap.xml>>>
   
   The file contains a Spring bean definition for the user provider as follows:
   
@@ -52,22 +52,10 @@ Jahia LDAP Connector
     <bean parent="JahiaUserManagerLDAPProvider">
         <property name="ldapProperties">
             <map>
-                <entry key="context.factory" value="com.sun.jndi.ldap.LdapCtxFactory"/>
                 <entry key="url" value="ldap://127.0.0.1:389/"/>
-                <entry key="authentification.mode" value="simple"/>
                 <entry key="public.bind.dn" value=""/>
                 <entry key="public.bind.password" value=""/>
-                <entry key="uid.search.attribute" value="cn"/>
                 <entry key="uid.search.name" value="dc=jahia"/>
-                <entry key="search.countlimit" value="100"/>
-                <entry key="search.objectclass" value="person"/>
-                <entry key="search.wildcards.attributes" value="ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn"/>
-                <entry key="j:firstName.attribute.map" value="givenName"/>
-                <entry key="j:lastName.attribute.map" value="sn"/>
-                <entry key="j:email.attribute.map" value="mail"/>
-                <entry key="j:organization.attribute.map" value="ou"/>
-                <entry key="ldap.connect.pool" value="true"/>
-                <entry key="ldap.connect.timeout" value="5000"/>
             </map>
         </property>
     </bean>
@@ -77,7 +65,8 @@ Jahia LDAP Connector
   
   The bean has <<<JahiaUserManagerLDAPProvider>>> as its parent and should override
   at least the <<<ldapProperties>>> property to properly configure connector and
-  LDAP attribute mapping. See {{{User} property reference}} for more details.
+  LDAP attribute mapping. Default LDAP parameter values are defined in parent and
+  can be overridden in the <<<ldapProperties>>> map. See {{{User} property reference}} for more details.
   
   In case multiple LDAP user providers are used, additionally two properties need to
   be provided to specify a unique provider key and a priority (lookup sequence):
@@ -94,10 +83,10 @@ Jahia LDAP Connector
 +------------------------------------------------
   
   
-  The <<<users.xml>>> file name is arbitrary and the file itself can be omitted,
+  The <<<users-ldap.xml>>> file name is arbitrary and the file itself can be omitted,
   if no LDAP user provider is needed.
 
-  [[4]] LDAP user group provide configuration in <<<group.xml>>>
+  [[4]] LDAP user group provide configuration in <<<groups-ldap.xml>>>
   
   The file contains a Spring bean definition for the user group provider as follows:
   
@@ -110,25 +99,10 @@ Jahia LDAP Connector
     <bean parent="JahiaGroupManagerLDAPProvider">
         <property name="ldapProperties">
             <map>
-                <entry key="context.factory" value="com.sun.jndi.ldap.LdapCtxFactory"/>
                 <entry key="url" value="ldap://127.0.0.1:389/"/>
-                <entry key="authentification.mode" value="simple"/>
                 <entry key="public.bind.dn" value=""/>
                 <entry key="public.bind.password" value=""/>
-                <entry key="search.attribute" value="cn"/>
                 <entry key="search.name" value="dc=jahia"/>
-                <entry key="search.countlimit" value="100"/>
-                <entry key="search.objectclass" value="groupOfUniqueNames"/>
-                <entry key="members.attribute" value="uniqueMember"/>
-                <entry key="dynamic.search.objectclass" value="groupOfURLs"/>
-                <entry key="dynamic.members.attribute" value="memberurl"/>
-                <entry key="preload" value="false"/>
-                <entry key="search.wildcards.attributes" value="cn,description,uniqueMember"/>
-                <entry key="groupname.attribute.map" value="cn"/>
-                <entry key="description.attribute.map" value="description"/>
-                <entry key="ad.range.step" value="0"/>
-                <entry key="ldap.connect.pool" value="true"/>
-                <entry key="ldap.connect.timeout" value="5000"/>                
             </map>
         </property>
     </bean>
@@ -138,7 +112,8 @@ Jahia LDAP Connector
   
   The bean has <<<JahiaGroupManagerLDAPProvider>>> as its parent and should override
   at least the <<<ldapProperties>>> property to properly configure connector and
-  LDAP attribute mapping. See {{{group} property reference}} for more details.
+  LDAP attribute mapping. Default LDAP parameter values are defined in parent and
+  can be overridden in the <<<ldapProperties>>> map. See {{{group} property reference}} for more details.
   
   In case multiple LDAP user group providers are used, additionally two properties need to
   be provided to specify a unique provider key and a priority (lookup sequence):
@@ -155,7 +130,7 @@ Jahia LDAP Connector
 +------------------------------------------------
   
   
-  The <<<groups.xml>>> file name is arbitrary and the file itself can be omitted,
+  The <<<groups-ldap.xml>>> file name is arbitrary and the file itself can be omitted,
   if no LDAP user provider is needed.
 
   [[5]] Zip the content of your module into a file with <<<.war>>>, e.g. <<<my-custom-ldap-provider.war>>>

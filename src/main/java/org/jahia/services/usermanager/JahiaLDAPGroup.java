@@ -38,8 +38,6 @@ import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.security.Principal;
 import java.util.HashSet;
@@ -63,9 +61,6 @@ public class JahiaLDAPGroup extends JahiaGroup {
     
 	private static final long serialVersionUID = -2201602968581239379L;
 
-	private static final transient Logger logger = LoggerFactory
-            .getLogger(JahiaLDAPGroup.class);
-
     /** Group's unique identification number */
     protected int mID;
 
@@ -75,14 +70,13 @@ public class JahiaLDAPGroup extends JahiaGroup {
     /** Group Member type designation * */
     protected static int mGROUPTYPE = 2;
 
-    /** Group home page property * */
-    private static final String mHOMEPAGE_PROP = "group_homepage";
-
     /** Group additional parameters. */
     private Properties mProperties = new Properties ();
 
     // LDAP dynamic group (groupOfURLs)
     private boolean dynamic;
+
+    private String providerKey;
 
     /**
      * 
@@ -90,22 +84,17 @@ public class JahiaLDAPGroup extends JahiaGroup {
      * @throws JahiaException This class need to access the Services Registry and the DB Pool
      *                        Service. If any of this services can't be accessed, a
      *                        JahiaException is thrown.
+     * @param providerKey the provider key
      * @param	siteID The site id
      * @param dynamic
      */
-    protected JahiaLDAPGroup (int id, String groupname, String groupKey, int siteID,
-                              Map<String, Principal> members, Properties properties, boolean dynamic, boolean preloadedGroups)
-            throws JahiaException {
-        ServicesRegistry registry = ServicesRegistry.getInstance ();
-        if (registry == null) {
-            throw new JahiaException ("Jahia Internal Error",
-                    "JahiaLDAPGroup Could not get the Service Registry instance",
-                    JahiaException.SERVICE_ERROR, JahiaException.CRITICAL_SEVERITY);
-        }
+    protected JahiaLDAPGroup (String providerKey, int id, String groupname, String groupKey, int siteID,
+                              Map<String, Principal> members, Properties properties, boolean dynamic, boolean preloadedGroups) {
 
+        this.providerKey = providerKey;
         mID = id;
         mGroupname = groupname;
-        mGroupKey ="{"+getLDAPProvider().getKey()+"}"+ groupKey;
+        mGroupKey ="{"+providerKey+"}"+ groupKey;
         mSiteID = siteID;
 
         if (preloadedGroups || members != null && members.size() >  0) {
@@ -121,42 +110,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
     }
 
     private JahiaGroupManagerLDAPProvider getLDAPProvider() {
-        return ((JahiaGroupManagerLDAPProvider) SpringContextSingleton.getModuleBean("jahiaGroupLDAPProvider"));
-    }
-
-    /**
-     * Returns the group's home page id.
-     * -1 : undefined
-     *
-     * @return int The group homepage id.
-     */
-
-    public int getHomepageID () {
-        if (mProperties != null) {
-
-            try {
-                // Get the home page from the Jahia DB.
-                // By default an external group is represented with a -1 group ID.
-                String value = mProperties.getProperty (mHOMEPAGE_PROP);
-
-                if (value == null)
-                    return -1;
-                return Integer.parseInt (value);
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        }
-        return -1;
-
-    }
-
-    public boolean setHomepageID (int id) {
-        if (!removeProperty (mHOMEPAGE_PROP))
-            return false;
-        // Set the home page into the Jahia DB.
-        // By default an external group is represented with a -1 group ID.
-        return setProperty (mHOMEPAGE_PROP, String.valueOf (id));
-
+        return (JahiaGroupManagerLDAPProvider) ServicesRegistry.getInstance().getJahiaGroupManagerService().getProvider(providerKey);
     }
 
     public synchronized boolean removeProperty (String key) {
@@ -222,7 +176,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
     }
 
     public String getProviderName () {
-        return JahiaGroupManagerLDAPProvider.PROVIDER_NAME;
+        return providerKey;
     }
 
     public boolean isDynamic() {
