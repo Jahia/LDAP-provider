@@ -113,7 +113,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
         return (JahiaGroupManagerLDAPProvider) ServicesRegistry.getInstance().getJahiaGroupManagerService().getProvider(providerKey);
     }
 
-    public synchronized boolean removeProperty (String key) {
+    public boolean removeProperty (String key) {
         boolean result = false;
 
         if ((key != null) && (key.length () > 0)) {
@@ -155,7 +155,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
         return false;
     }
 
-    public synchronized boolean setProperty (String key, String value) {
+    public boolean setProperty (String key, String value) {
         boolean result = false;
 
         if ((key != null) && (value != null)) {
