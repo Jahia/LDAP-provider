@@ -32,19 +32,10 @@
 
 package org.jahia.services.usermanager;
 
-import org.jahia.registries.ServicesRegistry;
-import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.content.JCRStoreService;
-import org.jahia.services.usermanager.jcr.JCRUser;
-import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-
-import javax.jcr.RepositoryException;
+import java.util.List;
 
 /**
+ * An implementation for external Jahia user, which is stored in the LDAP directory.
  * A JahiaUser represents a physical person who is defined by a username and
  * a password for authentication purpose. Every other property of a JahiaUser
  * is stored in it's properties list, which hold key-value string pairs.
@@ -54,286 +45,42 @@ import javax.jcr.RepositoryException;
  * @author Serge Huber
  * @version 1.0
  */
-public class JahiaLDAPUser implements JahiaUser {
+public class JahiaLDAPUser extends BaseJahiaExternalUser {
+    
     private static final long serialVersionUID = 949596639726348808L;
 
-    /** User unique identification number in the database. */
-    private int mID;
-
-    /** User unique identification name */
-    private String mUsername;
-
-    /** User password */
-    private String mPassword;
-
-    /** Each user has an unique String identifier * */
-    private String mUserKey;
-
-    /** Site id , the owner of this user */
-    private int mSiteID = -1;
-
     /** DN in ldap repository **/
-    private String mDn;
+    private String dn;
 
     /** groups **/
     private List<String> mGroups;
 
-    /** User additional parameters. */
-    private UserProperties mProperties = new UserProperties ();
-
-    // language property constants
-    private static final String mLANGUAGES_ORDER_PROP = "language_codes";
-    private static final String mLANGUAGES_ORDER_PROP_SEPARATOR = ",";
-
-    private transient boolean propLoaded = false;
-    private String path = null;
-
-    private String providerKey;
-
     /**
-     * Create a new JahiaDBUser class instance. The passed in password must
+     * Create a new JahiaLDAPUser class instance. The passed in password must
      * already be encrypted, no encryption will be done. If the passed in
      * properties is null, then the user will have no additional parameter than
      * it's id, name and password.
      *
      * @param providerKey the provider key
-     * @param id         User unique identification number.
-     * @param name       User identification name.
+     * @param username       User identification name.
      * @param password   User password.
-     *                   The site id
-     * @param properties User properties.
+     * @param userKey   user key.
+     * @param ldapUserProperties User properties.
+     * @param dn the user's DN
      */
-    protected JahiaLDAPUser (String providerKey, int id, String name, String password,
-                             String userKey, int siteID,
-                           UserProperties properties, String dn)
+    protected JahiaLDAPUser (String providerKey, String username, String userKey, UserProperties ldapUserProperties, String dn)
     {
-        this.providerKey = providerKey;
-        mID = id;
-        mUsername = name;
-        mPassword = password;
-        mUserKey = "{"+providerKey+"}" + userKey;
-        mSiteID = siteID;
-        mDn         = dn;
-        if (properties != null) {
-            mProperties = properties;
-        }
-    }
-
-
-    public boolean equals (Object another) {
-        
-        if (this == another) return true;
-        
-        if (another != null && this.getClass() == another.getClass()) {
-            return (getUserKey().equals(((JahiaUser) another).getUserKey()));
-        }
-        return false;
-        
-//        if (another instanceof Principal) {
-//            if (another != null) {
-//                if (mUsername == null) {
-//                    logger.debug (
-//                            "Username for user key [" + mUserKey + "] is null , please check your users.ldap.properties mapping file !");
-//                    if (((Principal) another).getName () == null) {
-//                        return true;
-//                    } else {
-//                        return false;
-//                    }
-//                }
-//                return (getName ().equals (((Principal) another).getName ()));
-//            }
-//        }
-//        return false;
-    }
-
-
-    /**
-     * Retrieve the user's unique database identification number.
-     *
-     * @return The user unique identification number.
-     */
-    public int getID () {
-        return mID;
-    }
-
-
-    public String getName () {
-        return getUsername();
-    }
-
-    public String getUsername () {
-        return mUsername;
-    }
-
-    public String getUserKey () {
-        return mUserKey;
-    }
-
-    public int getSiteID () {
-        return mSiteID;
+        super(providerKey, username, "{"+providerKey+"}" + userKey, ldapUserProperties);
+        this.dn = dn;
     }
 
     public String getDN() {
-        return mDn;
+        return dn;
     }
 
-    /**
-     * @deprecated use getUserProperties() instead
-     * @return Properties the properties returned here should NEVER be modified,
-     * only modifications through setProperty() are supported and serialized.
-     */
-    public Properties getProperties () {
-        if (mProperties != null) {
-            return mProperties.getProperties();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * The properties here should not be modified, as the modifications will
-     * not be serialized. Use the setProperty() method to modify a user's
-     * properties.
-     * @return UserProperties
-     */
-    public UserProperties getUserProperties() {
-        if (!propLoaded ) {
-            getLDAPProvider().mapDBToJahiaProperties(mProperties, this);
-            propLoaded = true;
-        }
-        return mProperties;
-    }
-
-    //
-    public String getProperty (String key) {
-        if (key != null) {
-            if (mProperties.getProperty(key) != null) {
-                return mProperties.getProperty(key);
-            }
-            if (getUserProperties() != null) {
-                return getUserProperties().getProperty (key);
-            }
-        }
-        return null;
-    }
-
-    public UserProperty getUserProperty(String key) {
-        if ((getUserProperties() != null) && (key != null)) {
-            return getUserProperties().getUserProperty (key);
-        }
-        return null;
-    }
-
-
-    /**
-     * Return a unique hashcode identifiying the user.
-     *
-     * @return Return a valid hashcode integer of the user, On failure, -1 is
-     *         returned.
-     */
-    public int hashCode () {
-        return mID;
-    }
-
-
-    /**
-     * Remove the specified property from the properties list.
-     *
-     * @param key Property's name.
-     *
-     * @return Return true on success or false on any failure.
-     */
-    public synchronized boolean removeProperty (String key) {
-        boolean result = false;
-        UserProperties mProperties = getUserProperties();
-        if (mProperties == null) {
-            return result;
-        }
-
-        if ((key != null) && (key.length () > 0) && (!mProperties.isReadOnly(key))) {
-            JCRUserManagerProvider userManager = (JCRUserManagerProvider) SpringContextSingleton.getBean("JCRUserManagerProvider");
-            JCRUser jcrUser = (JCRUser) userManager.lookupExternalUser(this);
-            if(jcrUser!=null) {
-                jcrUser.removeProperty(key);
-                result = true;
-            }
-
-        }
-        //Predrag
-        if (result) {
-            mProperties.removeUserProperty (key);
-        }
-        //Predrag
-        return result;
-    }
-
-    /**
-     * Change the user's password.
-     *
-     * @param password New user's password
-     *
-     * @return Return true id the old password is the same as the current one and
-     *         the new password is valid. Return false on any failure.
-     *
-     * @todo FIXME : not supported in this read-only LDAP implementation
-     */
     public boolean setPassword (String password) {
+        // not supported by LDAP
         return false;
-    }
-
-
-    /**
-     * Add (or update if not already in the property list) a property key-value
-     * pair in the user's properties list.
-     *
-     * @param key   Property's name.
-     * @param value Property's value.
-     *
-     * @return Return true on success or false on any failure.
-     *
-     * @todo FIXME : not supported in LDAP implementation, only sets internal
-     * values in memory.
-     * @todo FIXME : These following lines are a quick hack to permit to store
-     * user properties for readonly LDAP users. A better solution would be to
-     * create a service that is in charge of managing user properties.
-     */
-    public synchronized boolean setProperty (String key, String value) {
-        boolean result = false;
-        UserProperties mProperties = getUserProperties();
-        if (mProperties == null) {
-            return result;
-        }
-
-        if ((key != null) && (value != null) && (!mProperties.isReadOnly(key))) {
-            // Remove these lines if LDAP problem --------------------
-            JCRUserManagerProvider userManager = (JCRUserManagerProvider) SpringContextSingleton.getBean("JCRUserManagerProvider");
-            JCRUser jcrUser = (JCRUser) userManager.lookupExternalUser(this);
-            if (jcrUser == null) {
-                // deploy
-                try {
-                    JCRStoreService.getInstance().deployExternalUser(this);
-                    jcrUser = (JCRUser) userManager.lookupExternalUser(this);
-                } catch (RepositoryException e) {
-                    LoggerFactory.getLogger (JahiaLDAPUser.class).error("Error deploying external user '" + getName() + "' for provider '" + getProviderName()
-                            + "' into JCR repository. Cause: " + e.getMessage(), e);
-                }
-            }
-            if(jcrUser!=null) {
-                jcrUser.setProperty(key, value);
-                result = true;
-            }
-
-            // End remove --------------------
-            if (result) {
-                try {
-                    mProperties.setProperty(key, value);
-                } catch (UserPropertyReadOnlyException uproe) {
-                    LoggerFactory.getLogger (JahiaLDAPUser.class).warn("Cannot set read-only property " + key);
-                }
-                ServicesRegistry.getInstance().getJahiaUserManagerService().updateCache(this);
-            }
-        }
-        return result;
     }
 
     public List<String> getGroups() {
@@ -344,157 +91,16 @@ public class JahiaLDAPUser implements JahiaUser {
         this.mGroups = mGroups;
     }
 
-    public boolean verifyPassword (String password) {
-
-        if (password != null) {
-			boolean localLoginResult = false;
-
-			if (mPassword.length() > 0) {
-				String test = JahiaUserManagerService.encryptPassword(password);
-				localLoginResult = mPassword.equals(test);
-			}
-			// test the provided password with the internal memory encrypted
-			// password.
-			if (localLoginResult) {
-				// both passwords match.
-				return true;
-			} else {
-				// the local encrypted password does not match the one in
-				// parameter
-				// forward to the ldap authN in case of there was a ldap
-				// password change from the last user's visit.
-				boolean loginResult = getLDAPProvider().login(mUserKey, password);
-				if (loginResult) {
-					/**
-					 * @todo here we must now update the properties of the user
-					 *       since he has access to more of his attributes once
-					 *       logged in
-					 */
-					mPassword = JahiaUserManagerService
-							.encryptPassword(password);
-					return true;
-				}
-			}
-			/** @todo insert here LDAP connection check... */
-
-		}
+    @Override
+    protected boolean removePropertyExternal(String key) {
+        // not supported by LDAP
         return false;
     }
 
-    protected JahiaUserManagerLDAPProvider getLDAPProvider() {
-        return (JahiaUserManagerLDAPProvider) ServicesRegistry.getInstance().getJahiaUserManagerService().getProvider(providerKey);
-    }
-
-    /**
-     * Return a string representation of the user and it's internal state.
-     *
-     * @return A string representation of this user.
-     */
-    public String toString () {
-        StringBuffer output = new StringBuffer ("Detail of user [" + mUsername + "]\n");
-        output.append ("  - ID [" + Integer.toString (mID) + "]");
-        output.append ("  - password [" + mPassword + "]\n");
-
-        if (getUserProperties() != null) {
-            output.append("  - properties :");
-
-            Iterator<?> nameIter = mProperties.propertyNameIterator();
-            String name;
-            if (nameIter.hasNext()) {
-                output.append("\n");
-                while (nameIter.hasNext()) {
-                    name = (String) nameIter.next();
-                    output.append(
-                        "       " + name + " -> [" +
-                        (String) mProperties.getProperty(name) + "]\n");
-                }
-            } else {
-                output.append(" -no properties-\n");
-            }
-        }
-        return output.toString ();
-    }
-
-
-    /**
-     * Test if the user is an admin member
-     *
-     * @return Return true if the user is an admin member
-     *         false on any error.
-     */
-    public boolean isAdminMember (int siteID) {
-
-        return isMemberOfGroup (siteID, JahiaGroupManagerService.ADMINISTRATORS_GROUPNAME);
-    }
-
-    /**
-     * Test if the user is the root user
-     *
-     * @return Return true if the user is the root user
-     *         false on any error.
-     */
-    public boolean isRoot () {
-        /** @todo FIXME in this implementation the super user is necessarily
-         *  always in the jahia database implementation
-         */
+    @Override
+    protected boolean setPropertyExternal(String key, String value) {
+        // not supported by LDAP
         return false;
     }
 
-
-    //-------------------------------------------------------------------------
-    public boolean isMemberOfGroup (int siteID, String name) {
-        // Get the services registry
-        ServicesRegistry servicesRegistry = ServicesRegistry.getInstance ();
-        if (servicesRegistry != null) {
-
-            // get the group management service
-            JahiaGroupManagerService groupService =
-                    servicesRegistry.getJahiaGroupManagerService ();
-
-            // lookup the requested group
-            JahiaGroup group = groupService.lookupGroup (siteID, name);
-            if (group != null) {
-                return group.isMember (this);
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Retrieve a List of language codes stored for this user. The order
-     * of these codes is important. The first language is the first choice, and
-     * as the list goes down so does the importance of the languages.
-     *
-     * @return a List containing String objects that contain language codes,
-     *         the List may be empty if this property was never set for the user.
-     */
-    public List<String> getLanguageCodes () {
-        String encodedLanguagesCodes = getProperty (mLANGUAGES_ORDER_PROP);
-        List<String> result = new ArrayList<String>();
-        if (encodedLanguagesCodes != null) {
-            StringTokenizer strTokens = new StringTokenizer (encodedLanguagesCodes,
-                    mLANGUAGES_ORDER_PROP_SEPARATOR);
-            while (strTokens.hasMoreTokens ()) {
-                String curLanguageCode = strTokens.nextToken ();
-                result.add (curLanguageCode);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the name of the provider of this user.
-     *
-     * @return String representation of the name of the provider of this user
-     */
-    public String getProviderName () {
-        return providerKey;
-    }
-
-    public String getLocalPath() {
-        if (path == null) {
-            path = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getPathForUsername(getUsername());
-        }
-        return path;
-    }
 }

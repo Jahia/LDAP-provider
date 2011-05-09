@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import javax.naming.CommunicationException;
 import javax.naming.Context;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingEnumeration;
@@ -64,7 +65,6 @@ import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
-import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,9 +175,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     private Cache<String, Serializable> mUserCache;
     private Cache<String, JahiaUser> mProvidersUserCache;
 
-    //(-PredragV-) private JahiaGroupManagerDBService    groupService = null;
     private CacheService cacheService = null;
-    private JCRUserManagerProvider jcrUserManagerProvider;
 
     private Map<String, String> overridenLdapProperties;
 
@@ -199,10 +197,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     public void setCacheService(CacheService cacheService) {
         this.cacheService = cacheService;
-    }
-
-    public void setJcrUserManagerProvider(JCRUserManagerProvider jcrUserManagerProvider) {
-        this.jcrUserManagerProvider = jcrUserManagerProvider;
     }
 
     public void setLdapProperties(Map<String, String> ldapProperties) {
@@ -648,6 +642,37 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return (dn != null);
     }
 
+    /**
+     * Performs a login of the specified user.
+     *
+     * @param dn      the user DN
+     * @param userPassword the password of the user
+     * @return true if the user login is successful
+     */
+    public boolean loginByDN(String dn, String userPassword) {
+        if (StringUtils.isEmpty(userPassword)) {
+            logger.debug("Empty passwords are not authorized for LDAP login ! Failing user with DN=" +
+                    dn + " login request.");
+            return false;
+        }
+
+        boolean success = false;
+        DirContext privateCtx = null;
+
+        try {
+            privateCtx = connectToPrivateDir(dn, userPassword);
+            success = privateCtx != null;
+        } catch (CommunicationException ce) {
+            logger.warn(ce.getMessage(), ce);
+        } catch (NamingException ne) {
+            logger.debug("Login refused, server message : " + ne.getMessage());
+        } finally {
+            invalidateCtx(privateCtx);
+        }
+        
+        return success;
+    }
+    
     private DirContext connectToPrivateDir(String dn, String personPassword)
             throws NamingException {
 
@@ -881,13 +906,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
 
             userProps = mapLDAPToJahiaProperties(userProps);
-            user = new JahiaLDAPUser(getKey(), 0,
-                    name,
-                    "",
-                    usingUserKey,
-                    0,
-                    userProps,
-                    dn);
+            user = new JahiaLDAPUser(getKey(), name, usingUserKey, userProps, dn);
         } else {
             logger.debug("Ignoring entry " + dn +
                     " because it has no valid " +
@@ -932,20 +951,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
         
         return p;
-    }
-
-    /**
-     * Retrieves properties from internal jahia DB
-     *
-     * @param userProps    the user properties to set
-     * @param usingUserKey the user whose the properties has to be extracted.
-     */
-    public void mapDBToJahiaProperties(UserProperties userProps,
-                                       JahiaLDAPUser usingUserKey) {
-        JahiaUser jahiaUser = jcrUserManagerProvider.lookupExternalUser(usingUserKey);
-        if (jahiaUser != null) {
-            userProps.putAll(jahiaUser.getUserProperties());
-        }
     }
 
     /**

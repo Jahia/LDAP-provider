@@ -9,7 +9,6 @@
         <property name="cacheService" ref="JahiaCacheService"/>
         <property name="defaultProvider" value="false"/>
         <property name="readOnly" value="true"/>
-        <property name="jcrUserManagerProvider" ref="JCRUserManagerProvider"/>
         <property name="defaultLdapProperties">
             <map>
                 <entry key="context.factory" value="com.sun.jndi.ldap.LdapCtxFactory"/>
