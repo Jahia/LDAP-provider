@@ -47,6 +47,12 @@
     <packaging>war</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
 
+    <scm>
+        <connection>scm:git:git@github.com:Jahia/LDAP-provider.git</connection>
+        <url>scm:git:git@github.com:Jahia/LDAP-provider.git</url>
+        <developerConnection>scm:git:git@github.com:Jahia/LDAP-provider.git</developerConnection>
+    </scm>
+
     <build>
         <plugins>
             <plugin>
