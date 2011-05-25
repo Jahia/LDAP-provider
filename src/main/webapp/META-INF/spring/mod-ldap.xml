@@ -11,12 +11,14 @@
         <property name="readOnly" value="true"/>
         <property name="defaultLdapProperties">
             <map>
+                <!--  Connection and authentication parameters -->
                 <entry key="context.factory" value="com.sun.jndi.ldap.LdapCtxFactory"/>
                 <entry key="authentification.mode" value="simple"/>
-                <entry key="search.countlimit" value="100"/>
                 <entry key="ldap.connect.pool" value="true"/>
                 <entry key="ldap.connect.timeout" value="5000"/>
                                     
+                <!--  Search parameters -->
+                <entry key="search.countlimit" value="100"/>
                 <entry key="uid.search.attribute" value="cn"/>
                 <entry key="search.objectclass" value="person"/>
                 <entry key="search.wildcards.attributes" value="ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn"/>
@@ -39,14 +41,17 @@
         <property name="jahiaUserManagerService" ref="JahiaUserManagerService"/>
         <property name="defaultLdapProperties">
             <map>
+                <!--  Connection and authentication parameters -->
                 <entry key="context.factory" value="com.sun.jndi.ldap.LdapCtxFactory"/>
                 <entry key="authentification.mode" value="simple"/>
-                <entry key="search.countlimit" value="100"/>
-                <entry key="preload" value="false"/>
-                <entry key="ad.range.step" value="0"/>
                 <entry key="ldap.connect.pool" value="true"/>
                 <entry key="ldap.connect.timeout" value="5000"/>                    
 
+                <!--  Search and membership parameters -->
+                <entry key="preload" value="false"/>
+                <entry key="search.countlimit" value="100"/>
+                <entry key="refferal" value="ignore"/>
+                <entry key="ad.range.step" value="0"/>
                 <entry key="search.attribute" value="cn"/>
                 <entry key="search.objectclass" value="groupOfUniqueNames"/>
                 <entry key="members.attribute" value="uniqueMember"/>

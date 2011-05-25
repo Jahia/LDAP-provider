@@ -74,7 +74,6 @@ Jahia LDAP Connector
 +------------------------------------------------
 ...
     <bean parent="JahiaUserManagerLDAPProvider">
-    ...
         <property name="key" value="myldap"/>
         <property name="priority" value="2"/>
     ...
@@ -121,7 +120,6 @@ Jahia LDAP Connector
 +------------------------------------------------
 ...
     <bean parent="JahiaGroupManagerLDAPProvider">
-    ...
         <property name="key" value="myldap"/>
         <property name="priority" value="2"/>
     ...
@@ -144,10 +142,126 @@ Jahia LDAP Connector
     
 * {User} provider properties reference
 
-  TODO: provide description of all connection configuration properties and attribute mappings 
-  for user providers 
+  The following LDAP properties can be specified in the <<<ldapProperties>>> map to customize the user provider configuration:
+  
+  [[I]] Connection and authentication parameters
+  
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-----------------+------------------------------------------------+
+| <<<url>>>            | <<<\<none\>>>>        | The LDAP connection URL, e.g. <<<ldap://127.0.0.1:389/>>> |
+*----------------+-----------------+------------------------------------------------+
+| <<<public.bind.dn>>> | <<<\<none\>>>>        | This is the user on the LDAP server permitted to search the LDAP directory within the defined search base. |
+*----------------+-----------------+------------------------------------------------+
+| <<<public.bind.password>>> | <<<\<none\>>>>  | The password, used to authenticate searches in LDAP directory |
+*----------------+-----------------+------------------------------------------------+
+| <<<authentification.mode>>>  | <<<simple>>>  | LDAP directory authentication type  |
+*----------------+-----------------+------------------------------------------------+
+|<<<context.factory>>> | <<<com.sun.jndi.ldap.LdapCtxFactory>>> | The implementation class for context factory to use |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool>>> | <<<true>>>        | Enables/disables {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.timeout>>> | <<<5000>>>    | When connection pooling has been enabled and no pooled connection is available, the client application will block, waiting for an available connection. Setting this timeout value will specify how long to wait for a pooled connection (in milliseconds). If you omit this property, the application will wait indefinitely. See {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} for details. |
+*----------------+-------------+------------------------------------------------+
+|<<<search.countlimit>>> | <<<100>>>    | The number of entries to limit search results to. If the LDAP user search returns more matching entries than specified with this parameter, the first <<<search.countlimit>>> will be returned only. |
+*----------------+-------------+------------------------------------------------+
 
+
+  [[II]] Search parameters
+  
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-------------------+------------------------------------------------+
+| <<<uid.search.name>>> | <<<\<none\>>>>           | The search base that defines which part of the LDAP directory tree to search, e.g. <<<dc=jahia,dc=com>>> |
+*----------------+-------------------+------------------------------------------------+
+| <<<uid.search.attribute>>> | <<<cn>>>          | The name of the attribute that will be used as a user key. |
+*----------------+-----------------+------------------------------------------------+
+| <<<search.objectclass>>> | <<<person>>>    | The <<<objectClass>>> value for a user object |
+*----------------+-----------------+------------------------------------------------+
+| <<<search.wildcards.attributes>>>  | <<<ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn>>> | A list of attributes to use for wildcard searches such as <*=*test*> |
+*----------------+-------------+------------------------------------------------+
+
+  [[III]] Attribute mapping parameters - defines a mapping between Jahia's <<<jnt:user>>> node properties and the corresponding LDAP object attributes.
+  
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-------------------+------------------------------------------------+
+| <<<j:firstName.attribute.map>>> | <<<givenName>>> | First name |
+*----------------+-------------------+------------------------------------------------+
+| <<<j:lastName.attribute.map>>> | <<<sn>>>          | Second name |
+*----------------+-----------------+------------------------------------------------+
+| <<<j:email.attribute.map>>> | <<<mail>>>    | User's e-mail address |
+*----------------+-----------------+------------------------------------------------+
+| <<<j:organization.attribute.map>>>  | <<<ou>>> | The name of the organization |
+*----------------+-------------+------------------------------------------------+
+
+  Additional attribute mappings can be specified, using the following pattern for the entry key: "<<<\<jahia-user-property-name\>.attribute.map>>>" and the name of the corresponding LDAP object attribute as the value.
+  
+  []
+  
 * User {group} provider properties reference
 
-  TODO: provide description of all connection configuration properties and attribute mappings
-  for user group providers 
+  The following LDAP properties can be specified in the <<<ldapProperties>>> map to customize the group provider configuration:
+  
+  [[I]] Connection and authentication parameters
+  
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-----------------+------------------------------------------------+
+| <<<url>>>            | <<<\<none\>>>>        | The LDAP connection URL, e.g. <<<ldap://127.0.0.1:389/>>> |
+*----------------+-----------------+------------------------------------------------+
+| <<<public.bind.dn>>> | <<<\<none\>>>>        | This is the user on the LDAP server permitted to search the LDAP directory within the defined search base. |
+*----------------+-----------------+------------------------------------------------+
+| <<<public.bind.password>>> | <<<\<none\>>>>  | The password, used to authenticate searches in LDAP directory |
+*----------------+-----------------+------------------------------------------------+
+| <<<authentification.mode>>>  | <<<simple>>>  | LDAP directory authentication type  |
+*----------------+-----------------+------------------------------------------------+
+|<<<context.factory>>> | <<<com.sun.jndi.ldap.LdapCtxFactory>>> | The implementation class for context factory to use |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool>>> | <<<true>>>        | Enables/disables {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.timeout>>> | <<<5000>>>    | When connection pooling has been enabled and no pooled connection is available, the client application will block, waiting for an available connection. Setting this timeout value will specify how long to wait for a pooled connection (in milliseconds). If you omit this property, the application will wait indefinitely. See {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} for details. |
+*----------------+-------------+------------------------------------------------+
+
+
+  [[II]] Search and membership parameters
+  
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-------------+------------------------------------------------+
+|<<<preload>>> | <<<false>>>    | If set to <<<true>>> forces the reading of all group members when a group is retrieved. Otherwise group members will be read when a first request for user membership will be made |
+*----------------+-------------+------------------------------------------------+
+|<<<search.countlimit>>> | <<<100>>>    | The number of entries to limit search results to. If the LDAP user search returns more matching entries than specified with this parameter, the first <<<search.countlimit>>> will be returned only. |
+*----------------+-------------+------------------------------------------------+
+|<<<refferal>>> | <<<ignore>>> | Specifies how referrals encountered by the service provider are to be processed. PÜossible values are <<<follow>>> - follow referrals automatically, <<<ignore>>> - ignore referrals, <<<throw>>> - throw <<<ReferralException>>> when a referral is encountered |
+*----------------+-------------+------------------------------------------------+
+|<<<ad.range.step>>> | <<<0>>>    | Handle Active Directory range searches when retrieving group members. If set to <<<0>>> all members are retrieved with a single search. If set e.g. to <<<100>>>, searches like <<<range=0-100>>>, <<<range=101-200>>>, <<<range=201-300>>> etc. are used to retrieve all members iteratively. |
+*----------------+-------------------+------------------------------------------------+
+| <<<search.name>>> | <<<\<none\>>>> | The search base that defines which part of the LDAP directory tree to search, e.g. <<<dc=jahia,dc=com>>> |
+*----------------+-------------------+------------------------------------------------+
+| <<<search.attribute>>> | <<<cn>>>          | The name of the attribute that will be used as a user key. |
+*----------------+-----------------+------------------------------------------------+
+| <<<search.objectclass>>> | <<<groupOfUniqueNames>>>    | The <<<objectClass>>> value for a group object |
+*----------------+-----------------+------------------------------------------------+
+| <<<search.wildcards.attributes>>>  | <<<cn,description,uniqueMember>>> | A list of attributes to use for wildcard searches such as <*=*test*> |
+*----------------+-------------+------------------------------------------------+
+| <<<members.attribute>>>  | <<<uniqueMember>>> | The name of the LDAP group object attribute to retrieve membership from |
+*----------------+-------------+------------------------------------------------+
+| <<<dynamic.search.objectclass>>>  | <<<groupOfURLs>>> | The name of the LDAP group object attribute to retrieve dynamic membership from |
+*----------------+-------------+------------------------------------------------+
+| <<<dynamic.members.attribute>>>  | <<<memberurl>>> | The name of the LDAP group object attribute to retrieve dynamic membership from |
+*----------------+-------------+------------------------------------------------+
+
+  [[III]] Attribute mapping parameters - defines a mapping between Jahia's <<<jnt:user>>> node properties and the corresponding LDAP object attributes.
+  
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-------------------+------------------------------------------------+
+| <<<groupname.attribute.map>>> | <<<cn>>> | Group name |
+*----------------+-------------------+------------------------------------------------+
+| <<<description.attribute.map>>> | <<<description>>> | Description |
+*----------------+-------------+------------------------------------------------+
+
+  Additional attribute mappings can be specified, using the following pattern for the entry key: "<<<\<jahia-group-property-name\>.attribute.map>>>" and the name of the corresponding LDAP object attribute as the value.
+  
+  []
