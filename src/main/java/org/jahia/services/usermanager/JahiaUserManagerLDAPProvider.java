@@ -405,22 +405,26 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             filterString.append("(&(objectClass=" + StringUtils.defaultString(ldapProperties.get(
                     USERS_OBJECTCLASS_ATTRIBUTE), "*") + ")");
 
-            String uidFilter = filters.getProperty(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));
             // let's translate Jahia properties to LDAP properties
-            filters = mapJahiaPropertiesToLDAP(filters);
+            Properties ldapfilters = mapJahiaPropertiesToLDAP(filters);
 
+            String uidFilter = filters.getProperty(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));
             if (uidFilter != null) {
-                filters.put(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP), uidFilter);
+                ldapfilters.put(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP), uidFilter);
             }
 
-            if (filters.size() > 1) {
+            if (ldapfilters.size() < filters.size()) {
+                return new ArrayList<SearchResult>();
+            }
+
+            if (ldapfilters.size() > 1) {
                 filterString.append("(|");
             }
 
-            Iterator<?> filterKeys = filters.keySet().iterator();
+            Iterator<?> filterKeys = ldapfilters.keySet().iterator();
             while (filterKeys.hasNext()) {
                 String filterName = (String) filterKeys.next();
-                String filterValue = filters.getProperty(filterName);
+                String filterValue = ldapfilters.getProperty(filterName);
                 // we do all the RFC 2254 replacement *except* the "*" character
                 // since this is actually something we want to use.
                 filterValue = StringUtils.replace(filterValue, "\\",
@@ -460,7 +464,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 }
             }
 
-            if (filters.size() > 1) {
+            if (ldapfilters.size() > 1) {
                 filterString.append(")");
             }
 
