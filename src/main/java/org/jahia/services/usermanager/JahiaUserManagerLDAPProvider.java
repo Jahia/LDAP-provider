@@ -71,8 +71,10 @@ import javax.naming.directory.SearchResult;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
+import org.jahia.params.valves.CookieAuthConfig;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
+import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,6 +188,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     private CacheService cacheService = null;
 
     private Map<String, String> overridenLdapProperties;
+    
+    private CookieAuthConfig cookieAuthConfig;
 
 // --------------------------- CONSTRUCTORS ---------------------------
 
@@ -987,6 +991,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             JahiaUser user = lookupUserByKey(userKey);
             result.add(user);
         }
+        
+        if (searchCriterias != null && searchCriterias.size() == 1
+                && searchCriterias.containsKey(cookieAuthConfig.getUserPropertyName())) {
+            return result;
+        }
 
         // now let's lookup in LDAP properties.
         DirContext ctx = null;
@@ -1023,17 +1032,24 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * side value is "*" for a property then it will be tested against all the
      * properties. ie *=test* will match every property that starts with "test"
      *
-     * @param searchCriterias a Properties object that contains search criterias
+     * @param searchCriterias a Properties object that contains search criteria
      *                        in the format name,value (for example "*"="*" or "username"="*test*") or
-     *                        null to search without criterias
+     *                        null to search without criteria
      * @return Set a set of JahiaUser elements that correspond to those
-     *         search criterias
-     * @todo this code could be cleaner if username was a real user property
-     * but as it isn't we have to do a lot of custom handling.
+     *         search criteria
      */
     private Set<String> searchLDAPUsersByDBProperties(Properties searchCriterias) {
-        // TODO implement this
-        return Collections.emptySet();
+        Set<JahiaUser> users = JCRUserManagerProvider.getInstance().searchUsers(searchCriterias, true, getKey());
+        if (users.isEmpty()) {
+            return Collections.emptySet();
+        }
+        
+        Set<String> usernames = new HashSet<String>(users.size());
+        for (JahiaUser user : users) {
+            usernames.add(user.getUsername());
+        }
+        
+        return usernames;
     }
 
     //--------------------------------------------------------------------------
@@ -1222,5 +1238,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
         
         super.afterPropertiesSet();
+    }
+
+    public void setCookieAuthConfig(CookieAuthConfig cookieAuthConfig) {
+        this.cookieAuthConfig = cookieAuthConfig;
     }
 }

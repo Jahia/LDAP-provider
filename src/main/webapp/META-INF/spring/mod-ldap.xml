@@ -9,6 +9,7 @@
         <property name="cacheService" ref="JahiaCacheService"/>
         <property name="defaultProvider" value="false"/>
         <property name="readOnly" value="true"/>
+        <property name="cookieAuthConfig" ref="cookieAuthConfig"/>
         <property name="defaultLdapProperties">
             <map>
                 <!--  Connection and authentication parameters -->
