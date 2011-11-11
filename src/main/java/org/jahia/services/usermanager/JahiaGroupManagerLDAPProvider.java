@@ -520,13 +520,13 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * Retrieves groups from the LDAP public repository.
      *
      * @param ctx     the current context in which to search for the group
-     * @param filters a set of name=value string that contain RFC 2254 format
+     * @param searchFilters a set of name=value string that contain RFC 2254 format
      *                filters in the value, or null if we want to look in the full repository
      * @return a list of SearchResult objects
      *         that contains the LDAP group entries that correspond to the filter
      * @throws NamingException
      */
-    private List<SearchResult> getGroups(DirContext ctx, Properties filters)
+    private List<SearchResult> getGroups(DirContext ctx, Properties searchFilters)
             throws NamingException {
         if (ctx == null) {
             throw new NamingException("Context is null !");
@@ -538,8 +538,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 ")(objectClass=").append(
                 StringUtils.defaultString(ldapProperties.get(JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE), "groupOfURLs")).append("))");
 
-        if (filters == null) {
-            filters = new Properties();
+        Properties filters = new Properties();
+        if (searchFilters != null) {
+            filters.putAll(searchFilters);
         }
 
         // let's translate Jahia properties to LDAP properties
