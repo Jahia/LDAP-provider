@@ -1039,6 +1039,21 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *         search criteria
      */
     private Set<String> searchLDAPUsersByDBProperties(Properties searchCriterias) {
+        if (searchCriterias == null) {
+            return Collections.emptySet();
+        }
+
+        boolean allEmpty = true;
+        for (Object propValue : searchCriterias.values()) {
+            String val = String.valueOf(propValue);
+            if (propValue != null && val.length() > 0 && !"*".equals(val)) {
+                allEmpty = false;
+                break;
+            }
+        }
+        if (allEmpty) {
+            return Collections.emptySet();
+        }
         Set<JahiaUser> users = JCRUserManagerProvider.getInstance().searchUsers(searchCriterias, true, getKey());
         if (users.isEmpty()) {
             return Collections.emptySet();
