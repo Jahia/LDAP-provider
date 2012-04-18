@@ -417,12 +417,26 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 ldapfilters.put(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP), uidFilter);
             }
 
-            if (ldapfilters.size() < filters.size()) {
+            int size = filters.size();
+            if(filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                size = size-1;
+            }
+            if (ldapfilters.size() < size) {
                 return new ArrayList<SearchResult>();
             }
 
             if (ldapfilters.size() > 1) {
-                filterString.append("(|");
+                boolean orOp = true;
+                if(filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                    if(((String)filters.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
+                        orOp = false;
+                    }
+                }
+                if(orOp) {
+                    filterString.append("(|");
+                } else {
+                    filterString.append("(&");
+                }
             }
 
             Iterator<?> filterKeys = ldapfilters.keySet().iterator();
