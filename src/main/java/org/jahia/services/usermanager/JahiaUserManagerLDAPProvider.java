@@ -188,7 +188,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     private CacheService cacheService = null;
 
     private Map<String, String> overridenLdapProperties;
-    
+
     private CookieAuthConfig cookieAuthConfig;
 
 // --------------------------- CONSTRUCTORS ---------------------------
@@ -374,6 +374,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (ctx == null) {
             throw new NamingException("Context is null !");
         }
+        int countLimit = Integer.parseInt(ldapProperties.get(JahiaUserManagerLDAPProvider.SEARCH_COUNT_LIMIT_PROP));
+        if (filters.containsKey(JahiaUserManagerService.COUNT_LIMIT)) {
+            countLimit = Integer.parseInt((String) filters.get(JahiaUserManagerService.COUNT_LIMIT));
+        }
 
         StringBuffer filterString = new StringBuffer();
 
@@ -400,7 +404,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     thisFilter = "(&(" + ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) + "=" + filters.get("user.key") + ")(" + thisFilter + "))";
                 }
 
-                return getUsers(ctx, thisFilter, thisBase, intScope);
+                return getUsers(ctx, thisFilter, thisBase, countLimit, intScope);
             } catch (Exception e) {
                 logger.error("Cannot get users for url : " + url);
                 throw new PartialResultException("Cannot get users for url : " + url);
@@ -420,6 +424,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             int size = filters.size();
             if(filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
                 size = size-1;
+            }
+            if (filters.containsKey(JahiaUserManagerService.COUNT_LIMIT)) {
+                size = size -1;
             }
             if (ldapfilters.size() < size) {
                 return new ArrayList<SearchResult>();
@@ -488,7 +495,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
             filterString.append(")");
 
-            return getUsers(ctx, filterString.toString(), searchBase, scope);
+            return getUsers(ctx, filterString.toString(), searchBase, countLimit, scope);
         }
     }
 
@@ -592,15 +599,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return ldapToJahiaUser(attrs, dn);
     }
 
-    private List<SearchResult> getUsers(DirContext ctx, String filterString, String searchBase, int scope)
+    private List<SearchResult> getUsers(DirContext ctx, String filterString, String searchBase,int countLimit, int scope)
             throws NamingException {
         // Search for objects that have those matching attributes
         SearchControls searchCtl = new SearchControls();
         searchCtl.setSearchScope(scope);
         List<SearchResult> answerList = new ArrayList<SearchResult>();
-        int countLimit = Integer.parseInt(
-                ldapProperties.get(
-                        JahiaUserManagerLDAPProvider.SEARCH_COUNT_LIMIT_PROP));
         searchCtl.setCountLimit(countLimit);
         logger.debug("Using filter string [" + filterString.toString() + "]...");
         try {
@@ -699,10 +703,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         } finally {
             invalidateCtx(privateCtx);
         }
-        
+
         return success;
     }
-    
+
     private DirContext connectToPrivateDir(String dn, String personPassword)
             throws NamingException {
 
@@ -979,7 +983,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 p.setUserProperty(prop.getKey(), targetProp);
             }
         }
-        
+
         return p;
     }
 
@@ -1005,7 +1009,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             JahiaUser user = lookupUserByKey(userKey);
             result.add(user);
         }
-        
+
         if (searchCriterias != null && searchCriterias.size() == 1
                 && searchCriterias.containsKey(cookieAuthConfig.getUserPropertyName())) {
             return result;
@@ -1072,12 +1076,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (users.isEmpty()) {
             return Collections.emptySet();
         }
-        
+
         Set<String> usernames = new HashSet<String>(users.size());
         for (JahiaUser user : users) {
             usernames.add(user.getUsername());
         }
-        
+
         return usernames;
     }
 
@@ -1248,7 +1252,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (defaultLdapProperties == null) {
             defaultLdapProperties = new HashMap<String, String>();
         }
-         
+
         ldapProperties = defaultLdapProperties != null ? new HashMap<String, String>(defaultLdapProperties) : new HashMap<String, String>();
         if (overridenLdapProperties != null) {
             ldapProperties.putAll(overridenLdapProperties);
@@ -1265,7 +1269,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                         ".attribute.map"), entry.getValue());
             }
         }
-        
+
         super.afterPropertiesSet();
     }
 
