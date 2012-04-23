@@ -599,7 +599,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return ldapToJahiaUser(attrs, dn);
     }
 
-    private List<SearchResult> getUsers(DirContext ctx, String filterString, String searchBase,int countLimit, int scope)
+    private List<SearchResult> getUsers(DirContext ctx, String filterString, String searchBase, int countLimit, int scope)
             throws NamingException {
         // Search for objects that have those matching attributes
         SearchControls searchCtl = new SearchControls();
@@ -612,8 +612,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     searchBase,
                     filterString.toString(),
                     searchCtl);
-            while (enumeration.hasMore()) {
-                answerList.add(enumeration.next());
+            while (enumeration.hasMoreElements()) {
+                answerList.add(enumeration.nextElement());
             }
         } catch (javax.naming.NoInitialContextException nice) {
             logger.warn("Reconnection required", nice);
@@ -628,8 +628,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         } catch (SizeLimitExceededException e) {
             logger.warn(
                     "User search generated more than configured maximum search limit, limiting to " +
-                            this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                            " first results...");
+                            countLimit + " first results...");
         }
         return answerList;
     }
