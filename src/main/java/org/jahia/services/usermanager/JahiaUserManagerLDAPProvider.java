@@ -1229,13 +1229,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return Return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUser(String name) {
-        JahiaUser user = lookupUserByKey("{" + getKey() + "}" + name);
-        if (user != null) {
-            // user.setSiteID (siteID);
-            mProvidersUserCache.put("n" + user.getUsername(), user);
-        }
-
-        return user;
+        return lookupUserByKey("{" + getKey() + "}" + name);
     }
 
     public Map<String, String> getLdapProperties() {
