@@ -1117,9 +1117,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     // name storage for speed
                     mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
                     mProvidersUserCache.put("n" + user.getUsername(), user);
+                    // use wrappers in local cache
+                    mUserCache.put("k" + userKey, new JahiaUserWrapper(user));
                 }
-                // use wrappers in local cache
-                mUserCache.put("k" + userKey, new JahiaUserWrapper(user));
             } else {
                 user = juw.getUser();
             }
