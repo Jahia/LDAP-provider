@@ -655,10 +655,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         DirContext privateCtx = null;
 
         try {
-            dn = ((JahiaLDAPUser) lookupUserByKey(userFinalKey)).getDN();
+        	JahiaLDAPUser ldapUser = (JahiaLDAPUser) lookupUserByKey(userFinalKey);
+        	if(ldapUser != null) {
+              dn = ldapUser.getDN();
 
-            privateCtx = connectToPrivateDir(dn, userPassword);
-
+              privateCtx = connectToPrivateDir(dn, userPassword);
+        	}
             if (privateCtx == null) {
                 dn = null;
             }
@@ -1134,6 +1136,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             ctx = getPublicContext();
             SearchResult sr = getPublicUser(ctx, ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP), userKey);
             if (sr == null) {
+            	logger.info("No Public User for: " + userKey + " ldapProperties: " + ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) + " context: " + ctx);
                 return null;
             }
             user = ldapToJahiaUser(sr);
