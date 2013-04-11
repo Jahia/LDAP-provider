@@ -85,8 +85,10 @@ import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
+import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.sites.JahiaSite;
 import org.jahia.services.sites.JahiaSiteTools;
+import org.jahia.services.sites.JahiaSitesService;
 import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
 import org.jahia.services.usermanager.jcr.JCRUser;
@@ -374,20 +376,22 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public List<JahiaSite> getAdminGrantedSites(JahiaUser user) {
         List<JahiaSite> grantedSites = new ArrayList<JahiaSite>();
         try {
-            Iterator<JahiaSite> sitesList = ServicesRegistry.getInstance().
-                    getJahiaSitesService().getSites();
+            JahiaSitesService sitesService = ServicesRegistry.getInstance().
+                    getJahiaSitesService();
+            List<JCRSiteNode> sitesList = sitesService.getSitesNodeList();
 
-            while (sitesList.hasNext()) {
-                JahiaSite jahiaSite = sitesList.next();
+            for (JCRSiteNode jahiaSite : sitesList) {
                 logger.debug("check granted site " + jahiaSite.getSiteKey());
 
-                if (JahiaSiteTools.getAdminGroup(jahiaSite).isMember(user)) {
+                if (JahiaSiteTools.getAdminGroup(sitesService.getSite(jahiaSite.getName())).isMember(user)) {
                     logger.debug("granted site for " + jahiaSite.getSiteKey());
-                    grantedSites.add(jahiaSite);
+                    grantedSites.add(sitesService.getSite(jahiaSite.getName()));
                 }
             }
         } catch (JahiaException e) {
             logger.error("getAdminGrantedSites", e);
+        } catch (RepositoryException e) {
+            logger.error(e.getMessage(), e);
         }
 
         return grantedSites;
