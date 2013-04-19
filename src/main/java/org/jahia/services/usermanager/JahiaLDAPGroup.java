@@ -48,11 +48,7 @@ import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
 
 import java.security.Principal;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -161,6 +157,10 @@ public class JahiaLDAPGroup extends JahiaGroup {
     public boolean addMember (Principal user) {
         /**@todo Must check this*/
         return false;
+    }
+
+    @Override
+    public void addMembers(Collection<Principal> principals) {
     }
 
     public boolean setProperty (String key, String value) {
