@@ -40,7 +40,6 @@
 
 package org.jahia.services.usermanager;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -87,47 +86,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     public static final String FEATURE = "org.jahia.ldap";
 
-    /**
-     * <p>Title: Jahia user wrapper.</p>
-     * <p>Description: Stores users even if they are null to avoid some requests/queries against providers.</p>
-     *
-     * @author EP
-     * @version 1.0
-     */
-    public static class JahiaUserWrapper implements Serializable {
-
-        private static final long serialVersionUID = -2955706620534674310L;
-
-        // the internal user, only defined when creating object
-        private JahiaUser user;
-
-        /**
-         * Constructor.
-         *
-         * @param ju JahiaUser, a user from a provider.
-         */
-        public JahiaUserWrapper(JahiaUser ju) {
-            user = ju;
-        }
-
-        /**
-         * Get the internal user.
-         *
-         * @return JahiaUser, the internal user.
-         */
-        public JahiaUser getUser() {
-            return user;
-        }
-    }
     // ------------------------------ FIELDS ------------------------------
 
     // the LDAP User cache name.
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
 
-    /**
-     * the overall provider User cache name.
-     */
-    public static final String PROVIDERS_USER_CACHE = "ProvidersUsersCache";
+    public static final String LDAP_NON_EXISTANT_USER_CACHE = "LDAPNonExistantUsersCache";
 
     /**
      * Root user unique identification number
@@ -182,8 +146,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private List<String> searchWildCardAttributeList = null;
 
-    private Cache<String, Serializable> mUserCache;
-    private Cache<String, JahiaUser> mProvidersUserCache;
+    private Cache<String, JahiaUser> userCache;
+    private Cache<String, Boolean> nonExistantUserCache;
 
     private CacheService cacheService = null;
 
@@ -218,9 +182,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     // -------------------------- OTHER METHODS --------------------------
 
     public void start() throws JahiaInitializationException {
-        mUserCache = cacheService.getCache(LDAP_USER_CACHE
+        userCache = cacheService.getCache(LDAP_USER_CACHE
                 + "-" + getKey(), true);
-        mProvidersUserCache = cacheService.getCache(PROVIDERS_USER_CACHE, true);
+        nonExistantUserCache = cacheService.getCache(LDAP_NON_EXISTANT_USER_CACHE
+                        + "-" + getKey(), true);
 
         String wildCardAttributeStr = ldapProperties.get(
                 JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);
@@ -751,32 +716,27 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             return null;
         }
 
-        /* 2004-16-06 : update by EP
-        new cache to use : cross providers only based upon names... */
-        JahiaUser user = mProvidersUserCache.get("k" + userKey);
+        JahiaUser user = userCache.get("k" + userKey);
 
-        // 2004-23-07 : use wrappers
         if (user == null) {
-            // then look into the local cache
-            JahiaUserWrapper juw = (JahiaUserWrapper) mUserCache.get("k" + userKey);
 
-            if (juw == null) {
-                //logger.debug(" user with key=" + userKey + " is not found in cache");
-                user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
+            if (nonExistantUserCache.containsKey("k" + userKey)) {
+                return null;
+            }
 
-                if (user != null) {
-                    /* 2004-16-06 : update by EP
-                    new cache to populate : cross providers only based upon names... */
-                    mProvidersUserCache.put("k" + userKey, user);
+            //logger.debug(" user with key=" + userKey + " is not found in cache");
+            user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
 
-                    // name storage for speed
-                    mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
-                    mProvidersUserCache.put("n" + user.getUsername(), user);
+            if (user != null) {
+                userCache.put("k" + userKey, user);
+                userCache.put("n" + user.getUsername(), user);
+                if (user instanceof JahiaLDAPUser) {
+                    JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
+                    userCache.put("d" + jahiaLDAPUser.getDN(), user);
+
                 }
-                // use wrappers in local cache
-                mUserCache.put("k" + userKey, new JahiaUserWrapper(user));
             } else {
-                user = juw.getUser();
+                nonExistantUserCache.put("k" + userKey, true);
             }
         }
         return user;
@@ -820,10 +780,14 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public JahiaLDAPUser lookupUserFromDN(String dn) {
         logger.debug("Lookup user from dn " + dn);
         JahiaLDAPUser user = null;
-        if (mUserCache.containsKey("d" + dn)) {
-            JahiaLDAPUser result = (JahiaLDAPUser) mUserCache.get("d" + dn);
+        if (userCache.containsKey("d" + dn)) {
+            JahiaLDAPUser result = (JahiaLDAPUser) userCache.get("d" + dn);
             if (result != null) {
                 return result;
+            } else {
+                if (nonExistantUserCache.containsKey("d" + dn)) {
+                    return null;
+                }
             }
         }
         DirContext ctx = null;
@@ -832,14 +796,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             Attributes attributes = getUser(ctx, dn);
             user = ldapToJahiaUser(attributes, dn);
             if (user != null) {
-                mUserCache.put("d" + dn, user);
-                mUserCache.put("k" + user.getUserKey(), new JahiaUserWrapper(user));
-                mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
-                mProvidersUserCache.put("n" + user.getUsername(), user);
+                userCache.put("d" + dn, user);
+                userCache.put("k" + user.getUserKey(), user);
+                userCache.put("n" + user.getUsername(), user);
+            } else {
+                nonExistantUserCache.put("d" + dn, true);
             }
         } catch (NameNotFoundException nnfe) {
             user = null;
-            mUserCache.put("d" + dn, null);
+            nonExistantUserCache.put("d" + dn, true);
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             user = null;
@@ -1093,32 +1058,25 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey) {
-        /* 2004-16-06 : update by EP
-        new cache to use : cross providers only based upon names... */
-        JahiaUser user = mProvidersUserCache.get("k" + userKey);
+        JahiaUser user = userCache.get("k" + userKey);
 
-        // 2004-23-07 : use wrappers
         if (user == null) {
-            // then look into the local cache
-            JahiaUserWrapper juw = (JahiaUserWrapper) mUserCache.get("k" + userKey);
+            // then look into the non existant cache
+            if (nonExistantUserCache.containsKey("k" + userKey)) {
+                return null;
+            }
+            //logger.debug(" user with key=" + userKey + " is not found in cache");
+            user = lookupUserInLDAP(removeKeyPrefix(userKey));
 
-            if (juw == null) {
-                //logger.debug(" user with key=" + userKey + " is not found in cache");
-                user = lookupUserInLDAP(removeKeyPrefix(userKey));
-
-                if (user != null) {
-                    /* 2004-16-06 : update by EP
-                    new cache to populate : cross providers only based upon names... */
-                    mProvidersUserCache.put("k" + userKey, user);
-
-                    // name storage for speed
-                    mUserCache.put("n" + user.getUsername(), new JahiaUserWrapper(user));
-                    mProvidersUserCache.put("n" + user.getUsername(), user);
+            if (user != null) {
+                userCache.put("k" + userKey, user);
+                userCache.put("n" + user.getUsername(), user);
+                if (user instanceof JahiaLDAPUser) {
+                    JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
+                    userCache.put("d" + jahiaLDAPUser.getDN(), user);
                 }
-                // use wrappers in local cache
-                mUserCache.put("k" + userKey, new JahiaUserWrapper(user));
             } else {
-                user = juw.getUser();
+                nonExistantUserCache.put("k" + userKey, true);
             }
         }
 
@@ -1188,10 +1146,14 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public void updateCache(JahiaUser jahiaUser) {
-        mUserCache.put("k" + jahiaUser.getUserKey(), new JahiaUserWrapper(jahiaUser));
-        mProvidersUserCache.put("k" + jahiaUser.getUserKey(), jahiaUser);
-        mUserCache.put("n" + jahiaUser.getUsername(), new JahiaUserWrapper(jahiaUser));
-        mProvidersUserCache.put("n" + jahiaUser.getUsername(), jahiaUser);
+        userCache.put("k" + jahiaUser.getUserKey(), jahiaUser);
+        userCache.put("n" + jahiaUser.getUsername(), jahiaUser);
+        nonExistantUserCache.remove("k" + jahiaUser.getUserKey());
+        nonExistantUserCache.remove("n" + jahiaUser.getUsername());
+        if (jahiaUser instanceof JahiaLDAPUser) {
+            JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) jahiaUser;
+            nonExistantUserCache.remove("d" + jahiaLDAPUser.getDN());
+        }
     }
 
     //--------------------------------------------------------------------------
