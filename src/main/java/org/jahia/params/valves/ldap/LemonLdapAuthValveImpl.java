@@ -38,10 +38,9 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.modules.ldap.valves;
+package org.jahia.params.valves.ldap;
 
 import org.apache.commons.codec.binary.Base64;
-import org.jahia.modules.ldap.usermanager.JahiaUserManagerLDAPProvider;
 import org.jahia.params.valves.AuthValveContext;
 import org.jahia.params.valves.BaseAuthValve;
 import org.jahia.pipelines.PipelineException;
@@ -49,6 +48,7 @@ import org.jahia.pipelines.valves.ValveContext;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerProvider;
+import org.jahia.services.usermanager.ldap.JahiaUserManagerLDAPProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -38,7 +38,7 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.modules.ldap.usermanager;
+package org.jahia.services.usermanager.ldap;
 
 import java.util.List;
 

@@ -38,7 +38,7 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.modules.ldap.usermanager;
+package org.jahia.services.usermanager.ldap;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -359,7 +359,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     public JahiaGroup createGroup(int siteID, String groupname,
                                   Properties parm3, boolean hidden) {
-        /**@todo Implement this org.jahia.modules.ldap.usermanager.JahiaGroupManagerProvider abstract method*/
+        /**@todo Implement this org.jahia.services.usermanager.ldap.JahiaGroupManagerProvider abstract method*/
         throw new java.lang.UnsupportedOperationException(
                 "Method createGroup() not yet implemented.");
     }

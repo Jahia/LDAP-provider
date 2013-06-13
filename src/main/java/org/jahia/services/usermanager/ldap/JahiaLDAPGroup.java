@@ -38,7 +38,7 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.modules.ldap.usermanager;
+package org.jahia.services.usermanager.ldap;
 
 import org.apache.commons.collections.iterators.EnumerationIterator;
 import org.jahia.exceptions.JahiaException;
