@@ -6,7 +6,7 @@
  *
  * For more information, please visit http://www.jahia.com.
  *
- * Copyright (C) 2002-2012 Jahia Solutions Group SA. All rights reserved.
+ * Copyright (C) 2002-2013 Jahia Solutions Group SA. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,14 +38,16 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.params.valves;
+package org.jahia.modules.ldap.valves;
 
 import org.apache.commons.codec.binary.Base64;
+import org.jahia.modules.ldap.usermanager.JahiaUserManagerLDAPProvider;
+import org.jahia.params.valves.AuthValveContext;
+import org.jahia.params.valves.BaseAuthValve;
 import org.jahia.pipelines.PipelineException;
 import org.jahia.pipelines.valves.ValveContext;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.usermanager.JahiaUser;
-import org.jahia.services.usermanager.JahiaUserManagerLDAPProvider;
 import org.jahia.services.usermanager.JahiaUserManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

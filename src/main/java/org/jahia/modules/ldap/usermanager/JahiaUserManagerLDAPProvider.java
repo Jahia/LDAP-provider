@@ -6,7 +6,7 @@
  *
  * For more information, please visit http://www.jahia.com.
  *
- * Copyright (C) 2002-2012 Jahia Solutions Group SA. All rights reserved.
+ * Copyright (C) 2002-2013 Jahia Solutions Group SA. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,7 +38,7 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.services.usermanager;
+package org.jahia.modules.ldap.usermanager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,6 +73,11 @@ import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.params.valves.CookieAuthConfig;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
+import org.jahia.services.usermanager.JahiaUser;
+import org.jahia.services.usermanager.JahiaUserManagerProvider;
+import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.services.usermanager.UserProperties;
+import org.jahia.services.usermanager.UserProperty;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

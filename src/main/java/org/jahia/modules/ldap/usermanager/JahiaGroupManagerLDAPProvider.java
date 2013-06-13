@@ -6,7 +6,7 @@
  *
  * For more information, please visit http://www.jahia.com.
  *
- * Copyright (C) 2002-2012 Jahia Solutions Group SA. All rights reserved.
+ * Copyright (C) 2002-2013 Jahia Solutions Group SA. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,7 +38,7 @@
  * please contact the sales department at sales@jahia.com.
  */
 
-package org.jahia.services.usermanager;
+package org.jahia.modules.ldap.usermanager;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -89,6 +89,11 @@ import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.sites.JahiaSite;
 import org.jahia.services.sites.JahiaSiteTools;
 import org.jahia.services.sites.JahiaSitesService;
+import org.jahia.services.usermanager.JahiaGroup;
+import org.jahia.services.usermanager.JahiaGroupManagerProvider;
+import org.jahia.services.usermanager.JahiaUser;
+import org.jahia.services.usermanager.JahiaUserManagerProvider;
+import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
 import org.slf4j.Logger;
@@ -354,7 +359,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     public JahiaGroup createGroup(int siteID, String groupname,
                                   Properties parm3, boolean hidden) {
-        /**@todo Implement this org.jahia.services.usermanager.JahiaGroupManagerProvider abstract method*/
+        /**@todo Implement this org.jahia.modules.ldap.usermanager.JahiaGroupManagerProvider abstract method*/
         throw new java.lang.UnsupportedOperationException(
                 "Method createGroup() not yet implemented.");
     }
