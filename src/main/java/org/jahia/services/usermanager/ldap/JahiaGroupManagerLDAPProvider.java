@@ -99,7 +99,6 @@ import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * LDAP group manager provider.
  *
@@ -182,8 +181,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private JahiaUserManagerService jahiaUserManagerService;
 
     private Map<String, String> overridenLdapProperties;
-
-    // -------------------------- STATIC METHODS --------------------------
 
     private static boolean containsMembersRange(Attributes attrs,
                                                 String membersAttribute) throws NamingException {
@@ -294,23 +291,20 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         searchCtl.setReturningAttributes(originalReturningAttributes);
     }
 
-// --------------------------- CONSTRUCTORS ---------------------------
-
     /**
      * Default constructor.
      *
      * @throws JahiaException Raise a JahiaException when during initialization
      *                        one of the needed services could not be instantiated.
      */
-    protected JahiaGroupManagerLDAPProvider()
-            throws JahiaException {
+    protected JahiaGroupManagerLDAPProvider() throws JahiaException {
+        super();
         nonExistentGroups = new ArrayList<String>();
         nonExistentGroups.add("administrators");
         nonExistentGroups.add("guest");
         nonExistentGroups.add("users");
+        initializeDefaults();
     }
-
-// --------------------- GETTER / SETTER METHODS ---------------------
 
     public void setCacheService(CacheService cacheService) {
         this.cacheService = cacheService;
@@ -345,6 +339,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     public void stop() {
+        // do nothing
     }
 
     /**
@@ -353,7 +348,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param siteID    the site owner of this user
      * @param groupname Group's unique identification name
      * @param hidden
-     * @return Retrun a reference on a group object on success, or if the groupname
+     * @return Return a reference on a group object on success, or if the groupname
      *         already exists or another error occured, null is returned.
      */
 
@@ -385,10 +380,14 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             List<JCRSiteNode> sitesList = sitesService.getSitesNodeList();
 
             for (JCRSiteNode jahiaSite : sitesList) {
-                logger.debug("check granted site " + jahiaSite.getSiteKey());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("check granted site " + jahiaSite.getSiteKey());
+                }
 
                 if (JahiaSiteTools.getAdminGroup(sitesService.getSite(jahiaSite.getName())).isMember(user)) {
-                    logger.debug("granted site for " + jahiaSite.getSiteKey());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("granted site for " + jahiaSite.getSiteKey());
+                    }
                     grantedSites.add(sitesService.getSite(jahiaSite.getName()));
                 }
             }
@@ -476,9 +475,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
-            logger.debug("Search generated more than configured maximum search limit, limiting to " +
+            if (logger.isDebugEnabled()) {
+                logger.debug("Search generated more than configured maximum search limit, limiting to " +
                     this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
                     " first results...");
+            }
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             result = new ArrayList<String>();
@@ -511,9 +512,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
-            logger.debug("Search generated more than configured maximum search limit in, limiting to " +
-                    this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Search generated more than configured maximum search limit in, limiting to " +
+                        this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                        " first results...");
+            }
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             result = new ArrayList<String>();
@@ -540,7 +543,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             throw new NamingException("Context is null !");
         }
 
-        StringBuffer filterString = new StringBuffer();
+        StringBuilder filterString = new StringBuilder();
         filterString.append("(|(objectClass=").append(
                 StringUtils.defaultString(ldapProperties.get(JahiaGroupManagerLDAPProvider.GROUP_OBJECTCLASS_ATTRIBUTE), "groupOfNames")).append(
                 ")(objectClass=").append(
@@ -653,8 +656,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         }*/
 
         // Identify service provider to use
-        logger.debug("Attempting connection to LDAP repository on " +
+        if (logger.isDebugEnabled()) {
+            logger.debug("Attempting connection to LDAP repository on " +
                 ldapProperties.get(LDAP_URL_PROP) + "...");
+        }
         Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
         publicEnv.put(Context.INITIAL_CONTEXT_FACTORY,
                 StringUtils.defaultString(ldapProperties.get(CONTEXT_FACTORY_PROP), DEFAULT_CTX_FACTORY));
@@ -674,7 +679,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             publicEnv.put("com.sun.jndi.ldap.connect.timeout", timeout);
         }
         if (ldapProperties.get(PUBLIC_BIND_PASSWORD_PROP) != null) {
-            logger.debug("Using authentification mode to connect to public dir...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Using authentification mode to connect to public dir...");
+            }
             publicEnv.put(Context.SECURITY_CREDENTIALS,
                     ldapProperties.get(PUBLIC_BIND_PASSWORD_PROP));
         }
@@ -705,7 +712,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         while (attrsEnum.hasMoreElements()) {
             Attribute curAttr = (Attribute) attrsEnum.nextElement();
             String attrName = curAttr.getID();
-            StringBuffer attrValueBuf = new StringBuffer();
+            StringBuilder attrValueBuf = new StringBuilder();
             try {
                 Enumeration<?> curAttrValueEnum = curAttr.getAll();
                 while (curAttrValueEnum.hasMoreElements()) {
@@ -713,8 +720,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                     if ((curAttrValueObj instanceof String)) {
                         attrValueBuf.append((String) curAttrValueObj);
                     } else {
-                        logger.debug("Converting attribute <" + attrName + "> from class " +
-                                curAttrValueObj.getClass().toString() + " to String...");
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Converting attribute <" + attrName + "> from class " +
+                                    curAttrValueObj.getClass().toString() + " to String...");
+                        }
                         /** @todo FIXME : for the moment we convert everything to String */
                         attrValueBuf.append(curAttrValueObj);
                     }
@@ -722,7 +731,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 }
             } catch (NamingException ne) {
                 logger.warn("JNDI warning", ne);
-                attrValueBuf = new StringBuffer();
+                attrValueBuf = new StringBuilder();
             }
             String attrValue = attrValueBuf.toString();
             if (attrValue.endsWith("\n")) {
@@ -762,10 +771,12 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
             return group;
         } else {
-            logger.debug("Ignoring entry " + sr.getName() +
-                    " because it has no valid " +
-                    ldapProperties.get(SEARCH_ATTRIBUTE_PROP) +
-                    " attribute to be mapped onto user key...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignoring entry " + sr.getName() +
+                        " because it has no valid " +
+                        ldapProperties.get(SEARCH_ATTRIBUTE_PROP) +
+                        " attribute to be mapped onto user key...");
+            }
             return null;
         }
     }
@@ -822,7 +833,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         getAll();
             }
         } catch (NullPointerException ne) {
-            logger.debug("No members");
+            if (logger.isDebugEnabled()) {
+                logger.debug("No members");
+            }
         }
 
 //        // test if the properties file contains the SEARCH_USER_ATTRIBUTE_NAME value
@@ -835,7 +848,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         String searchProperties = ldapProperties.get(SEARCH_USER_ATTRIBUTE_NAME);
         boolean searchUserDefined = (!(searchProperties == null) && (searchProperties.length() > 0));
 
-        logger.debug("Getting members for group, dynamic=" + dynamic + ", searchUserDefined=" + searchUserDefined);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Getting members for group, dynamic=" + dynamic + ", searchUserDefined=" + searchUserDefined);
+        }
 
         if (answer != null) {
             while (answer.hasMore()) {
@@ -871,7 +886,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     private void invalidateCtx(DirContext ctx) {
         if (ctx == null) {
-            logger.debug("Context passed is null, ignoring it...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Context passed is null, ignoring it...");
+            }
             return;
         }
         try {
@@ -937,7 +954,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
         result = new ArrayList<String>();
 
-        StringBuffer filterBuffer = new StringBuffer();
+        StringBuilder filterBuffer = new StringBuilder();
         filterBuffer.append("(&(objectclass=");
         filterBuffer.append(StringUtils.defaultString(ldapProperties.get(JahiaGroupManagerLDAPProvider.
                 GROUP_OBJECTCLASS_ATTRIBUTE), "groupOfNames"));
@@ -963,11 +980,13 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                                 SEARCH_ATTRIBUTE_PROP)).get().
                         toString();
                 result.add("{ldap}" + groupKey);
-                logger.debug("groupKey=" + groupKey);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("groupKey=" + groupKey);
+                }
             }
 
             // Now look for dynamic groups
-            filterBuffer = new StringBuffer();
+            filterBuffer = new StringBuilder();
             filterBuffer.append("(objectclass=");
             filterBuffer
                     .append(StringUtils.defaultString(ldapProperties
@@ -989,7 +1008,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         ldapProperties.get(SEARCH_ATTRIBUTE_PROP))
                         .get().toString();
 
-                logger.debug("groupKey=" + groupKey);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("groupKey=" + groupKey);
+                }
                 NamingEnumeration<?> answer2 = null;
                 Attribute attribute = attr.get(StringUtils.defaultString(ldapProperties.get(DYNGROUP_MEMBERS_ATTRIBUTE), "memberurl"));
                 if (attribute != null) {
@@ -1077,21 +1098,31 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private List<SearchResult> getGroups
             (DirContext
                      ctx, SearchControls
-                    searchCtl, StringBuffer
+                    searchCtl, StringBuilder
                     filter) throws NamingException {
         List<SearchResult> answerList = new ArrayList<SearchResult>();
         try {
             answerList = doGroupSearch(ctx, searchCtl, filter);
         } catch (NoInitialContextException nice) {
-            logger.debug("Reconnection required", nice);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reconnection required", nice);
+            }
         } catch (CannotProceedException cpe) {
-            logger.debug("Reconnection required", cpe);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reconnection required", cpe);
+            }
         } catch (ServiceUnavailableException sue) {
-            logger.debug("Reconnection required", sue);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reconnection required", sue);
+            }
         } catch (TimeLimitExceededException tlee) {
-            logger.debug("Reconnection required", tlee);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reconnection required", tlee);
+            }
         } catch (CommunicationException ce) {
-            logger.debug("Reconnection required", ce);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reconnection required", ce);
+            }
         } catch (javax.naming.SizeLimitExceededException limit) {
             logger.warn("Search count limit reached", limit);
         } catch (javax.naming.NamingException e) {
@@ -1104,7 +1135,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private List<SearchResult> doGroupSearch
             (DirContext
                      ctx, SearchControls
-                    searchCtl, StringBuffer
+                    searchCtl, StringBuilder
                     filter)
             throws NamingException {
 
@@ -1203,7 +1234,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * Lookup the group information from the underlaying system (DB, LDAP, ... )
      * Try to lookup the group into the cache, if it's not in the cache, then
      * load it into the cahce from the database.
-     * <p/>
+     * <p);
      * EP : 2004/23/07 : big refactoring
      *
      * @param siteID the site id
@@ -1303,9 +1334,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 }
             }
         } catch (SizeLimitExceededException slee) {
-            logger.debug("Search generated more than configured maximum search limit in, limiting to " +
-                    this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Search generated more than configured maximum search limit in, limiting to " +
+                        this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                        " first results...");
+            }
         } catch (PartialResultException pre) {
             logger.warn(pre.getMessage(), pre);
         } catch (NamingException ne) {
@@ -1328,7 +1361,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * Lookup the group information from the underlying system (DB, LDAP, ... )
      * Try to lookup the group into the cache, if it's not in the cache, then
      * load it into the cache from the database.
-     * <p/>
+     * <p);
      * EP : 2004/23/07 : big refactoring
      *
      * @param groupKey Group's unique identification key.
@@ -1364,7 +1397,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         JahiaLDAPGroup group = null;
         Iterator<String> groupEnum = nonExistentGroups.iterator();
 
-        logger.debug("lookupGroupInLDAP :: " + groupKey);
+        if (logger.isDebugEnabled()) {
+            logger.debug("lookupGroupInLDAP :: " + groupKey);
+        }
 
         //FIXME: lousy solution for avoiding the over-querying of the ldap for non-existent groups...
         while (groupEnum.hasNext()) {
@@ -1462,6 +1497,51 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
         }
 
+        if (cacheService == null) {
+            cacheService = (CacheService) SpringContextSingleton.getBean("JahiaCacheService");
+        }
+
+        if (jahiaUserManagerService == null) {
+            jahiaUserManagerService = (JahiaUserManagerService) SpringContextSingleton
+                    .getBean("JahiaUserManagerService");
+        }
+
         super.afterPropertiesSet();
     }
+
+    private void initializeDefaults() {
+        setKey("ldap");
+        setPriority(2);
+        setReadOnly(true);
+        defaultLdapProperties = iniDefaultProperties();
+    }
+    
+    private Map<String, String> iniDefaultProperties() {
+        HashMap<String, String> props = new HashMap<String, String>();
+        
+        // Connection and authentication parameters
+        props.put("context.factory", "com.sun.jndi.ldap.LdapCtxFactory");
+        props.put("authentification.mode", "simple");
+        props.put("ldap.connect.pool", "true");
+        props.put("ldap.connect.timeout", "5000");                    
+
+        // Search and membership parameters
+        props.put("preload", "false");
+        props.put("search.countlimit", "100");
+        props.put("refferal", "ignore");
+        props.put("ad.range.step", "0");
+        props.put("search.attribute", "cn");
+        props.put("search.objectclass", "groupOfUniqueNames");
+        props.put("members.attribute", "uniqueMember");
+        props.put("dynamic.search.objectclass", "groupOfURLs");
+        props.put("dynamic.members.attribute", "memberurl");
+        props.put("search.wildcards.attributes", "cn,description,uniqueMember");
+
+        // property mapping
+        props.put("groupname.attribute.map", "cn");
+        props.put("description.attribute.map", "description");
+        
+        return props;
+    }
+
 }

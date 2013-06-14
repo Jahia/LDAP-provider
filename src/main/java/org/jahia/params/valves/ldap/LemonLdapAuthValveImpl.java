@@ -91,7 +91,7 @@ public class LemonLdapAuthValveImpl extends BaseAuthValve {
                         JahiaUserManagerLDAPProvider jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider)userManagerProviderBean;
                         JahiaUser jahiaUser = jahiaUserManagerLDAPProvider.lookupUserFromDN(dn);
                         if (jahiaUser != null) {
-                            if (isAccountLocked(jahiaUser)) {
+                            if (jahiaUser.isAccountLocked()) {
                                 logger.debug("Login failed. Account is locked for user " + dn);
                                 return;
                             }

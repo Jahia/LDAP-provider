@@ -71,6 +71,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.params.valves.CookieAuthConfig;
+import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
 import org.jahia.services.usermanager.JahiaUser;
@@ -90,8 +91,6 @@ import org.slf4j.LoggerFactory;
 public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     public static final String FEATURE = "org.jahia.ldap";
-
-    // ------------------------------ FIELDS ------------------------------
 
     // the LDAP User cache name.
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
@@ -160,8 +159,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private CookieAuthConfig cookieAuthConfig;
 
-// --------------------------- CONSTRUCTORS ---------------------------
-
     /**
      * Default constructor
      *
@@ -171,10 +168,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     protected JahiaUserManagerLDAPProvider()
             throws JahiaException {
-
+        super();
+        initializeDefaults();
     }
-
-// --------------------- GETTER / SETTER METHODS ---------------------
 
     public void setCacheService(CacheService cacheService) {
         this.cacheService = cacheService;
@@ -183,8 +179,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public void setLdapProperties(Map<String, String> ldapProperties) {
         this.overridenLdapProperties = ldapProperties;
     }
-
-    // -------------------------- OTHER METHODS --------------------------
 
     public void start() throws JahiaInitializationException {
         userCache = cacheService.getCache(LDAP_USER_CACHE
@@ -208,6 +202,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public void stop() {
+        // do nothing
     }
 
     /**
@@ -344,16 +339,16 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (ctx == null) {
             throw new NamingException("Context is null !");
         }
+        if (filters == null) {
+            filters = new Properties();
+        }
+
         int countLimit = Integer.parseInt(ldapProperties.get(JahiaUserManagerLDAPProvider.SEARCH_COUNT_LIMIT_PROP));
         if (filters.containsKey(JahiaUserManagerService.COUNT_LIMIT)) {
             countLimit = Integer.parseInt((String) filters.get(JahiaUserManagerService.COUNT_LIMIT));
         }
 
-        StringBuffer filterString = new StringBuffer();
-
-        if (filters == null) {
-            filters = new Properties();
-        }
+        StringBuilder filterString = new StringBuilder();
 
         if (filters.containsKey("ldap.url")) {
             String url = filters.getProperty("ldap.url");
@@ -753,7 +748,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * you have to use lookupUserInLDAP (userDn, "distinguishedName").
      * If your properties file are correctly defined, you could use the value of the
      * JahiaGroupManagerLDAPProvider.SEARCH_USER_ATTRIBUTE_NAME for searchAttributeName.
-     * <p/>
+     * <p);
      * This method is only called by lookupUser (String userKey, String searchAttributeName)
      * which was only called by JahiaGroupManagerLDAPProvider.getGroupMembers()
      */
@@ -850,7 +845,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         while (attrsEnum.hasMoreElements()) {
             Attribute curAttr = (Attribute) attrsEnum.nextElement();
             String attrName = curAttr.getID();
-            StringBuffer attrValueBuf = new StringBuffer();
+            StringBuilder attrValueBuf = new StringBuilder();
             try {
                 Enumeration<?> curAttrValueEnum = curAttr.getAll();
                 while (curAttrValueEnum.hasMoreElements()) {
@@ -869,7 +864,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 }
             } catch (NamingException ne) {
                 logger.warn("JNDI warning", ne);
-                attrValueBuf = new StringBuffer();
+                attrValueBuf = new StringBuilder();
             }
             String attrValue = attrValueBuf.toString();
             if (attrValue.endsWith("\n")) {
@@ -1228,6 +1223,13 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                         ".attribute.map"), entry.getValue());
             }
         }
+        
+        if (cacheService == null) {
+            cacheService = (CacheService) SpringContextSingleton.getBean("JahiaCacheService");
+        }
+        if (cookieAuthConfig == null) {
+            cookieAuthConfig = (CookieAuthConfig) SpringContextSingleton.getBean("cookieAuthConfig");
+        }
 
         super.afterPropertiesSet();
     }
@@ -1235,4 +1237,36 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public void setCookieAuthConfig(CookieAuthConfig cookieAuthConfig) {
         this.cookieAuthConfig = cookieAuthConfig;
     }
+
+    private void initializeDefaults() {
+        setKey("ldap");
+        setPriority(2);
+        setReadOnly(true);
+        defaultLdapProperties = iniDefaultProperties();
+    }
+
+    private Map<String, String> iniDefaultProperties() {
+        HashMap<String, String> props = new HashMap<String, String>();
+        
+        // Connection and authentication parameters
+        props.put("context.factory", "com.sun.jndi.ldap.LdapCtxFactory");
+        props.put("authentification.mode", "simple");
+        props.put("ldap.connect.pool", "true");
+        props.put("ldap.connect.timeout", "5000");
+                            
+       // Search parameters
+        props.put("search.countlimit", "100");
+        props.put("uid.search.attribute", "cn");
+        props.put("search.objectclass", "person");
+        props.put("search.wildcards.attributes", "ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn");
+        
+        // property mapping
+        props.put("j:firstName.attribute.map", "givenName");
+        props.put("j:lastName.attribute.map", "sn");
+        props.put("j:email.attribute.map", "mail");
+        props.put("j:organization.attribute.map", "ou");
+        
+        return props;
+    }
+
 }
