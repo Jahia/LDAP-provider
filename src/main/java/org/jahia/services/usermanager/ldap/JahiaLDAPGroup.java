@@ -49,6 +49,8 @@ import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
+import org.jahia.utils.ClassLoaderUtils;
+import org.jahia.utils.ClassLoaderUtils.Callback;
 
 import java.security.Principal;
 import java.util.*;
@@ -253,7 +255,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
         mSiteID = id;
     }
 
-   public boolean isMember(Principal principal) {
+   public boolean isMember(final Principal principal) {
        Principal user = principal;
        if (!(user instanceof JahiaLDAPUser) && !(user instanceof JahiaLDAPGroup)) {
            return false;
@@ -262,8 +264,15 @@ public class JahiaLDAPGroup extends JahiaGroup {
             return true;
         }
         if (!preloadedGroups && user instanceof JahiaUser) {
-            boolean result = getLDAPProvider().getUserMembership((JahiaUser)principal).contains(getGroupKey());
-            membership.put(JahiaUserManagerService.getKey(principal), Boolean.valueOf(result));
+            final JahiaGroupManagerLDAPProvider provider = getLDAPProvider();
+            Boolean result = ClassLoaderUtils.executeWith(provider.getClass().getClassLoader(),
+                    new Callback<Boolean>() {
+                        @Override
+                        public Boolean execute() {
+                            return provider.getUserMembership((JahiaUser) principal).contains(getGroupKey());
+                        }
+                    });
+            membership.put(JahiaUserManagerService.getKey(principal), result);
             return result;
         }
         return false;
@@ -272,7 +281,15 @@ public class JahiaLDAPGroup extends JahiaGroup {
    @Override
     protected Set<Principal> getMembersMap() {
         if (mMembers == null) {
-            mMembers = new HashSet<Principal>(getLDAPProvider().getGroupMembers(getGroupname(), isDynamic()).values());
+            final JahiaGroupManagerLDAPProvider provider = getLDAPProvider();
+            Collection<Principal> groupMembers = ClassLoaderUtils.executeWith(provider.getClass().getClassLoader(),
+                    new Callback<Collection<Principal>>() {
+                        @Override
+                        public Collection<Principal> execute() {
+                            return provider.getGroupMembers(getGroupname(), isDynamic()).values();
+                        }
+                    });
+            mMembers = new HashSet<Principal>(groupMembers);
             preloadedGroups = true;
         }
         return mMembers;
