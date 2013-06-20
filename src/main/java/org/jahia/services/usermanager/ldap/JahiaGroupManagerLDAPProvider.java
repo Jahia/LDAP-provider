@@ -318,28 +318,12 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         overridenLdapProperties = ldapProperties;
     }
 
-    public void start() throws JahiaInitializationException {
-        // instantiates the cache
-        groupCache = cacheService.getCache(LDAP_GROUP_CACHE + "-" + getKey(), true);
-        nonExistantGroupCache = cacheService.getCache(LDAP_NONEXISTANT_GROUP_CACHE + "-" + getKey(), true);
-
-        String wildCardAttributeStr = ldapProperties.get(JahiaGroupManagerLDAPProvider.
-                SEARCH_WILDCARD_ATTRIBUTE_LIST);
-        if (wildCardAttributeStr != null) {
-            this.searchWildCardAttributeList = new ArrayList<String>();
-            StringTokenizer wildCardTokens = new StringTokenizer(
-                    wildCardAttributeStr, ", ");
-            while (wildCardTokens.hasMoreTokens()) {
-                String curAttrName = wildCardTokens.nextToken().trim();
-                this.searchWildCardAttributeList.add(curAttrName);
-            }
-        }
-
-        logger.debug("Initialized and connected to public repository");
+    public void start() {
+        // do nothing
     }
 
     public void stop() {
-        // do nothing
+        //do nothing
     }
 
     /**
@@ -1480,6 +1464,14 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        // do nothing
+    }
+
+    public void initProperties() throws JahiaInitializationException {
+        if (groupManagerService != null) {
+            groupManagerService.registerProvider(this);
+        }
+
         if (defaultLdapProperties == null) {
             defaultLdapProperties = new HashMap<String, String>();
         }
@@ -1506,11 +1498,32 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                     .getBean("JahiaUserManagerService");
         }
 
-        super.afterPropertiesSet();
+        // instantiates the cache
+        groupCache = cacheService.getCache(LDAP_GROUP_CACHE + "-" + getKey(), true);
+        nonExistantGroupCache = cacheService.getCache(LDAP_NONEXISTANT_GROUP_CACHE + "-" + getKey(), true);
+
+        String wildCardAttributeStr = ldapProperties.get(JahiaGroupManagerLDAPProvider.
+                SEARCH_WILDCARD_ATTRIBUTE_LIST);
+        if (wildCardAttributeStr != null) {
+            this.searchWildCardAttributeList = new ArrayList<String>();
+            StringTokenizer wildCardTokens = new StringTokenizer(
+                    wildCardAttributeStr, ", ");
+            while (wildCardTokens.hasMoreTokens()) {
+                String curAttrName = wildCardTokens.nextToken().trim();
+                this.searchWildCardAttributeList.add(curAttrName);
+            }
+        }
+
+        logger.debug("Initialized and connected to public repository");
+    }
+
+    public void unregister() {
+        if (groupManagerService != null) {
+            groupManagerService.unregisterProvider(this);
+        }
     }
 
     private void initializeDefaults() {
-        setKey("ldap");
         setPriority(2);
         setReadOnly(true);
         defaultLdapProperties = iniDefaultProperties();

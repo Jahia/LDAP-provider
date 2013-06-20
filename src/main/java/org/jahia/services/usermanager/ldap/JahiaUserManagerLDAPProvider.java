@@ -180,25 +180,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         this.overridenLdapProperties = ldapProperties;
     }
 
-    public void start() throws JahiaInitializationException {
-        userCache = cacheService.getCache(LDAP_USER_CACHE
-                + "-" + getKey(), true);
-        nonExistantUserCache = cacheService.getCache(LDAP_NON_EXISTANT_USER_CACHE
-                        + "-" + getKey(), true);
-
-        String wildCardAttributeStr = ldapProperties.get(
-                JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);
-        if (wildCardAttributeStr != null) {
-            this.searchWildCardAttributeList = new ArrayList<String>();
-            StringTokenizer wildCardTokens = new StringTokenizer(
-                    wildCardAttributeStr, ", ");
-            while (wildCardTokens.hasMoreTokens()) {
-                String curAttrName = wildCardTokens.nextToken().trim();
-                this.searchWildCardAttributeList.add(curAttrName);
-            }
-        }
-
-        logger.debug("Initialized and connected to public repository");
+    public void start() {
+        // do nothing
     }
 
     public void stop() {
@@ -1203,6 +1186,14 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     @Override
     public void afterPropertiesSet() {
+        // do nothing
+    }
+
+    public void initProperties() throws JahiaInitializationException {
+        if (userManagerService != null) {
+            userManagerService.registerProvider(this);
+        }
+
         if (defaultLdapProperties == null) {
             defaultLdapProperties = new HashMap<String, String>();
         }
@@ -1231,7 +1222,30 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             cookieAuthConfig = (CookieAuthConfig) SpringContextSingleton.getBean("cookieAuthConfig");
         }
 
-        super.afterPropertiesSet();
+        userCache = cacheService.getCache(LDAP_USER_CACHE
+                + "-" + getKey(), true);
+        nonExistantUserCache = cacheService.getCache(LDAP_NON_EXISTANT_USER_CACHE
+                + "-" + getKey(), true);
+
+        String wildCardAttributeStr = ldapProperties.get(
+                JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);
+        if (wildCardAttributeStr != null) {
+            this.searchWildCardAttributeList = new ArrayList<String>();
+            StringTokenizer wildCardTokens = new StringTokenizer(
+                    wildCardAttributeStr, ", ");
+            while (wildCardTokens.hasMoreTokens()) {
+                String curAttrName = wildCardTokens.nextToken().trim();
+                this.searchWildCardAttributeList.add(curAttrName);
+            }
+        }
+
+        logger.debug("Initialized and connected to public repository");
+    }
+
+    public void unregister() {
+        if (userManagerService != null) {
+            userManagerService.unregisterProvider(this);
+        }
     }
 
     public void setCookieAuthConfig(CookieAuthConfig cookieAuthConfig) {
@@ -1239,7 +1253,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     private void initializeDefaults() {
-        setKey("ldap");
         setPriority(2);
         setReadOnly(true);
         defaultLdapProperties = iniDefaultProperties();
