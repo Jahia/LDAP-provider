@@ -5,7 +5,7 @@
 
     <bean id="JahiaLDAPConfigFactory" class="org.jahia.services.usermanager.ldap.JahiaLDAPConfigFactory" />
 
-    <bean id="JahiaLDAPConfigRegistry" class="org.jahia.services.usermanager.ldap.JahiaModuleConfigRegistry"
+    <bean id="JahiaLDAPConfigRegistry" class="org.jahia.modules.osgi.JahiaModuleConfigRegistry"
             init-method="start" destroy-method="stop">
         <property name="managedServiceFactory" ref="JahiaLDAPConfigFactory" />
     </bean>
