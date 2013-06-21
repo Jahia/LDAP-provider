@@ -110,13 +110,23 @@ public class JahiaLDAPConfig {
         jahiaGroupManagerLDAPProvider.unregister();
     }
 
-    private String computeProviderKey(Dictionary<String,?> dictionary) {
+    private String computeProviderKey(Dictionary<String, ?> dictionary) {
         String filename = (String) dictionary.get("felix.fileinstall.filename");
+        String factoryPid = (String) dictionary.get(ConfigurationAdmin.SERVICE_FACTORYPID);
+        String confId;
         if (StringUtils.isBlank(filename)) {
-            return (String) dictionary.get(Constants.SERVICE_PID);
+            confId = (String) dictionary.get(Constants.SERVICE_PID);
+            if (StringUtils.startsWith(confId, factoryPid + ".")) {
+                confId = StringUtils.substringAfter(confId, factoryPid + ".");
+            }
         } else {
-            return "LDAP " + StringUtils.removeEnd(StringUtils.substringAfter(filename,
-                    (String) dictionary.get(ConfigurationAdmin.SERVICE_FACTORYPID) + "-"), ".cfg");
+            confId = StringUtils.removeEnd(StringUtils.substringAfter(filename,
+                    factoryPid + "-"), ".cfg");
+        }
+        if (StringUtils.isBlank(confId) || "config".equals(confId)) {
+            return "ldap";
+        } else {
+            return "ldap." + confId;
         }
     }
 }
