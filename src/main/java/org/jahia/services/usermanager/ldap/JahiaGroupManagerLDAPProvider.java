@@ -106,7 +106,6 @@ import org.slf4j.LoggerFactory;
  */
 
 public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
-// ------------------------------ FIELDS ------------------------------
 
     // the LDAP Group cache name.
     public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
@@ -181,6 +180,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private JahiaUserManagerService jahiaUserManagerService;
 
     private Map<String, String> overridenLdapProperties;
+
+    private String providerKeyPrefix;
 
     private static boolean containsMembersRange(Attributes attrs,
                                                 String membersAttribute) throws NamingException {
@@ -963,7 +964,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         get(ldapProperties.get(
                                 SEARCH_ATTRIBUTE_PROP)).get().
                         toString();
-                result.add("{ldap}" + groupKey);
+                result.add(providerKeyPrefix + groupKey);
                 if (logger.isDebugEnabled()) {
                     logger.debug("groupKey=" + groupKey);
                 }
@@ -1006,7 +1007,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         p.put("user.key", removeKeyPrefix(user.getUserKey()));
                         Set<JahiaUser> t = getUserManagerProvider().searchUsers(p);
                         if (!t.isEmpty()) {
-                            result.add("{ldap}" + groupKey);
+                            result.add(providerKeyPrefix + groupKey);
                             if (answer2.hasMore()) {
                                 answer2.close();
                             }
@@ -1031,7 +1032,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                     List<String> groups = new ArrayList<String>();
                     for (String groupKey : fResults) {
                         try {
-                            JCRGroup jcrGroup = jcrGroupManagerProvider.lookupExternalGroup(StringUtils.substringAfter(groupKey, "{ldap}"));
+                            JCRGroup jcrGroup = jcrGroupManagerProvider.lookupExternalGroup(StringUtils.substringAfter(groupKey, providerKeyPrefix));
                             if (jcrGroup != null) {
                                 recurseOnGroups(session, groups, jcrGroup.getIdentifier());
                             }
@@ -1180,8 +1181,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     private String removeKeyPrefix(String groupKey) {
-        if (groupKey.startsWith("{ldap}")) {
-            return groupKey.substring(6);
+        if (groupKey.startsWith(providerKeyPrefix)) {
+            return groupKey.substring(providerKeyPrefix.length());
         } else {
             return groupKey;
         }
@@ -1557,4 +1558,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         return props;
     }
 
+    @Override
+    public void setKey(String key) {
+        super.setKey(key);
+        providerKeyPrefix = "{" + getKey() + "}"; 
+    }
 }
