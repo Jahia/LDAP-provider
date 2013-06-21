@@ -40,7 +40,10 @@
 
 package org.jahia.services.usermanager.ldap;
 
+import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaInitializationException;
+import org.osgi.framework.Constants;
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.AbstractApplicationContext;
@@ -58,11 +61,12 @@ public class JahiaLDAPConfig {
 
     private JahiaGroupManagerLDAPProvider jahiaGroupManagerLDAPProvider;
 
-    public JahiaLDAPConfig(AbstractApplicationContext context, Dictionary<String, ?> dictionary, String pid) {
+    public JahiaLDAPConfig(AbstractApplicationContext context, Dictionary<String, ?> dictionary) {
+        String key = computeProviderKey(dictionary);
         jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider) context.getBean("JahiaUserManagerLDAPProvider");
-        jahiaUserManagerLDAPProvider.setKey(pid);
+        jahiaUserManagerLDAPProvider.setKey(key);
         jahiaGroupManagerLDAPProvider = (JahiaGroupManagerLDAPProvider) context.getBean("JahiaGroupManagerLDAPProvider");
-        jahiaGroupManagerLDAPProvider.setKey(pid);
+        jahiaGroupManagerLDAPProvider.setKey(key);
         populate(dictionary);
     }
 
@@ -72,17 +76,19 @@ public class JahiaLDAPConfig {
         Enumeration<String> keys = dictionary.keys();
         while (keys.hasMoreElements()) {
             String key = keys.nextElement();
+            if (Constants.SERVICE_PID.equals(key) ||
+                    ConfigurationAdmin.SERVICE_FACTORYPID.equals(key) ||
+                    "felix.fileinstall.filename".equals(key)) {
+                continue;
+            }
             String value = (String) dictionary.get(key);
-            if (key.startsWith("ldap.")) {
-                key = key.substring(5);
-                if (key.startsWith("user.")) {
-                    userLdapProperties.put(key.substring(5), value);
-                } else if (key.startsWith("group.")) {
-                    groupLdapProperties.put(key.substring(6), value);
-                } else {
-                    userLdapProperties.put(key, value);
-                    groupLdapProperties.put(key, value);
-                }
+            if (key.startsWith("user.")) {
+                userLdapProperties.put(key.substring(5), value);
+            } else if (key.startsWith("group.")) {
+                groupLdapProperties.put(key.substring(6), value);
+            } else {
+                userLdapProperties.put(key, value);
+                groupLdapProperties.put(key, value);
             }
         }
         jahiaUserManagerLDAPProvider.setLdapProperties(userLdapProperties);
@@ -102,5 +108,15 @@ public class JahiaLDAPConfig {
     public void unregister() {
         jahiaUserManagerLDAPProvider.unregister();
         jahiaGroupManagerLDAPProvider.unregister();
+    }
+
+    private String computeProviderKey(Dictionary<String,?> dictionary) {
+        String filename = (String) dictionary.get("felix.fileinstall.filename");
+        if (StringUtils.isBlank(filename)) {
+            return (String) dictionary.get(Constants.SERVICE_PID);
+        } else {
+            return "LDAP " + StringUtils.removeEnd(StringUtils.substringAfter(filename,
+                    (String) dictionary.get(ConfigurationAdmin.SERVICE_FACTORYPID) + "-"), ".cfg");
+        }
     }
 }
