@@ -11,9 +11,13 @@
     </bean>
 
     <bean id="JahiaUserManagerLDAPProvider" class="org.jahia.services.usermanager.ldap.JahiaUserManagerLDAPProvider"
-          parent="JahiaUserManagerProvider" scope="prototype" />
+          parent="JahiaUserManagerProvider" scope="prototype">
+        <property name="postponePropertiesInit" value="true" />
+    </bean>
 
     <bean id="JahiaGroupManagerLDAPProvider" class="org.jahia.services.usermanager.ldap.JahiaGroupManagerLDAPProvider"
-          parent="JahiaGroupManagerProvider" scope="prototype" />
+          parent="JahiaGroupManagerProvider" scope="prototype">
+        <property name="postponePropertiesInit" value="true" />
+    </bean>
 
 </beans>

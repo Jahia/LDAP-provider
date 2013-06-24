@@ -183,6 +183,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     private String providerKeyPrefix;
 
+    private boolean postponePropertiesInit;
+
     private static boolean containsMembersRange(Attributes attrs,
                                                 String membersAttribute) throws NamingException {
 
@@ -1465,7 +1467,13 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        // do nothing
+        if (!postponePropertiesInit) {
+            try {
+                initProperties();
+            } catch (JahiaInitializationException e) {
+                logger.error("A problem occured during properties initialization", e);
+            }
+        }
     }
 
     public void initProperties() throws JahiaInitializationException {
@@ -1525,6 +1533,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     private void initializeDefaults() {
+        setKey("ldap");
         setPriority(2);
         setReadOnly(true);
         defaultLdapProperties = iniDefaultProperties();
@@ -1562,5 +1571,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public void setKey(String key) {
         super.setKey(key);
         providerKeyPrefix = "{" + getKey() + "}"; 
+    }
+
+    public void setPostponePropertiesInit(boolean postponePropertiesInit) {
+        this.postponePropertiesInit = postponePropertiesInit;
     }
 }

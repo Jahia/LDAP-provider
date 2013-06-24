@@ -159,6 +159,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private CookieAuthConfig cookieAuthConfig;
 
+    private boolean postponePropertiesInit;
+
     /**
      * Default constructor
      *
@@ -1186,7 +1188,13 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     @Override
     public void afterPropertiesSet() {
-        // do nothing
+        if (!postponePropertiesInit) {
+            try {
+                initProperties();
+            } catch (JahiaInitializationException e) {
+                logger.error("A problem occured during properties initialization", e);
+            }
+        }
     }
 
     public void initProperties() throws JahiaInitializationException {
@@ -1253,6 +1261,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     private void initializeDefaults() {
+        setKey("ldap");
         setPriority(2);
         setReadOnly(true);
         defaultLdapProperties = iniDefaultProperties();
@@ -1282,4 +1291,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return props;
     }
 
+    public void setPostponePropertiesInit(boolean postponePropertiesInit) {
+        this.postponePropertiesInit = postponePropertiesInit;
+    }
 }
