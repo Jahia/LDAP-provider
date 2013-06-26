@@ -1477,10 +1477,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     public void initProperties() throws JahiaInitializationException {
-        if (groupManagerService != null) {
-            groupManagerService.registerProvider(this);
-        }
-
         if (defaultLdapProperties == null) {
             defaultLdapProperties = new HashMap<String, String>();
         }
@@ -1488,6 +1484,13 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         ldapProperties = defaultLdapProperties != null ? new HashMap<String, String>(defaultLdapProperties) : new HashMap<String, String>();
         if (overridenLdapProperties != null) {
             ldapProperties.putAll(overridenLdapProperties);
+        }
+        if (ldapProperties.containsKey("priority")) {
+            setPriority(Integer.parseInt(ldapProperties.get("priority")));
+        }
+
+        if (groupManagerService != null) {
+            groupManagerService.registerProvider(this);
         }
 
         this.mappedProperties = new HashMap<String, String>();

@@ -1198,10 +1198,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public void initProperties() throws JahiaInitializationException {
-        if (userManagerService != null) {
-            userManagerService.registerProvider(this);
-        }
-
         if (defaultLdapProperties == null) {
             defaultLdapProperties = new HashMap<String, String>();
         }
@@ -1210,6 +1206,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (overridenLdapProperties != null) {
             ldapProperties.putAll(overridenLdapProperties);
         }
+        if (ldapProperties.containsKey("priority")) {
+            setPriority(Integer.parseInt(ldapProperties.get("priority")));
+        }
+
+        if (userManagerService != null) {
+            userManagerService.registerProvider(this);
+        }
+
+
         if (!ldapProperties.containsKey(LDAP_USERNAME_ATTRIBUTE)) {
             ldapProperties.put(LDAP_USERNAME_ATTRIBUTE,
                     ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));
