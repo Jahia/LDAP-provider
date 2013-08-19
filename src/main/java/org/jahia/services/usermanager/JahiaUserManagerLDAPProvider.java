@@ -620,7 +620,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         DirContext privateCtx = null;
 
         try {
-            dn = ((JahiaLDAPUser) lookupUserByKey(userFinalKey)).getDN();
+            JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) lookupUserByKey(userFinalKey);
+            if (jahiaLDAPUser == null) {
+                logger.warn("Couldn't lookup LDAP user by key " + userFinalKey + ", aborting login.");
+                return false;
+            }
+            dn = jahiaLDAPUser.getDN();
 
             privateCtx = connectToPrivateDir(dn, userPassword);
 
@@ -629,7 +634,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
         } catch (javax.naming.CommunicationException ce) {
             logger.warn("CommunicationException", ce);
-            logger.debug("Invalidading connection to public LDAP context...");
+            logger.debug("Invalidating connection to public LDAP context...");
             dn = null;
         } catch (NamingException ne) {
             logger.debug("Login refused, server message : " + ne.getMessage());
