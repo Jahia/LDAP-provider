@@ -46,7 +46,7 @@
         <version>6.6.1.6</version>
     </parent>
     <artifactId>ldap</artifactId>
-    <version>1.5</version>
+    <version>1.5-SNAPSHOT</version>
     <name>Jahia LDAP connector</name>
     <packaging>war</packaging>
     <description>This is a custom module for running on a Jahia server that provides support for LDAP user and group providers.</description>
