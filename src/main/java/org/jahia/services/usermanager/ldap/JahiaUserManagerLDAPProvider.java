@@ -509,8 +509,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 ldapProperties.get(LDAP_URL_PROP));
         publicEnv.put(Context.SECURITY_AUTHENTICATION,
                 StringUtils.defaultString(ldapProperties.get (AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
-        publicEnv.put(Context.SECURITY_PRINCIPAL,
-                ldapProperties.get(PUBLIC_BIND_DN_PROP));
+        if (ldapProperties.get(PUBLIC_BIND_DN_PROP) != null) {
+            publicEnv.put(Context.SECURITY_PRINCIPAL,
+                    ldapProperties.get(PUBLIC_BIND_DN_PROP));
+        }
         publicEnv.put(Context.REFERRAL,
                 StringUtils.defaultString(ldapProperties.get(LDAP_REFFERAL_PROP), "ignore"));
         // Enable connection pooling
