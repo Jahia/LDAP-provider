@@ -708,11 +708,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             return null;
         }
 
-        JahiaUser user = userCache.get("k" + userKey);
+        JahiaUser user = userCache.get(getKey() +"k" + userKey);
 
         if (user == null) {
 
-            if (nonExistantUserCache.containsKey("k" + userKey)) {
+            if (nonExistantUserCache.containsKey(getKey() +"k" + userKey)) {
                 return null;
             }
 
@@ -720,15 +720,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
 
             if (user != null) {
-                userCache.put("k" + userKey, user);
-                userCache.put("n" + user.getUsername(), user);
+                userCache.put(getKey() +"k" + userKey, user);
+                userCache.put(getKey() +"n" + user.getUsername(), user);
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    userCache.put("d" + jahiaLDAPUser.getDN(), user);
+                    userCache.put(getKey() +"d" + jahiaLDAPUser.getDN(), user);
 
                 }
             } else {
-                nonExistantUserCache.put("k" + userKey, true);
+                nonExistantUserCache.put(getKey() +"k" + userKey, true);
             }
         }
         return user;
@@ -772,12 +772,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public JahiaLDAPUser lookupUserFromDN(String dn) {
         logger.debug("Lookup user from dn " + dn);
         JahiaLDAPUser user = null;
-        if (userCache.containsKey("d" + dn)) {
-            JahiaLDAPUser result = (JahiaLDAPUser) userCache.get("d" + dn);
+        if (userCache.containsKey(getKey() +"d" + dn)) {
+            JahiaLDAPUser result = (JahiaLDAPUser) userCache.get(getKey() +"d" + dn);
             if (result != null) {
                 return result;
             } else {
-                if (nonExistantUserCache.containsKey("d" + dn)) {
+                if (nonExistantUserCache.containsKey(getKey() +"d" + dn)) {
                     return null;
                 }
             }
@@ -788,15 +788,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             Attributes attributes = getUser(ctx, dn);
             user = ldapToJahiaUser(attributes, dn);
             if (user != null) {
-                userCache.put("d" + dn, user);
-                userCache.put("k" + user.getUserKey(), user);
-                userCache.put("n" + user.getUsername(), user);
+                userCache.put(getKey() +"d" + dn, user);
+                userCache.put(getKey() +"k" + user.getUserKey(), user);
+                userCache.put(getKey() +"n" + user.getUsername(), user);
             } else {
-                nonExistantUserCache.put("d" + dn, true);
+                nonExistantUserCache.put(getKey() +"d" + dn, true);
             }
         } catch (NameNotFoundException nnfe) {
             user = null;
-            nonExistantUserCache.put("d" + dn, true);
+            nonExistantUserCache.put(getKey() +"d" + dn, true);
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             user = null;
@@ -1050,25 +1050,25 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey) {
-        JahiaUser user = userCache.get("k" + userKey);
+        JahiaUser user = userCache.get(getKey() +"k" + userKey);
 
         if (user == null) {
             // then look into the non existant cache
-            if (nonExistantUserCache.containsKey("k" + userKey)) {
+            if (nonExistantUserCache.containsKey(getKey() +"k" + userKey)) {
                 return null;
             }
             //logger.debug(" user with key=" + userKey + " is not found in cache");
             user = lookupUserInLDAP(removeKeyPrefix(userKey));
 
             if (user != null) {
-                userCache.put("k" + userKey, user);
-                userCache.put("n" + user.getUsername(), user);
+                userCache.put(getKey() +"k" + userKey, user);
+                userCache.put(getKey() +"n" + user.getUsername(), user);
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    userCache.put("d" + jahiaLDAPUser.getDN(), user);
+                    userCache.put(getKey() +"d" + jahiaLDAPUser.getDN(), user);
                 }
             } else {
-                nonExistantUserCache.put("k" + userKey, true);
+                nonExistantUserCache.put(getKey() +"k" + userKey, true);
             }
         }
 
@@ -1138,13 +1138,13 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public void updateCache(JahiaUser jahiaUser) {
-        userCache.put("k" + jahiaUser.getUserKey(), jahiaUser);
-        userCache.put("n" + jahiaUser.getUsername(), jahiaUser);
-        nonExistantUserCache.remove("k" + jahiaUser.getUserKey());
-        nonExistantUserCache.remove("n" + jahiaUser.getUsername());
+        userCache.put(getKey() +"k" + jahiaUser.getUserKey(), jahiaUser);
+        userCache.put(getKey() +"n" + jahiaUser.getUsername(), jahiaUser);
+        nonExistantUserCache.remove(getKey() +"k" + jahiaUser.getUserKey());
+        nonExistantUserCache.remove(getKey() +"n" + jahiaUser.getUsername());
         if (jahiaUser instanceof JahiaLDAPUser) {
             JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) jahiaUser;
-            nonExistantUserCache.remove("d" + jahiaLDAPUser.getDN());
+            nonExistantUserCache.remove(getKey() +"d" + jahiaLDAPUser.getDN());
         }
     }
 
@@ -1242,10 +1242,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             cookieAuthConfig = (CookieAuthConfig) SpringContextSingleton.getBean("cookieAuthConfig");
         }
 
-        userCache = cacheService.getCache(LDAP_USER_CACHE
-                + "-" + getKey(), true);
-        nonExistantUserCache = cacheService.getCache(LDAP_NON_EXISTANT_USER_CACHE
-                + "-" + getKey(), true);
+        userCache = cacheService.getCache(LDAP_USER_CACHE, true);
+        nonExistantUserCache = cacheService.getCache(LDAP_NON_EXISTANT_USER_CACHE, true);
 
         String wildCardAttributeStr = ldapProperties.get(
                 JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);

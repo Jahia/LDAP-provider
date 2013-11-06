@@ -44,14 +44,18 @@ import org.jahia.data.templates.JahiaTemplatesPackage;
 import org.jahia.services.templates.JahiaModuleAware;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedServiceFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModuleAware {
+public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModuleAware, ApplicationContextAware {
 
     private JahiaTemplatesPackage module;
+    private ApplicationContext context;
 
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
 
@@ -60,7 +64,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
             JahiaLDAPConfig ldapConfig = ldapConfigs.get(pid);
             ldapConfig.populate(dictionary);
         } else {
-            ldapConfigs.put(pid, new JahiaLDAPConfig(module.getContext(), dictionary));
+            ldapConfigs.put(pid, new JahiaLDAPConfig(context, dictionary));
         }
     }
 
@@ -76,5 +80,11 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
     @Override
     public void setJahiaModule(JahiaTemplatesPackage module) {
         this.module = module;
+    }
+
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.context = applicationContext;
     }
 }

@@ -46,6 +46,7 @@ import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 
 import java.util.Dictionary;
@@ -61,7 +62,7 @@ public class JahiaLDAPConfig {
 
     private JahiaGroupManagerLDAPProvider jahiaGroupManagerLDAPProvider;
 
-    public JahiaLDAPConfig(AbstractApplicationContext context, Dictionary<String, ?> dictionary) {
+    public JahiaLDAPConfig(ApplicationContext context, Dictionary<String, ?> dictionary) {
         String key = computeProviderKey(dictionary);
         jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider) context.getBean("JahiaUserManagerLDAPProvider");
         jahiaUserManagerLDAPProvider.setKey(key);
