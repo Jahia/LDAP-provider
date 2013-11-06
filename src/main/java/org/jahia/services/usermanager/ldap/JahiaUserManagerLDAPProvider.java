@@ -161,6 +161,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private boolean postponePropertiesInit;
 
+    private String keyPrefix;
+
     /**
      * Default constructor
      *
@@ -704,31 +706,30 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey, String searchAttributeName) {
-        if (!userKey.startsWith("{" + getKey() + "}")) {
+        if (!userKey.startsWith(keyPrefix)) {
             return null;
         }
 
-        JahiaUser user = userCache.get(getKey() +"k" + userKey);
+        String cacheKey = getKey() +"k" + userKey;
+        JahiaUser user = userCache.get(cacheKey);
 
         if (user == null) {
 
-            if (nonExistantUserCache.containsKey(getKey() +"k" + userKey)) {
+            if (nonExistantUserCache.containsKey(cacheKey)) {
                 return null;
             }
 
-            //logger.debug(" user with key=" + userKey + " is not found in cache");
             user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
 
             if (user != null) {
-                userCache.put(getKey() +"k" + userKey, user);
+                userCache.put(cacheKey, user);
                 userCache.put(getKey() +"n" + user.getUsername(), user);
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
                     userCache.put(getKey() +"d" + jahiaLDAPUser.getDN(), user);
-
                 }
             } else {
-                nonExistantUserCache.put(getKey() +"k" + userKey, true);
+                nonExistantUserCache.put(cacheKey, true);
             }
         }
         return user;
@@ -1050,25 +1051,26 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey) {
-        JahiaUser user = userCache.get(getKey() +"k" + userKey);
+        String cacheKey = getKey() +"k" + userKey;
+        JahiaUser user = userCache.get(cacheKey);
 
         if (user == null) {
-            // then look into the non existant cache
-            if (nonExistantUserCache.containsKey(getKey() +"k" + userKey)) {
+            // then look into the non existent cache
+            if (nonExistantUserCache.containsKey(cacheKey)) {
                 return null;
             }
             //logger.debug(" user with key=" + userKey + " is not found in cache");
             user = lookupUserInLDAP(removeKeyPrefix(userKey));
 
             if (user != null) {
-                userCache.put(getKey() +"k" + userKey, user);
+                userCache.put(cacheKey, user);
                 userCache.put(getKey() +"n" + user.getUsername(), user);
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
                     userCache.put(getKey() +"d" + jahiaLDAPUser.getDN(), user);
                 }
             } else {
-                nonExistantUserCache.put(getKey() +"k" + userKey, true);
+                nonExistantUserCache.put(cacheKey, true);
             }
         }
 
@@ -1130,8 +1132,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     private String removeKeyPrefix(String userKey) {
-        if (userKey.startsWith("{" + getKey() + "}")) {
-            return userKey.substring(getKey().length() + 2);
+        if (userKey.startsWith(keyPrefix)) {
+            return userKey.substring(keyPrefix.length());
         } else {
             return userKey;
         }
@@ -1182,7 +1184,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return Return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUser(String name) {
-        return lookupUserByKey("{" + getKey() + "}" + name);
+        return lookupUserByKey(keyPrefix + name);
     }
 
     public Map<String, String> getLdapProperties() {
@@ -1303,5 +1305,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     public void setPostponePropertiesInit(boolean postponePropertiesInit) {
         this.postponePropertiesInit = postponePropertiesInit;
+    }
+    
+    @Override
+    public void setKey(String key) {
+        super.setKey(key);
+        keyPrefix = "{" + key + "}";
     }
 }

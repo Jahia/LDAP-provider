@@ -1239,23 +1239,19 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
         // String tmpGroupName = removeKeyPrefix (name);
 
-        JahiaGroup group = groupCache.get(getKey() + "n" + siteID + "_" + name);
+        String cacheKey = getKey() + "n" + siteID + "_" + name;
+        JahiaGroup group = groupCache.get(cacheKey);
         if (group == null) {
-            if (nonExistantGroupCache.containsKey(getKey() +"n" + siteID + "_" + name)) {
+            if (nonExistantGroupCache.containsKey(cacheKey)) {
                 return null;
             }
             group = lookupGroupInLDAP(siteID, name);
             if (group != null) {
-                /*
-                 * 2004-16-06 : update by EP new cache to populate : cross providers ...
-                 */
                 groupCache.put(getKey() +"k" + group.getGroupKey(), group);
                 // with name for speed
-                groupCache.put(getKey() +"n" + group.getSiteID() + "_"
-                        + group.getGroupname(), group);
+                groupCache.put(getKey() + "n" + group.getSiteID() + "_" + group.getGroupname(), group);
             } else {
-                nonExistantGroupCache.put(getKey() +"n" + siteID + "_"
-                                        + name, true);
+                nonExistantGroupCache.put(cacheKey, true);
             }
         }
 
@@ -1358,25 +1354,21 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *         if the group doesn't exist or when any error occured.
      */
     public JahiaGroup lookupGroup(String groupKey) {
-        // String tmpGroupKey = removeKeyPrefix (groupKey);
-
-        JahiaGroup group = groupCache.get(getKey() +"k" + groupKey);
+        String cacheKey = getKey() +"k" + groupKey;
+        JahiaGroup group = groupCache.get(cacheKey);
         if (group == null) {
-            if (nonExistantGroupCache.containsKey(getKey() +"k" + groupKey)) {
+            if (nonExistantGroupCache.containsKey(cacheKey)) {
                 return null;
             }
 
-            // logger.debug(" group with key=" + tmpGroupKey + " is not found in cache");
             group = lookupGroupInLDAP(removeKeyPrefix(groupKey));
 
             if (group != null) {
-                groupCache.put(getKey() +"k" + groupKey, group);
+                groupCache.put(cacheKey, group);
                 // with name for speed
-                groupCache.put(getKey() +"n" + group.getSiteID() + "_"
-                        + group.getGroupname(), group);
-                // 2004-23-07 : store wrappers
+                groupCache.put(getKey() + "n" + group.getSiteID() + "_" + group.getGroupname(), group);
             } else {
-                nonExistantGroupCache.put(getKey() +"k" + groupKey, true);
+                nonExistantGroupCache.put(cacheKey, true);
             }
         }
         return group;
@@ -1453,10 +1445,12 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     public void updateCache(JahiaGroup jahiaGroup) {
-        groupCache.put(getKey() +"k" + jahiaGroup.getGroupKey(), jahiaGroup);
-        groupCache.put(getKey() +"n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname(), jahiaGroup);
-        nonExistantGroupCache.remove(getKey() +"k" + jahiaGroup.getGroupKey());
-        nonExistantGroupCache.remove(getKey() +"n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname());
+        String cacheKey = getKey() +"k" + jahiaGroup.getGroupKey();
+        String cacheKeyByName = getKey() +"n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname();
+        groupCache.put(cacheKey, jahiaGroup);
+        groupCache.put(cacheKeyByName, jahiaGroup);
+        nonExistantGroupCache.remove(cacheKey);
+        nonExistantGroupCache.remove(cacheKeyByName);
     }
 
     public Map<String, String> getLdapProperties() {
