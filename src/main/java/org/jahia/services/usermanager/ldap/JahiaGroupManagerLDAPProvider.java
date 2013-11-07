@@ -43,12 +43,12 @@ package org.jahia.services.usermanager.ldap;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
+
 import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.cache.CacheService;
 import org.jahia.services.cache.ClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
 import org.jahia.services.content.JCRCallback;
@@ -68,8 +68,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.*;
 import javax.naming.*;
 import javax.naming.directory.*;
-import java.io.IOException;
-import java.io.Serializable;
+
 import java.security.Principal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -151,8 +150,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     // Reference to the provider containing users of this group provider
     private JahiaUserManagerLDAPProvider userProvider;
-
-    private CacheService cacheService;
 
     private JahiaUserManagerService jahiaUserManagerService;
 
@@ -288,10 +285,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         nonExistentGroups.add("guest");
         nonExistentGroups.add("users");
         initializeDefaults();
-    }
-
-    public void setCacheService(CacheService cacheService) {
-        this.cacheService = cacheService;
     }
 
     public void setJahiaUserManagerService(JahiaUserManagerService jahiaUserManagerService) {
@@ -1205,11 +1198,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     /**
-     * Lookup the group information from the underlaying system (DB, LDAP, ... )
+     * Lookup the group information from the underlying system (DB, LDAP, ... )
      * Try to lookup the group into the cache, if it's not in the cache, then
-     * load it into the cahce from the database.
+     * load it into the cache from the database.
      * <p);
-     * EP : 2004/23/07 : big refactoring
      *
      * @param siteID the site id
      * @param name   Group's unique identification name.
@@ -1222,23 +1214,18 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             return null;
         }
 
-        // String tmpGroupName = removeKeyPrefix (name);
-
         final String cacheKey = getKey() + "n" + siteID + "_" + name;
-        JahiaGroup group =  (JahiaGroup) (groupCache.get(cacheKey) != null ? ((ClassLoaderAwareCacheEntry) groupCache.get(cacheKey).getObjectValue()).getValue() : null);
+        Element element = groupCache.get(cacheKey);
+        JahiaGroup group =  (JahiaGroup) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
         if (group == null) {
             if (nonExistantGroupCache.get(cacheKey) != null) {
                 return null;
             }
             group = lookupGroupInLDAP(siteID, name);
             if (group != null) {
-                /*
-                 * 2004-16-06 : update by EP new cache to populate : cross providers ...
-                 */
-                groupCache.put(new Element(getKey() + "k" + group.getGroupKey(), new ClassLoaderAwareCacheEntry(group,"ldap")));
+                cachePut(getKey() + "k" + group.getGroupKey(), group);
                 // with name for speed
-                groupCache.put(new Element(getKey() + "n" + group.getSiteID() + "_"
-                        + group.getGroupname(), new ClassLoaderAwareCacheEntry(group, "ldap")));
+                cachePut(getKey() + "n" + group.getSiteID() + "_" + group.getGroupname(), group);
             } else {
                 nonExistantGroupCache.put(new Element(cacheKey, true));
             }
@@ -1336,31 +1323,29 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * Try to lookup the group into the cache, if it's not in the cache, then
      * load it into the cache from the database.
      * <p);
-     * EP : 2004/23/07 : big refactoring
      *
      * @param groupKey Group's unique identification key.
      * @return Return a reference on a the specified group name. Return null
      *         if the group doesn't exist or when any error occured.
      */
     public JahiaGroup lookupGroup(String groupKey) {
-        // String tmpGroupKey = removeKeyPrefix (groupKey);
 
-        JahiaGroup group = (JahiaGroup) (groupCache.get(getKey() + "k" + groupKey) != null ? ((ClassLoaderAwareCacheEntry) groupCache.get(getKey() + "k" + groupKey).getObjectValue()).getValue() : null);
+        String cacheKey = getKey() + "k" + groupKey;
+        Element element = groupCache.get(cacheKey);
+        JahiaGroup group = (JahiaGroup) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
         if (group == null) {
-            if (nonExistantGroupCache.get(getKey() + "k" + groupKey) != null) {
+            if (nonExistantGroupCache.get(cacheKey) != null) {
                 return null;
             }
 
             group = lookupGroupInLDAP(removeKeyPrefix(groupKey));
 
             if (group != null) {
-                groupCache.put(new Element(getKey() + "k" + groupKey, new ClassLoaderAwareCacheEntry(group,"ldap")));
+                cachePut(cacheKey, group);
                 // with name for speed
-                groupCache.put(new Element(getKey() + "n" + group.getSiteID() + "_"
-                        + group.getGroupname(), new ClassLoaderAwareCacheEntry(group, "ldap")));
-                // 2004-23-07 : store wrappers
+                cachePut(getKey() + "n" + group.getSiteID() + "_" + group.getGroupname(), group);
             } else {
-                nonExistantGroupCache.put(new Element(getKey() + "k" + groupKey, true));
+                nonExistantGroupCache.put(new Element(cacheKey, true));
             }
         }
         return group;
@@ -1439,8 +1424,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public void updateCache(JahiaGroup jahiaGroup) {
         String cacheKey = getKey() + "k" + jahiaGroup.getGroupKey();
         String cacheKeyByName = getKey() + "n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname();
-        groupCache.put(new Element(cacheKey, new ClassLoaderAwareCacheEntry(jahiaGroup, "ldap")));
-        groupCache.put(new Element(cacheKeyByName, new ClassLoaderAwareCacheEntry(jahiaGroup, "ldap")));
+        cachePut(cacheKey, jahiaGroup);
+        cachePut(cacheKeyByName, jahiaGroup);
         nonExistantGroupCache.remove(cacheKey);
         nonExistantGroupCache.remove(cacheKeyByName);
     }
@@ -1577,4 +1562,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         this.postponePropertiesInit = postponePropertiesInit;
     }
 
+    protected void cachePut(String key, JahiaGroup group) {
+        groupCache.put(new Element(key, new ClassLoaderAwareCacheEntry(group, "ldap")));
+    }
 }

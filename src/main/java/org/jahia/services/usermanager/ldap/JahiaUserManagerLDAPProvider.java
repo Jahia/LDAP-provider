@@ -43,6 +43,7 @@ package org.jahia.services.usermanager.ldap;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
+
 import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
@@ -57,6 +58,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+
 import java.util.*;
 
 /**
@@ -236,10 +238,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
-            logger.debug(
-                    "Search generated more than configured maximum search limit, limiting to " +
-                            this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                            " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        "Search generated more than configured maximum search limit, limiting to " +
+                                this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                                " first results...");
+            }
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             result = new ArrayList<String>();
@@ -272,9 +276,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
         } catch (SizeLimitExceededException slee) {
             // we just return the list as it is
-            logger.debug("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Search generated more than configured maximum search limit, limiting to " +
+                        this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                        " first results...");
+            }
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             result = new ArrayList<String>();
@@ -477,8 +483,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     private DirContext connectToPublicDir()
             throws NamingException {
         // Identify service provider to use
-        logger.debug("Attempting connection to LDAP repository on " +
-                ldapProperties.get(LDAP_URL_PROP) + "...");
+        if (logger.isDebugEnabled()) {
+            logger.debug("Attempting connection to LDAP repository on " + ldapProperties.get(LDAP_URL_PROP) + "...");
+        }
 
         Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
         publicEnv.put(Context.INITIAL_CONTEXT_FACTORY,
@@ -536,7 +543,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         searchCtl.setSearchScope(scope);
         List<SearchResult> answerList = new ArrayList<SearchResult>();
         searchCtl.setCountLimit(countLimit);
-        logger.debug("Using filter string [" + filterString.toString() + "]...");
+        if (logger.isDebugEnabled()) {
+            logger.debug("Using filter string [" + filterString.toString() + "]...");
+        }
         try {
             NamingEnumeration<SearchResult> enumeration = ctx.search(
                     searchBase,
@@ -576,8 +585,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         String userFinalKey = userKey;
 
         if ("".equals(userPassword)) {
-            logger.debug("Empty passwords are not authorized for LDAP login ! Failing user " +
-                    userKey + " login request.");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Empty passwords are not authorized for LDAP login ! Failing user " + userKey + " login request.");
+            }
             return false;
         }
 
@@ -601,7 +611,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             logger.debug("Invalidating connection to public LDAP context...");
             dn = null;
         } catch (NamingException ne) {
-            logger.debug("Login refused, server message : " + ne.getMessage());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Login refused, server message : " + ne.getMessage());
+            }
             dn = null;
         } finally {
             invalidateCtx(privateCtx);
@@ -618,8 +630,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     public boolean loginByDN(String dn, String userPassword) {
         if (StringUtils.isEmpty(userPassword)) {
-            logger.debug("Empty passwords are not authorized for LDAP login ! Failing user with DN=" +
-                    dn + " login request.");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Empty passwords are not authorized for LDAP login ! Failing user with DN=" + dn + " login request.");
+            }
             return false;
         }
 
@@ -632,7 +645,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         } catch (CommunicationException ce) {
             logger.warn(ce.getMessage(), ce);
         } catch (NamingException ne) {
-            logger.debug("Login refused, server message : " + ne.getMessage());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Login refused, server message : " + ne.getMessage());
+            }
         } finally {
             invalidateCtx(privateCtx);
         }
@@ -687,7 +702,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
 
         String cacheKey = getKey() +"k" + userKey;
-        JahiaUser user = (JahiaUser) (userCache.get(cacheKey) != null ? ((ClassLoaderAwareCacheEntry) userCache.get(cacheKey).getObjectValue()).getValue() : null);
+        Element element = userCache.get(cacheKey);
+        JahiaUser user = (JahiaUser) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
 
         if (user == null) {
 
@@ -698,11 +714,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
 
             if (user != null) {
-                userCache.put(new Element(cacheKey, new ClassLoaderAwareCacheEntry(user, "ldap")));
-                userCache.put(new Element(getKey() + "n" + user.getUsername(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+                cachePut(cacheKey, user);
+                cachePut(getKey() + "n" + user.getUsername(), user);
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    userCache.put(new Element(getKey() + "d" + jahiaLDAPUser.getDN(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+                    cachePut(getKey() + "d" + jahiaLDAPUser.getDN(), user);
 
                 }
             } else {
@@ -734,9 +750,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
             user = ldapToJahiaUser(sr);
         } catch (SizeLimitExceededException slee) {
-            logger.debug("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Search generated more than configured maximum search limit, limiting to " +
+                        this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                        " first results...");
+            }
             user = null;
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
@@ -748,14 +766,18 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public JahiaLDAPUser lookupUserFromDN(String dn) {
-        logger.debug("Lookup user from dn " + dn);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Lookup user from dn " + dn);
+        }
         JahiaLDAPUser user = null;
-        if (userCache.get(getKey() + "d" + dn) != null) {
-            JahiaLDAPUser result = (JahiaLDAPUser) (userCache.get(getKey() + "d" + dn) != null ? ((ClassLoaderAwareCacheEntry) userCache.get(getKey() + "d" + dn).getObjectValue()).getValue() : null);
+        String cacheKeyByDn = getKey() + "d" + dn;
+        Element element = userCache.get(cacheKeyByDn);
+        if (element != null) {
+            JahiaLDAPUser result = (JahiaLDAPUser) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
             if (result != null) {
                 return result;
             } else {
-                if (nonExistantUserCache.get(getKey() + "d" + dn) != null) {
+                if (nonExistantUserCache.get(cacheKeyByDn) != null) {
                     return null;
                 }
             }
@@ -766,15 +788,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             Attributes attributes = getUser(ctx, dn);
             user = ldapToJahiaUser(attributes, dn);
             if (user != null) {
-                userCache.put(new Element(getKey() + "d" + dn, new ClassLoaderAwareCacheEntry(user, "ldap")));
-                userCache.put(new Element(getKey() + "k" + user.getUserKey(), new ClassLoaderAwareCacheEntry(user, "ldap")));
-                userCache.put(new Element(getKey() + "n" + user.getUsername(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+                cachePut(cacheKeyByDn, user);
+                cachePut(getKey() + "k" + user.getUserKey(), user);
+                cachePut(getKey() + "n" + user.getUsername(), user);
             } else {
-                nonExistantUserCache.put(new Element(getKey() + "d" + dn, true));
+                nonExistantUserCache.put(new Element(cacheKeyByDn, true));
             }
         } catch (NameNotFoundException nnfe) {
             user = null;
-            nonExistantUserCache.put(new Element(getKey() + "d" + dn, true));
+            nonExistantUserCache.put(new Element(cacheKeyByDn, true));
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             user = null;
@@ -823,10 +845,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     if ((curAttrValueObj instanceof String)) {
                         attrValueBuf.append((String) curAttrValueObj);
                     } else {
-                        logger.debug("Converting attribute <" + attrName +
-                                "> from class " +
-                                curAttrValueObj.getClass().toString() +
-                                " to String...");
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Converting attribute <" + attrName +
+                                    "> from class " +
+                                    curAttrValueObj.getClass().toString() +
+                                    " to String...");
+                        }
                         /** @todo FIXME : for the moment we convert everything to String */
                         attrValueBuf.append(curAttrValueObj);
                     }
@@ -875,10 +899,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             userProps = mapLDAPToJahiaProperties(userProps);
             user = new JahiaLDAPUser(getKey(), name, usingUserKey, userProps, dn);
         } else {
-            logger.debug("Ignoring entry " + dn +
-                    " because it has no valid " +
-                    ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) +
-                    " attribute to be mapped onto user key...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignoring entry " + dn +
+                        " because it has no valid " +
+                        ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) +
+                        " attribute to be mapped onto user key...");
+            }
         }
 
         return user;
@@ -965,10 +991,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         } catch (SizeLimitExceededException slee) {
             // logger.error(slee);
             // we just return the list as it is
-            logger.debug(
-                    "Search generated more than configured maximum search limit, limiting to " +
-                            this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                            " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug(
+                        "Search generated more than configured maximum search limit, limiting to " +
+                                this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                                " first results...");
+            }
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             result = new HashSet<JahiaUser>();
@@ -1029,22 +1057,22 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     public JahiaUser lookupUserByKey(String userKey) {
         final String cacheKey = getKey() + "k" + userKey;
-        JahiaUser user = (JahiaUser) (userCache.get(cacheKey) != null ? ((ClassLoaderAwareCacheEntry) userCache.get(cacheKey).getObjectValue()).getValue() : null);
+        Element element = userCache.get(cacheKey);
+        JahiaUser user = (JahiaUser) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
 
         if (user == null) {
             // then look into the non existant cache
             if (nonExistantUserCache.get(cacheKey) != null) {
                 return null;
             }
-            //logger.debug(" user with key=" + userKey + " is not found in cache");
             user = lookupUserInLDAP(removeKeyPrefix(userKey));
 
             if (user != null) {
-                userCache.put(new Element(cacheKey, new ClassLoaderAwareCacheEntry(user, "ldap")));
-                userCache.put(new Element(getKey() + "n" + user.getUsername(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+                cachePut(cacheKey, user);
+                cachePut(getKey() + "n" + user.getUsername(), user);
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    userCache.put(new Element(getKey() + "d" + jahiaLDAPUser.getDN(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+                    cachePut(getKey() + "d" + jahiaLDAPUser.getDN(), user);
                 }
             } else {
                 nonExistantUserCache.put(new Element(cacheKey, true));
@@ -1066,9 +1094,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
             user = ldapToJahiaUser(sr);
         } catch (SizeLimitExceededException slee) {
-            logger.debug("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Search generated more than configured maximum search limit, limiting to " +
+                        this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                        " first results...");
+            }
             user = null;
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
@@ -1117,10 +1147,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public void updateCache(JahiaUser jahiaUser) {
-        userCache.put(new Element(getKey() + "k" + jahiaUser.getUserKey(), new ClassLoaderAwareCacheEntry(jahiaUser, "ldap")));
-        userCache.put(new Element(getKey() + "n" + jahiaUser.getUsername(), new ClassLoaderAwareCacheEntry(jahiaUser, "ldap")));
-        nonExistantUserCache.remove(getKey() + "k" + jahiaUser.getUserKey());
-        nonExistantUserCache.remove(getKey() + "n" + jahiaUser.getUsername());
+        String cacheKey = getKey() + "k" + jahiaUser.getUserKey();
+        String cacheKeyByName = getKey() + "n" + jahiaUser.getUsername();
+        cachePut(cacheKey, jahiaUser);
+        cachePut(cacheKeyByName, jahiaUser);
+        nonExistantUserCache.remove(cacheKey);
+        nonExistantUserCache.remove(cacheKeyByName);
         if (jahiaUser instanceof JahiaLDAPUser) {
             JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) jahiaUser;
             nonExistantUserCache.remove(getKey() + "d" + jahiaLDAPUser.getDN());
@@ -1297,6 +1329,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public void setKey(String key) {
         super.setKey(key);
         keyPrefix = "{" + key + "}";
+    }
+    
+    protected void cachePut(String key, JahiaUser user) {
+        userCache.put(new Element(key, new ClassLoaderAwareCacheEntry(user, "ldap")));
     }
 }
 
