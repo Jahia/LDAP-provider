@@ -40,48 +40,24 @@
 
 package org.jahia.services.usermanager.ldap;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
-
-import javax.naming.CommunicationException;
-import javax.naming.Context;
-import javax.naming.NameNotFoundException;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-import javax.naming.PartialResultException;
-import javax.naming.SizeLimitExceededException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
-
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
+import net.sf.ehcache.Element;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.params.valves.CookieAuthConfig;
 import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.cache.Cache;
-import org.jahia.services.cache.CacheService;
-import org.jahia.services.usermanager.JahiaUser;
-import org.jahia.services.usermanager.JahiaUserManagerProvider;
-import org.jahia.services.usermanager.JahiaUserManagerService;
-import org.jahia.services.usermanager.UserProperties;
-import org.jahia.services.usermanager.UserProperty;
+import org.jahia.services.cache.ClassLoaderAwareCacheEntry;
+import org.jahia.services.cache.ehcache.EhCacheProvider;
+import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.naming.*;
+import javax.naming.directory.*;
+import java.util.*;
 
 /**
  * An LDAP provider implementation for the management of users.
@@ -150,10 +126,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private List<String> searchWildCardAttributeList = null;
 
-    private Cache<String, JahiaUser> userCache;
-    private Cache<String, Boolean> nonExistantUserCache;
+    private Ehcache userCache;
+    private Ehcache nonExistantUserCache;
 
-    private CacheService cacheService = null;
+    private EhCacheProvider cacheProvider;
 
     private Map<String, String> overridenLdapProperties;
 
@@ -176,8 +152,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         initializeDefaults();
     }
 
-    public void setCacheService(CacheService cacheService) {
-        this.cacheService = cacheService;
+    public void setCacheProvider(EhCacheProvider cacheProvider) {
+        this.cacheProvider = cacheProvider;
     }
 
     public void setLdapProperties(Map<String, String> ldapProperties) {
@@ -204,8 +180,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      *         in this case a instance of JahiaLDAPUser.
      */
     public JahiaUser createUser(String name,
-                                             String password,
-                                             Properties properties) {
+                                String password,
+                                Properties properties) {
         return null;
     }
 
@@ -374,11 +350,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             }
 
             int size = filters.size();
-            if(filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
-                size = size-1;
+            if (filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                size = size - 1;
             }
             if (filters.containsKey(JahiaUserManagerService.COUNT_LIMIT)) {
-                size = size -1;
+                size = size - 1;
             }
             if (ldapfilters.size() < size) {
                 return new ArrayList<SearchResult>();
@@ -386,12 +362,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
             if (ldapfilters.size() > 1) {
                 boolean orOp = true;
-                if(filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
-                    if(((String)filters.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
+                if (filters.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                    if (((String) filters.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
                         orOp = false;
                     }
                 }
-                if(orOp) {
+                if (orOp) {
                     filterString.append("(|");
                 } else {
                     filterString.append("(&");
@@ -510,7 +486,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         publicEnv.put(Context.PROVIDER_URL,
                 ldapProperties.get(LDAP_URL_PROP));
         publicEnv.put(Context.SECURITY_AUTHENTICATION,
-                StringUtils.defaultString(ldapProperties.get (AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
+                StringUtils.defaultString(ldapProperties.get(AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
         if (ldapProperties.get(PUBLIC_BIND_DN_PROP) != null) {
             publicEnv.put(Context.SECURITY_PRINCIPAL,
                     ldapProperties.get(PUBLIC_BIND_DN_PROP));
@@ -636,7 +612,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     /**
      * Performs a login of the specified user.
      *
-     * @param dn      the user DN
+     * @param dn           the user DN
      * @param userPassword the password of the user
      * @return true if the user login is successful
      */
@@ -674,7 +650,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         privateEnv.put(Context.PROVIDER_URL,
                 ldapProperties.get(LDAP_URL_PROP));
         privateEnv.put(Context.SECURITY_AUTHENTICATION,
-                StringUtils.defaultString(ldapProperties.get (AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
+                StringUtils.defaultString(ldapProperties.get(AUTHENTIFICATION_MODE_PROP), DEFAULT_AUTHENTIFICATION_MODE));
         privateEnv.put(Context.SECURITY_PRINCIPAL, dn);
         privateEnv.put(Context.SECURITY_CREDENTIALS,
                 personPassword);
@@ -711,25 +687,26 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
 
         String cacheKey = getKey() +"k" + userKey;
-        JahiaUser user = userCache.get(cacheKey);
+        JahiaUser user = (JahiaUser) (userCache.get(cacheKey) != null ? ((ClassLoaderAwareCacheEntry) userCache.get(cacheKey).getObjectValue()).getValue() : null);
 
         if (user == null) {
 
-            if (nonExistantUserCache.containsKey(cacheKey)) {
+            if (nonExistantUserCache.get(cacheKey) != null) {
                 return null;
             }
 
             user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
 
             if (user != null) {
-                userCache.put(cacheKey, user);
-                userCache.put(getKey() +"n" + user.getUsername(), user);
+                userCache.put(new Element(cacheKey, new ClassLoaderAwareCacheEntry(user, "ldap")));
+                userCache.put(new Element(getKey() + "n" + user.getUsername(), new ClassLoaderAwareCacheEntry(user, "ldap")));
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    userCache.put(getKey() +"d" + jahiaLDAPUser.getDN(), user);
+                    userCache.put(new Element(getKey() + "d" + jahiaLDAPUser.getDN(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+
                 }
             } else {
-                nonExistantUserCache.put(cacheKey, true);
+                nonExistantUserCache.put(new Element(cacheKey, true));
             }
         }
         return user;
@@ -773,12 +750,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public JahiaLDAPUser lookupUserFromDN(String dn) {
         logger.debug("Lookup user from dn " + dn);
         JahiaLDAPUser user = null;
-        if (userCache.containsKey(getKey() +"d" + dn)) {
-            JahiaLDAPUser result = (JahiaLDAPUser) userCache.get(getKey() +"d" + dn);
+        if (userCache.get(getKey() + "d" + dn) != null) {
+            JahiaLDAPUser result = (JahiaLDAPUser) (userCache.get(getKey() + "d" + dn) != null ? ((ClassLoaderAwareCacheEntry) userCache.get(getKey() + "d" + dn).getObjectValue()).getValue() : null);
             if (result != null) {
                 return result;
             } else {
-                if (nonExistantUserCache.containsKey(getKey() +"d" + dn)) {
+                if (nonExistantUserCache.get(getKey() + "d" + dn) != null) {
                     return null;
                 }
             }
@@ -789,15 +766,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             Attributes attributes = getUser(ctx, dn);
             user = ldapToJahiaUser(attributes, dn);
             if (user != null) {
-                userCache.put(getKey() +"d" + dn, user);
-                userCache.put(getKey() +"k" + user.getUserKey(), user);
-                userCache.put(getKey() +"n" + user.getUsername(), user);
+                userCache.put(new Element(getKey() + "d" + dn, new ClassLoaderAwareCacheEntry(user, "ldap")));
+                userCache.put(new Element(getKey() + "k" + user.getUserKey(), new ClassLoaderAwareCacheEntry(user, "ldap")));
+                userCache.put(new Element(getKey() + "n" + user.getUsername(), new ClassLoaderAwareCacheEntry(user, "ldap")));
             } else {
-                nonExistantUserCache.put(getKey() +"d" + dn, true);
+                nonExistantUserCache.put(new Element(getKey() + "d" + dn, true));
             }
         } catch (NameNotFoundException nnfe) {
             user = null;
-            nonExistantUserCache.put(getKey() +"d" + dn, true);
+            nonExistantUserCache.put(new Element(getKey() + "d" + dn, true));
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             user = null;
@@ -1051,26 +1028,26 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey) {
-        String cacheKey = getKey() +"k" + userKey;
-        JahiaUser user = userCache.get(cacheKey);
+        final String cacheKey = getKey() + "k" + userKey;
+        JahiaUser user = (JahiaUser) (userCache.get(cacheKey) != null ? ((ClassLoaderAwareCacheEntry) userCache.get(cacheKey).getObjectValue()).getValue() : null);
 
         if (user == null) {
-            // then look into the non existent cache
-            if (nonExistantUserCache.containsKey(cacheKey)) {
+            // then look into the non existant cache
+            if (nonExistantUserCache.get(cacheKey) != null) {
                 return null;
             }
             //logger.debug(" user with key=" + userKey + " is not found in cache");
             user = lookupUserInLDAP(removeKeyPrefix(userKey));
 
             if (user != null) {
-                userCache.put(cacheKey, user);
-                userCache.put(getKey() +"n" + user.getUsername(), user);
+                userCache.put(new Element(cacheKey, new ClassLoaderAwareCacheEntry(user, "ldap")));
+                userCache.put(new Element(getKey() + "n" + user.getUsername(), new ClassLoaderAwareCacheEntry(user, "ldap")));
                 if (user instanceof JahiaLDAPUser) {
                     JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    userCache.put(getKey() +"d" + jahiaLDAPUser.getDN(), user);
+                    userCache.put(new Element(getKey() + "d" + jahiaLDAPUser.getDN(), new ClassLoaderAwareCacheEntry(user, "ldap")));
                 }
             } else {
-                nonExistantUserCache.put(cacheKey, true);
+                nonExistantUserCache.put(new Element(cacheKey, true));
             }
         }
 
@@ -1140,13 +1117,13 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
 
     public void updateCache(JahiaUser jahiaUser) {
-        userCache.put(getKey() +"k" + jahiaUser.getUserKey(), jahiaUser);
-        userCache.put(getKey() +"n" + jahiaUser.getUsername(), jahiaUser);
-        nonExistantUserCache.remove(getKey() +"k" + jahiaUser.getUserKey());
-        nonExistantUserCache.remove(getKey() +"n" + jahiaUser.getUsername());
+        userCache.put(new Element(getKey() + "k" + jahiaUser.getUserKey(), new ClassLoaderAwareCacheEntry(jahiaUser, "ldap")));
+        userCache.put(new Element(getKey() + "n" + jahiaUser.getUsername(), new ClassLoaderAwareCacheEntry(jahiaUser, "ldap")));
+        nonExistantUserCache.remove(getKey() + "k" + jahiaUser.getUserKey());
+        nonExistantUserCache.remove(getKey() + "n" + jahiaUser.getUsername());
         if (jahiaUser instanceof JahiaLDAPUser) {
             JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) jahiaUser;
-            nonExistantUserCache.remove(getKey() +"d" + jahiaLDAPUser.getDN());
+            nonExistantUserCache.remove(getKey() + "d" + jahiaLDAPUser.getDN());
         }
     }
 
@@ -1236,16 +1213,25 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                         ".attribute.map"), entry.getValue());
             }
         }
-        
-        if (cacheService == null) {
-            cacheService = (CacheService) SpringContextSingleton.getBean("JahiaCacheService");
+
+        if (cacheProvider == null) {
+            cacheProvider = (EhCacheProvider) SpringContextSingleton.getBean("ehCacheProvider");
         }
         if (cookieAuthConfig == null) {
             cookieAuthConfig = (CookieAuthConfig) SpringContextSingleton.getBean("cookieAuthConfig");
         }
 
-        userCache = cacheService.getCache(LDAP_USER_CACHE, true);
-        nonExistantUserCache = cacheService.getCache(LDAP_NON_EXISTANT_USER_CACHE, true);
+        final CacheManager cacheManager = cacheProvider.getCacheManager();
+        userCache = cacheManager.getCache(LDAP_USER_CACHE);
+        if (userCache == null) {
+            cacheManager.addCache(LDAP_USER_CACHE);
+            userCache = cacheManager.getCache(LDAP_USER_CACHE);
+        }
+        nonExistantUserCache = cacheManager.getCache(LDAP_NON_EXISTANT_USER_CACHE);
+        if (nonExistantUserCache == null) {
+            cacheManager.addCache(LDAP_NON_EXISTANT_USER_CACHE);
+            nonExistantUserCache = cacheManager.getCache(LDAP_NON_EXISTANT_USER_CACHE);
+        }
 
         String wildCardAttributeStr = ldapProperties.get(
                 JahiaUserManagerLDAPProvider.SEARCH_WILDCARD_ATTRIBUTE_LIST);
@@ -1281,35 +1267,36 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
     private Map<String, String> iniDefaultProperties() {
         HashMap<String, String> props = new HashMap<String, String>();
-        
+
         // Connection and authentication parameters
         props.put("context.factory", "com.sun.jndi.ldap.LdapCtxFactory");
         props.put("authentification.mode", "simple");
         props.put("ldap.connect.pool", "true");
         props.put("ldap.connect.timeout", "5000");
-                            
-       // Search parameters
+
+        // Search parameters
         props.put("search.countlimit", "100");
         props.put("uid.search.attribute", "cn");
         props.put("search.objectclass", "person");
         props.put("search.wildcards.attributes", "ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn");
-        
+
         // property mapping
         props.put("j:firstName.attribute.map", "givenName");
         props.put("j:lastName.attribute.map", "sn");
         props.put("j:email.attribute.map", "mail");
         props.put("j:organization.attribute.map", "ou");
-        
+
         return props;
     }
 
     public void setPostponePropertiesInit(boolean postponePropertiesInit) {
         this.postponePropertiesInit = postponePropertiesInit;
     }
-    
+
     @Override
     public void setKey(String key) {
         super.setKey(key);
         keyPrefix = "{" + key + "}";
     }
 }
+

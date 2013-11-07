@@ -68,6 +68,7 @@ public class JahiaLDAPConfig {
         jahiaUserManagerLDAPProvider.setKey(key);
         jahiaGroupManagerLDAPProvider = (JahiaGroupManagerLDAPProvider) context.getBean("JahiaGroupManagerLDAPProvider");
         jahiaGroupManagerLDAPProvider.setKey(key);
+        jahiaGroupManagerLDAPProvider.setUserProvider(jahiaUserManagerLDAPProvider);
         populate(dictionary);
     }
 

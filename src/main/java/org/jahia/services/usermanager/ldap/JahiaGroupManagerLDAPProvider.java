@@ -40,47 +40,17 @@
 
 package org.jahia.services.usermanager.ldap;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.jcr.*;
-import javax.naming.CannotProceedException;
-import javax.naming.CommunicationException;
-import javax.naming.Context;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-import javax.naming.NoInitialContextException;
-import javax.naming.PartialResultException;
-import javax.naming.ServiceUnavailableException;
-import javax.naming.SizeLimitExceededException;
-import javax.naming.TimeLimitExceededException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
-
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
+import net.sf.ehcache.Element;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.cache.Cache;
 import org.jahia.services.cache.CacheService;
+import org.jahia.services.cache.ClassLoaderAwareCacheEntry;
+import org.jahia.services.cache.ehcache.EhCacheProvider;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -89,15 +59,20 @@ import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.sites.JahiaSite;
 import org.jahia.services.sites.JahiaSiteTools;
 import org.jahia.services.sites.JahiaSitesService;
-import org.jahia.services.usermanager.JahiaGroup;
-import org.jahia.services.usermanager.JahiaGroupManagerProvider;
-import org.jahia.services.usermanager.JahiaUser;
-import org.jahia.services.usermanager.JahiaUserManagerProvider;
-import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.jcr.JCRGroup;
 import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.*;
+import javax.naming.*;
+import javax.naming.directory.*;
+import java.io.IOException;
+import java.io.Serializable;
+import java.security.Principal;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * LDAP group manager provider.
@@ -157,9 +132,11 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
     public static final String DEFAULT_AUTHENTIFICATION_MODE = "simple";
 
-    private Cache<String, JahiaGroup> groupCache;
+    private Ehcache groupCache;
 
-    private Cache<String, Boolean> nonExistantGroupCache;
+    private Ehcache nonExistantGroupCache;
+
+    private EhCacheProvider cacheProvider;
 
     private Map<String, String> ldapProperties = null;
 
@@ -184,6 +161,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private String providerKeyPrefix;
 
     private boolean postponePropertiesInit;
+
+    public void setCacheProvider(EhCacheProvider cacheProvider) {
+        this.cacheProvider = cacheProvider;
+    }
 
     private static boolean containsMembersRange(Attributes attrs,
                                                 String membersAttribute) throws NamingException {
@@ -464,8 +445,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             // we just return the list as it is
             if (logger.isDebugEnabled()) {
                 logger.debug("Search generated more than configured maximum search limit, limiting to " +
-                    this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
-                    " first results...");
+                        this.ldapProperties.get(SEARCH_COUNT_LIMIT_PROP) +
+                        " first results...");
             }
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
@@ -517,9 +498,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     /**
      * Retrieves groups from the LDAP public repository.
      *
-     * @param ctx     the current context in which to search for the group
+     * @param ctx           the current context in which to search for the group
      * @param searchFilters a set of name=value string that contain RFC 2254 format
-     *                filters in the value, or null if we want to look in the full repository
+     *                      filters in the value, or null if we want to look in the full repository
      * @return a list of SearchResult objects
      *         that contains the LDAP group entries that correspond to the filter
      * @throws NamingException
@@ -645,7 +626,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         // Identify service provider to use
         if (logger.isDebugEnabled()) {
             logger.debug("Attempting connection to LDAP repository on " +
-                ldapProperties.get(LDAP_URL_PROP) + "...");
+                    ldapProperties.get(LDAP_URL_PROP) + "...");
         }
         Hashtable<String, String> publicEnv = new Hashtable<String, String>(11);
         publicEnv.put(Context.INITIAL_CONTEXT_FACTORY,
@@ -902,6 +883,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             return null;
     }
 
+    public void setUserProvider(JahiaUserManagerLDAPProvider userProvider) {
+        this.userProvider = userProvider;
+    }
+
     public JahiaUserManagerLDAPProvider getUserManagerProvider() {
         if (userProvider == null) {
             synchronized (JahiaGroupManagerLDAPProvider.class) {
@@ -1087,8 +1072,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private List<SearchResult> getGroups
             (DirContext
                      ctx, SearchControls
-                    searchCtl, StringBuilder
-                    filter) throws NamingException {
+                     searchCtl, StringBuilder
+                     filter) throws NamingException {
         List<SearchResult> answerList = new ArrayList<SearchResult>();
         try {
             answerList = doGroupSearch(ctx, searchCtl, filter);
@@ -1124,8 +1109,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private List<SearchResult> doGroupSearch
             (DirContext
                      ctx, SearchControls
-                    searchCtl, StringBuilder
-                    filter)
+                     searchCtl, StringBuilder
+                     filter)
             throws NamingException {
 
         String filterString = filter.toString();
@@ -1239,19 +1224,23 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
 
         // String tmpGroupName = removeKeyPrefix (name);
 
-        String cacheKey = getKey() + "n" + siteID + "_" + name;
-        JahiaGroup group = groupCache.get(cacheKey);
+        final String cacheKey = getKey() + "n" + siteID + "_" + name;
+        JahiaGroup group =  (JahiaGroup) (groupCache.get(cacheKey) != null ? ((ClassLoaderAwareCacheEntry) groupCache.get(cacheKey).getObjectValue()).getValue() : null);
         if (group == null) {
-            if (nonExistantGroupCache.containsKey(cacheKey)) {
+            if (nonExistantGroupCache.get(cacheKey) != null) {
                 return null;
             }
             group = lookupGroupInLDAP(siteID, name);
             if (group != null) {
-                groupCache.put(getKey() +"k" + group.getGroupKey(), group);
+                /*
+                 * 2004-16-06 : update by EP new cache to populate : cross providers ...
+                 */
+                groupCache.put(new Element(getKey() + "k" + group.getGroupKey(), new ClassLoaderAwareCacheEntry(group,"ldap")));
                 // with name for speed
-                groupCache.put(getKey() + "n" + group.getSiteID() + "_" + group.getGroupname(), group);
+                groupCache.put(new Element(getKey() + "n" + group.getSiteID() + "_"
+                        + group.getGroupname(), new ClassLoaderAwareCacheEntry(group, "ldap")));
             } else {
-                nonExistantGroupCache.put(cacheKey, true);
+                nonExistantGroupCache.put(new Element(cacheKey, true));
             }
         }
 
@@ -1354,21 +1343,24 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *         if the group doesn't exist or when any error occured.
      */
     public JahiaGroup lookupGroup(String groupKey) {
-        String cacheKey = getKey() +"k" + groupKey;
-        JahiaGroup group = groupCache.get(cacheKey);
+        // String tmpGroupKey = removeKeyPrefix (groupKey);
+
+        JahiaGroup group = (JahiaGroup) (groupCache.get(getKey() + "k" + groupKey) != null ? ((ClassLoaderAwareCacheEntry) groupCache.get(getKey() + "k" + groupKey).getObjectValue()).getValue() : null);
         if (group == null) {
-            if (nonExistantGroupCache.containsKey(cacheKey)) {
+            if (nonExistantGroupCache.get(getKey() + "k" + groupKey) != null) {
                 return null;
             }
 
             group = lookupGroupInLDAP(removeKeyPrefix(groupKey));
 
             if (group != null) {
-                groupCache.put(cacheKey, group);
+                groupCache.put(new Element(getKey() + "k" + groupKey, new ClassLoaderAwareCacheEntry(group,"ldap")));
                 // with name for speed
-                groupCache.put(getKey() + "n" + group.getSiteID() + "_" + group.getGroupname(), group);
+                groupCache.put(new Element(getKey() + "n" + group.getSiteID() + "_"
+                        + group.getGroupname(), new ClassLoaderAwareCacheEntry(group, "ldap")));
+                // 2004-23-07 : store wrappers
             } else {
-                nonExistantGroupCache.put(cacheKey, true);
+                nonExistantGroupCache.put(new Element(getKey() + "k" + groupKey, true));
             }
         }
         return group;
@@ -1445,10 +1437,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     public void updateCache(JahiaGroup jahiaGroup) {
-        String cacheKey = getKey() +"k" + jahiaGroup.getGroupKey();
-        String cacheKeyByName = getKey() +"n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname();
-        groupCache.put(cacheKey, jahiaGroup);
-        groupCache.put(cacheKeyByName, jahiaGroup);
+        String cacheKey = getKey() + "k" + jahiaGroup.getGroupKey();
+        String cacheKeyByName = getKey() + "n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname();
+        groupCache.put(new Element(cacheKey, new ClassLoaderAwareCacheEntry(jahiaGroup, "ldap")));
+        groupCache.put(new Element(cacheKeyByName, new ClassLoaderAwareCacheEntry(jahiaGroup, "ldap")));
         nonExistantGroupCache.remove(cacheKey);
         nonExistantGroupCache.remove(cacheKeyByName);
     }
@@ -1497,8 +1489,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             }
         }
 
-        if (cacheService == null) {
-            cacheService = (CacheService) SpringContextSingleton.getBean("JahiaCacheService");
+        if (cacheProvider == null) {
+            cacheProvider = (EhCacheProvider) SpringContextSingleton.getBean("ehCacheProvider");
         }
 
         if (jahiaUserManagerService == null) {
@@ -1507,8 +1499,17 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         }
 
         // instantiates the cache
-        groupCache = cacheService.getCache(LDAP_GROUP_CACHE , true);
-        nonExistantGroupCache = cacheService.getCache(LDAP_NONEXISTANT_GROUP_CACHE, true);
+        final CacheManager cacheManager = cacheProvider.getCacheManager();
+        groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
+        if (groupCache == null) {
+            cacheManager.addCache(LDAP_GROUP_CACHE);
+            groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
+        }
+        nonExistantGroupCache = cacheManager.getCache(LDAP_NONEXISTANT_GROUP_CACHE);
+        if (nonExistantGroupCache == null) {
+            cacheManager.addCache(LDAP_NONEXISTANT_GROUP_CACHE);
+            nonExistantGroupCache = cacheManager.getCache(LDAP_NONEXISTANT_GROUP_CACHE);
+        }
 
         String wildCardAttributeStr = ldapProperties.get(JahiaGroupManagerLDAPProvider.
                 SEARCH_WILDCARD_ATTRIBUTE_LIST);
@@ -1537,15 +1538,15 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         setReadOnly(true);
         defaultLdapProperties = iniDefaultProperties();
     }
-    
+
     private Map<String, String> iniDefaultProperties() {
         HashMap<String, String> props = new HashMap<String, String>();
-        
+
         // Connection and authentication parameters
         props.put("context.factory", "com.sun.jndi.ldap.LdapCtxFactory");
         props.put("authentification.mode", "simple");
         props.put("ldap.connect.pool", "true");
-        props.put("ldap.connect.timeout", "5000");                    
+        props.put("ldap.connect.timeout", "5000");
 
         // Search and membership parameters
         props.put("preload", "false");
@@ -1562,17 +1563,18 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         // property mapping
         props.put("groupname.attribute.map", "cn");
         props.put("description.attribute.map", "description");
-        
+
         return props;
     }
 
     @Override
     public void setKey(String key) {
         super.setKey(key);
-        providerKeyPrefix = "{" + getKey() + "}"; 
+        providerKeyPrefix = "{" + getKey() + "}";
     }
 
     public void setPostponePropertiesInit(boolean postponePropertiesInit) {
         this.postponePropertiesInit = postponePropertiesInit;
     }
+
 }
