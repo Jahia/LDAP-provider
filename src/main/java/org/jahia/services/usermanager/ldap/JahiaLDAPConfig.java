@@ -47,13 +47,15 @@ import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.AbstractApplicationContext;
 
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Helper class to configure LDAP user and group providers via OSGi Config Admin service.
+ */
 public class JahiaLDAPConfig {
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
