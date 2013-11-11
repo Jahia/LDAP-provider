@@ -49,7 +49,8 @@ import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.cache.ClassLoaderAwareCacheEntry;
+import org.jahia.services.cache.CacheHelper;
+import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -1215,8 +1216,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         }
 
         final String cacheKey = getKey() + "n" + siteID + "_" + name;
-        Element element = groupCache.get(cacheKey);
-        JahiaGroup group =  (JahiaGroup) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
+        JahiaGroup group =  (JahiaGroup) CacheHelper.getObjectValue(groupCache, cacheKey);
         if (group == null) {
             if (nonExistantGroupCache.get(cacheKey) != null) {
                 return null;
@@ -1331,8 +1331,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public JahiaGroup lookupGroup(String groupKey) {
 
         String cacheKey = getKey() + "k" + groupKey;
-        Element element = groupCache.get(cacheKey);
-        JahiaGroup group = (JahiaGroup) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
+        JahiaGroup group = (JahiaGroup) CacheHelper.getObjectValue(groupCache, cacheKey);
         if (group == null) {
             if (nonExistantGroupCache.get(cacheKey) != null) {
                 return null;
@@ -1563,6 +1562,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     }
 
     protected void cachePut(String key, JahiaGroup group) {
-        groupCache.put(new Element(key, new ClassLoaderAwareCacheEntry(group, "ldap")));
+        groupCache.put(new Element(key, new ModuleClassLoaderAwareCacheEntry(group, "ldap")));
     }
 }

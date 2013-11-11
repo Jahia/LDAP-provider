@@ -49,7 +49,8 @@ import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.params.valves.CookieAuthConfig;
 import org.jahia.services.SpringContextSingleton;
-import org.jahia.services.cache.ClassLoaderAwareCacheEntry;
+import org.jahia.services.cache.CacheHelper;
+import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
 import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
@@ -702,8 +703,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
 
         String cacheKey = getKey() +"k" + userKey;
-        Element element = userCache.get(cacheKey);
-        JahiaUser user = (JahiaUser) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
+        JahiaUser user = (JahiaUser) CacheHelper.getObjectValue(userCache, cacheKey);
 
         if (user == null) {
 
@@ -771,15 +771,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         }
         JahiaLDAPUser user = null;
         String cacheKeyByDn = getKey() + "d" + dn;
-        Element element = userCache.get(cacheKeyByDn);
-        if (element != null) {
-            JahiaLDAPUser result = (JahiaLDAPUser) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
-            if (result != null) {
-                return result;
-            } else {
-                if (nonExistantUserCache.get(cacheKeyByDn) != null) {
-                    return null;
-                }
+        JahiaLDAPUser result = (JahiaLDAPUser) CacheHelper.getObjectValue(userCache, cacheKeyByDn);
+        if (result != null) {
+            return result;
+        } else {
+            if (nonExistantUserCache.get(cacheKeyByDn) != null) {
+                return null;
             }
         }
         DirContext ctx = null;
@@ -1057,11 +1054,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     public JahiaUser lookupUserByKey(String userKey) {
         final String cacheKey = getKey() + "k" + userKey;
-        Element element = userCache.get(cacheKey);
-        JahiaUser user = (JahiaUser) (element != null ? ((ClassLoaderAwareCacheEntry) element.getObjectValue()).getValue() : null);
+        JahiaUser user = (JahiaUser) CacheHelper.getObjectValue(userCache, cacheKey);
 
         if (user == null) {
-            // then look into the non existant cache
+            // then look into the non existent cache
             if (nonExistantUserCache.get(cacheKey) != null) {
                 return null;
             }
@@ -1332,7 +1328,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     }
     
     protected void cachePut(String key, JahiaUser user) {
-        userCache.put(new Element(key, new ClassLoaderAwareCacheEntry(user, "ldap")));
+        userCache.put(new Element(key, new ModuleClassLoaderAwareCacheEntry(user, "ldap")));
     }
 }
 
