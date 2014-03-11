@@ -1297,16 +1297,16 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         HashMap<String, String> props = new HashMap<String, String>();
 
         // Connection and authentication parameters
-        props.put("context.factory", "com.sun.jndi.ldap.LdapCtxFactory");
-        props.put("authentification.mode", "simple");
-        props.put("ldap.connect.pool", "true");
-        props.put("ldap.connect.timeout", "5000");
+        props.put(CONTEXT_FACTORY_PROP, "com.sun.jndi.ldap.LdapCtxFactory");
+        props.put(AUTHENTIFICATION_MODE_PROP, "simple");
+        props.put(USE_CONNECTION_POOL, "true");
+        props.put(CONNECTION_TIMEOUT, "5000");
 
         // Search parameters
-        props.put("search.countlimit", "100");
-        props.put("uid.search.attribute", "cn");
-        props.put("search.objectclass", "person");
-        props.put("search.wildcards.attributes", "ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn");
+        props.put(SEARCH_COUNT_LIMIT_PROP, "100");
+        props.put(UID_SEARCH_ATTRIBUTE_PROP, "cn");
+        props.put(USERS_OBJECTCLASS_ATTRIBUTE, "person");
+        props.put(SEARCH_WILDCARD_ATTRIBUTE_LIST, "ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn");
 
         // property mapping
         props.put("j:firstName.attribute.map", "givenName");
