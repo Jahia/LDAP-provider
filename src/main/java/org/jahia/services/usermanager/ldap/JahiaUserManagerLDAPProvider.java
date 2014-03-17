@@ -728,11 +728,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             if (user != null) {
                 cachePut(cacheKey, user);
                 cachePut(getKey() + "n" + user.getUsername(), user);
-                if (user instanceof JahiaLDAPUser) {
-                    JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    cachePut(getKey() + "d" + jahiaLDAPUser.getDN(), user);
-
-                }
+                cachePut(getKey() + "d" + ((JahiaLDAPUser) user).getDN(), user);
             } else {
                 nonExistantUserCache.put(new Element(cacheKey, true));
             }
@@ -1078,10 +1074,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             if (user != null) {
                 cachePut(cacheKey, user);
                 cachePut(getKey() + "n" + user.getUsername(), user);
-                if (user instanceof JahiaLDAPUser) {
-                    JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) user;
-                    cachePut(getKey() + "d" + jahiaLDAPUser.getDN(), user);
-                }
+                cachePut(getKey() + "d" + ((JahiaLDAPUser) user).getDN(), user);
             } else {
                 nonExistantUserCache.put(new Element(cacheKey, true));
             }
