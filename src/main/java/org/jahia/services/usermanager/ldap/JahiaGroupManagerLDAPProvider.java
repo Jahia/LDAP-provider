@@ -1006,7 +1006,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             invalidateCtx(ctx);
         }
 
-        List<String> recursedGroups = null;
+        List<String> recursedGroups = Collections.emptyList();
         try {
             final List<String> fResults = new ArrayList<String>(result);
             recursedGroups = JCRTemplate.getInstance().doExecuteWithSystemSession(new JCRCallback<List<String>>() {
