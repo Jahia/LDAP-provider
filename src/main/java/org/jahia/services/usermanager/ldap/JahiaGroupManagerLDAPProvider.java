@@ -1055,7 +1055,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                 }
             });
         } catch (RepositoryException e) {
-            e.printStackTrace();
+            logger.error("Error retrieving user membership", e);
         }
         result.addAll(new HashSet<String>(recursedGroups));
 
