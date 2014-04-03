@@ -89,24 +89,20 @@ public class JahiaLDAPConfig {
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
 
+    private String providerKey;
+    private Map<String, String> userLdapProperties;
+    private Map<String, String> groupLdapProperties;
     private JahiaUserManagerLDAPProvider jahiaUserManagerLDAPProvider;
-
     private JahiaGroupManagerLDAPProvider jahiaGroupManagerLDAPProvider;
 
     public JahiaLDAPConfig(ApplicationContext context, Dictionary<String, ?> dictionary) {
-        String key = computeProviderKey(dictionary);
-        jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider) context.getBean("JahiaUserManagerLDAPProvider");
-        jahiaUserManagerLDAPProvider.setKey(key);
-        jahiaGroupManagerLDAPProvider = (JahiaGroupManagerLDAPProvider) context.getBean("JahiaGroupManagerLDAPProvider");
-        jahiaGroupManagerLDAPProvider.setKey(key);
-        jahiaGroupManagerLDAPProvider.setUserProvider(jahiaUserManagerLDAPProvider);
-        populate(dictionary);
+        providerKey = computeProviderKey(dictionary);
+        populate(context, dictionary);
     }
 
-    public void
-    populate(Dictionary<String, ?> dictionary) {
-        Map<String, String> userLdapProperties = new HashMap<String, String>();
-        Map<String, String> groupLdapProperties = new HashMap<String, String>();
+    public void populate(ApplicationContext context, Dictionary<String, ?> dictionary) {
+        userLdapProperties = new HashMap<String, String>();
+        groupLdapProperties = new HashMap<String, String>();
         Enumeration<String> keys = dictionary.keys();
         while (keys.hasMoreElements()) {
             String key = keys.nextElement();
@@ -126,26 +122,55 @@ public class JahiaLDAPConfig {
             }
         }
         if (!userLdapProperties.isEmpty()) {
+            if (jahiaUserManagerLDAPProvider == null) {
+                jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider) context.getBean("JahiaUserManagerLDAPProvider");
+                jahiaUserManagerLDAPProvider.setKey(providerKey);
+            }
+
             jahiaUserManagerLDAPProvider.setLdapProperties(userLdapProperties);
             try {
                 jahiaUserManagerLDAPProvider.initProperties();
             } catch (JahiaInitializationException e) {
                 logger.error("Failed to initialize JahiaUserManagerLDAPProvider");
             }
+        } else if (jahiaUserManagerLDAPProvider != null) {
+            unregisterUserProvider();
         }
         if (!groupLdapProperties.isEmpty()) {
+            if (jahiaGroupManagerLDAPProvider == null) {
+                jahiaGroupManagerLDAPProvider = (JahiaGroupManagerLDAPProvider) context.getBean("JahiaGroupManagerLDAPProvider");
+                jahiaGroupManagerLDAPProvider.setKey(providerKey);
+                jahiaGroupManagerLDAPProvider.setUserProvider(jahiaUserManagerLDAPProvider);
+            }
+
             jahiaGroupManagerLDAPProvider.setLdapProperties(groupLdapProperties);
             try {
                 jahiaGroupManagerLDAPProvider.initProperties();
             } catch (JahiaInitializationException e) {
                 logger.error("Failed to initialize JahiaGroupManagerLDAPProvider");
             }
+        } else if (jahiaGroupManagerLDAPProvider != null) {
+            unregisterGroupProvider();
         }
     }
 
     public void unregister() {
+        if (jahiaUserManagerLDAPProvider != null) {
+            unregisterUserProvider();
+        }
+        if (jahiaGroupManagerLDAPProvider != null) {
+            unregisterGroupProvider();
+        }
+    }
+
+    private void unregisterUserProvider() {
         jahiaUserManagerLDAPProvider.unregister();
+        jahiaUserManagerLDAPProvider = null;
+    }
+
+    private void unregisterGroupProvider() {
         jahiaGroupManagerLDAPProvider.unregister();
+        jahiaGroupManagerLDAPProvider = null;
     }
 
     private String computeProviderKey(Dictionary<String, ?> dictionary) {
