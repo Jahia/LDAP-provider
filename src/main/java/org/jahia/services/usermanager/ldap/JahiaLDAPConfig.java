@@ -103,7 +103,8 @@ public class JahiaLDAPConfig {
         populate(dictionary);
     }
 
-    public void populate(Dictionary<String, ?> dictionary) {
+    public void
+    populate(Dictionary<String, ?> dictionary) {
         Map<String, String> userLdapProperties = new HashMap<String, String>();
         Map<String, String> groupLdapProperties = new HashMap<String, String>();
         Enumeration<String> keys = dictionary.keys();
@@ -124,17 +125,21 @@ public class JahiaLDAPConfig {
                 groupLdapProperties.put(key, value);
             }
         }
-        jahiaUserManagerLDAPProvider.setLdapProperties(userLdapProperties);
-        try {
-            jahiaUserManagerLDAPProvider.initProperties();
-        } catch (JahiaInitializationException e) {
-            logger.error("Failed to initialize JahiaUserManagerLDAPProvider");
+        if (!userLdapProperties.isEmpty()) {
+            jahiaUserManagerLDAPProvider.setLdapProperties(userLdapProperties);
+            try {
+                jahiaUserManagerLDAPProvider.initProperties();
+            } catch (JahiaInitializationException e) {
+                logger.error("Failed to initialize JahiaUserManagerLDAPProvider");
+            }
         }
-        jahiaGroupManagerLDAPProvider.setLdapProperties(groupLdapProperties);
-        try {
-            jahiaGroupManagerLDAPProvider.initProperties();
-        } catch (JahiaInitializationException e) {
-            logger.error("Failed to initialize JahiaGroupManagerLDAPProvider");
+        if (!groupLdapProperties.isEmpty()) {
+            jahiaGroupManagerLDAPProvider.setLdapProperties(groupLdapProperties);
+            try {
+                jahiaGroupManagerLDAPProvider.initProperties();
+            } catch (JahiaInitializationException e) {
+                logger.error("Failed to initialize JahiaGroupManagerLDAPProvider");
+            }
         }
     }
 
