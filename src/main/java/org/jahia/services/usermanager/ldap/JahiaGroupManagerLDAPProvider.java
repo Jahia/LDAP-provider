@@ -98,7 +98,6 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.*;
 import javax.naming.*;
 import javax.naming.directory.*;
-
 import java.security.Principal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -179,7 +178,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private List<String> nonExistentGroups = null;
 
     // Reference to the provider containing users of this group provider
-    private JahiaUserManagerLDAPProvider userProvider;
+    private volatile JahiaUserManagerLDAPProvider userProvider;
 
     private JahiaUserManagerService jahiaUserManagerService;
 
@@ -340,7 +339,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param groupname Group's unique identification name
      * @param hidden
      * @return Return a reference on a group object on success, or if the groupname
-     *         already exists or another error occured, null is returned.
+     * already exists or another error occured, null is returned.
      */
 
     public JahiaGroup createGroup(int siteID, String groupname,
@@ -525,7 +524,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param searchFilters a set of name=value string that contain RFC 2254 format
      *                      filters in the value, or null if we want to look in the full repository
      * @return a list of SearchResult objects
-     *         that contains the LDAP group entries that correspond to the filter
+     * that contains the LDAP group entries that correspond to the filter
      * @throws NamingException
      */
     private List<SearchResult> getGroups(DirContext ctx, Properties searchFilters)
@@ -692,8 +691,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *
      * @param sr result of a search on a LDAP directory context
      * @return JahiaLDAPGroup a group initialized with the properties loaded
-     *         from the LDAP database, or null if no groupKey could be determined for
-     *         the group.
+     * from the LDAP database, or null if no groupKey could be determined for
+     * the group.
      */
     private JahiaLDAPGroup ldapToJahiaGroup(SearchResult sr) {
         JahiaLDAPGroup group;
@@ -863,7 +862,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                                 lookupUserByKey(userKey,
                                         ldapProperties
                                                 .get(
-                                                        SEARCH_USER_ATTRIBUTE_NAME));
+                                                        SEARCH_USER_ATTRIBUTE_NAME)
+                                );
                     } else { // use DN
                         user = getUserManagerProvider()
                                 .lookupUserFromDN(
@@ -915,8 +915,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             synchronized (JahiaGroupManagerLDAPProvider.class) {
                 if (userProvider == null) {
                     List<? extends JahiaUserManagerProvider> v = jahiaUserManagerService.getProviderList();
-                    for (Iterator<? extends JahiaUserManagerProvider> iterator = v.iterator(); iterator.hasNext(); ) {
-                        JahiaUserManagerProvider userManagerProviderBean = (JahiaUserManagerProvider) iterator.next();
+                    for (JahiaUserManagerProvider userManagerProviderBean : v) {
                         if (userManagerProviderBean.getClass().getName().equals(JahiaUserManagerLDAPProvider.class.getName())) {
                             JahiaUserManagerLDAPProvider jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider) userManagerProviderBean;
                             if (jahiaUserManagerLDAPProvider.getUrl().equals(ldapProperties.get(LDAP_URL_PROP))) {
@@ -935,8 +934,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *
      * @param user Valid reference on an existing group.
      * @return Return a List of strings holding all the group names to
-     *         which the user as access. On any error, the returned List
-     *         might be empty.
+     * which the user as access. On any error, the returned List
+     * might be empty.
      */
 
     public List<String> getUserMembership(JahiaUser user) {
@@ -987,9 +986,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
             filterBuffer.append("(objectclass=");
             filterBuffer
                     .append(StringUtils.defaultString(ldapProperties
-                            .get(
-                                    JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE),
-                            "groupOfURLs"));
+                                    .get(
+                                            JahiaGroupManagerLDAPProvider.DYNGROUP_OBJECTCLASS_ATTRIBUTE),
+                            "groupOfURLs"
+                    ));
             filterBuffer.append(")");
 
             searchCtl = new SearchControls();
@@ -1220,7 +1220,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param siteID the site id
      * @param name   String representing the unique group name.
      * @return Return true if the specified username has not been assigned yet,
-     *         return false on any failure.
+     * return false on any failure.
      */
 
     public boolean groupExists(int siteID, String name) {
@@ -1236,7 +1236,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param siteID the site id
      * @param name   Group's unique identification name.
      * @return Return a reference on a the specified group name. Return null
-     *         if the group doesn't exist or when any error occured.
+     * if the group doesn't exist or when any error occured.
      */
     public JahiaGroup lookupGroup(int siteID, String name) {
         // try to avoid a NullPointerException
@@ -1245,7 +1245,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         }
 
         final String cacheKey = getKey() + "n" + siteID + "_" + name;
-        JahiaGroup group =  (JahiaGroup) CacheHelper.getObjectValue(groupCache, cacheKey);
+        JahiaGroup group = (JahiaGroup) CacheHelper.getObjectValue(groupCache, cacheKey);
         if (group == null) {
             if (nonExistantGroupCache.get(cacheKey) != null) {
                 return null;
@@ -1296,9 +1296,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *                       in the format name,value (for example "*"="*" or "groupname"="*test*") or
      *                       null to search without criteria
      * @return Set a set of JahiaGroup elements that correspond to those
-     *         search criteria, or an empty one if an error has occured. Note this will
-     *         only return the configured limit of groups at maxium. Check out the
-     *         groups.ldap.properties file to change the limit.
+     * search criteria, or an empty one if an error has occured. Note this will
+     * only return the configured limit of groups at maxium. Check out the
+     * groups.ldap.properties file to change the limit.
      */
     public Set<JahiaGroup> searchGroups(int siteID, Properties searchcriteria) {
         Set<JahiaGroup> result = new HashSet<JahiaGroup>();
@@ -1355,7 +1355,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *
      * @param groupKey Group's unique identification key.
      * @return Return a reference on a the specified group name. Return null
-     *         if the group doesn't exist or when any error occured.
+     * if the group doesn't exist or when any error occured.
      */
     public JahiaGroup lookupGroup(String groupKey) {
 
@@ -1423,7 +1423,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param ctx the current context in which to search for the group
      * @param cn  the unique identifier for the group
      * @return a SearchResult object, which is the *first* result matching the
-     *         cn
+     * cn
      * @throws NamingException
      */
     private SearchResult getPublicGroup(DirContext ctx, String cn)
