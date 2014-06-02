@@ -13,7 +13,6 @@
     <bean id="JahiaUserManagerLDAPProvider" class="org.jahia.services.usermanager.ldap.JahiaUserManagerLDAPProvider"
           parent="JahiaUserManagerProvider" scope="prototype">
         <property name="postponePropertiesInit" value="true" />
-        <property name="appendWildcardForSearchByUid" value="${jahia.ldap.appendWildcardForSearchByUid:true}"/>
     </bean>
 
     <bean id="JahiaGroupManagerLDAPProvider" class="org.jahia.services.usermanager.ldap.JahiaGroupManagerLDAPProvider"

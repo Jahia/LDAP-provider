@@ -170,8 +170,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     private boolean postponePropertiesInit;
 
     private String keyPrefix;
-    
-    private boolean appendWildcardForSearchByUid = true;
 
     /**
      * Default constructor
@@ -351,7 +349,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
 
         StringBuilder filterString = new StringBuilder();
 
-        String uidSearchAttribute = ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP);
         if (filters.containsKey("ldap.url")) {
             String url = filters.getProperty("ldap.url");
             try {
@@ -368,7 +365,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                     intScope = SearchControls.SUBTREE_SCOPE;
                 }
                 if (filters.containsKey("user.key")) {
-                    thisFilter = "(&(" + uidSearchAttribute + "=" + filters.get("user.key") + ")(" + thisFilter + "))";
+                    thisFilter = "(&(" + ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) + "=" + filters.get("user.key") + ")(" + thisFilter + "))";
                 }
 
                 return getUsers(ctx, thisFilter, thisBase, countLimit, intScope);
@@ -383,9 +380,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             // let's translate Jahia properties to LDAP properties
             Properties ldapfilters = mapJahiaPropertiesToLDAP(filters);
 
-            String uidFilter = filters.getProperty(uidSearchAttribute);
+            String uidFilter = filters.getProperty(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP));
             if (uidFilter != null) {
-                ldapfilters.put(uidSearchAttribute, uidFilter);
+                ldapfilters.put(ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP), uidFilter);
             }
 
             int size = filters.size();
@@ -425,11 +422,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                         "\\28");
                 filterValue = StringUtils.replace(filterValue, ")",
                         "\\29");
-                
-                if (appendWildcardForSearchByUid && filterName.equals(uidSearchAttribute)
-                        && filterValue.indexOf('*') == -1) {
-                    filterValue = filterValue + '*';
-                }
 
                 if ("*".equals(filterName)) {
                     // we must match the value for all the attributes
@@ -446,10 +438,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                             filterString.append(curAttributeName);
                             filterString.append("=");
                             filterString.append(filterValue);
-                            if (appendWildcardForSearchByUid && curAttributeName.equals(uidSearchAttribute)
-                                    && filterValue.indexOf('*') == -1) {
-                                filterString.append('*');
-                            }
                             filterString.append(")");
                         }
                         if (this.searchWildCardAttributeList.size() > 1) {
@@ -1363,10 +1351,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     
     protected void cachePut(String key, JahiaUser user) {
         userCache.put(new Element(key, new ModuleClassLoaderAwareCacheEntry(user, "ldap")));
-    }
-
-    public void setAppendWildcardForSearchByUid(boolean appendWildcardForSearchByUid) {
-        this.appendWildcardForSearchByUid = appendWildcardForSearchByUid;
     }
 }
 
