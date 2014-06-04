@@ -1167,8 +1167,8 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
     public void updateCache(JahiaUser jahiaUser) {
         String cacheKey = getKey() + "k" + jahiaUser.getUserKey();
         String cacheKeyByName = getKey() + "n" + jahiaUser.getUsername();
-        cachePut(cacheKey, jahiaUser);
-        cachePut(cacheKeyByName, jahiaUser);
+        userCache.remove(cacheKey);
+        userCache.remove(cacheKeyByName);
         nonExistantUserCache.remove(cacheKey);
         nonExistantUserCache.remove(cacheKeyByName);
         if (jahiaUser instanceof JahiaLDAPUser) {

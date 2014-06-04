@@ -1452,8 +1452,8 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     public void updateCache(JahiaGroup jahiaGroup) {
         String cacheKey = getKey() + "k" + jahiaGroup.getGroupKey();
         String cacheKeyByName = getKey() + "n" + jahiaGroup.getSiteID() + "_" + jahiaGroup.getGroupname();
-        cachePut(cacheKey, jahiaGroup);
-        cachePut(cacheKeyByName, jahiaGroup);
+        groupCache.remove(cacheKey);
+        groupCache.remove(cacheKeyByName);
         nonExistantGroupCache.remove(cacheKey);
         nonExistantGroupCache.remove(cacheKeyByName);
     }
