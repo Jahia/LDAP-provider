@@ -614,7 +614,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     public boolean login(String userKey, String userPassword) {
         String dn = null;
-        String userFinalKey = userKey;
 
         if ("".equals(userPassword)) {
             if (logger.isDebugEnabled()) {
@@ -623,13 +622,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             return false;
         }
 
-        userFinalKey = removeKeyPrefix(userKey);
         DirContext privateCtx = null;
 
         try {
-            JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) lookupUserByKey(userFinalKey);
+            JahiaLDAPUser jahiaLDAPUser = (JahiaLDAPUser) lookupUserByKey(userKey);
             if (jahiaLDAPUser == null) {
-                logger.warn("Couldn't lookup LDAP user by key " + userFinalKey + ", aborting login.");
+                logger.warn("Couldn't lookup LDAP user by key " + userKey + ", aborting login.");
                 return false;
             }
             dn = jahiaLDAPUser.getDN();
@@ -1062,12 +1060,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             return Collections.emptySet();
         }
 
-        Set<String> usernames = new HashSet<String>(users.size());
+        Set<String> userkeys = new HashSet<String>(users.size());
         for (JahiaUser user : users) {
-            usernames.add(user.getUsername());
+            userkeys.add(keyPrefix + user.getUsername());
         }
 
-        return usernames;
+        return userkeys;
     }
 
     //--------------------------------------------------------------------------
@@ -1080,6 +1078,10 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * @return a reference on a new created jahiaUser object.
      */
     public JahiaUser lookupUserByKey(String userKey) {
+        if (!userKey.startsWith(keyPrefix)) {
+            return null;
+        }
+
         final String cacheKey = getKey() + "k" + userKey;
         JahiaUser user = (JahiaUser) CacheHelper.getObjectValue(userCache, cacheKey);
 
