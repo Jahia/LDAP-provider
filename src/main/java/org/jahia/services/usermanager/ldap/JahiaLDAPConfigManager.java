@@ -22,8 +22,11 @@ public class JahiaLDAPConfigManager {
 
     private void unbindConfiguration() {
         try {
-            for (Configuration configuration : configurationAdmin.listConfigurations("(service.factoryPid=org.jahia.services.usermanager.ldap)")) {
-                configuration.setBundleLocation(null);
+            Configuration[] configurations = configurationAdmin.listConfigurations("(service.factoryPid=org.jahia.services.usermanager.ldap)");
+            if (configurations != null) {
+                for (Configuration configuration : configurations) {
+                    configuration.setBundleLocation(null);
+                }
             }
         } catch (Exception e) {
             logger.error("Cannot unbind configurations",e);
