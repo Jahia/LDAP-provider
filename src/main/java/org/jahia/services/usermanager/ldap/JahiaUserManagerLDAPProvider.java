@@ -84,7 +84,6 @@ import org.jahia.services.cache.CacheHelper;
 import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
 import org.jahia.services.usermanager.*;
-import org.jahia.services.usermanager.jcr.JCRUserManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -983,16 +982,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     public Set<JahiaUser> searchUsers(Properties searchCriterias) {
         Set<JahiaUser> result = new HashSet<JahiaUser>();
-        // first let's lookup the user by the properties in Jahia's DB
-        Set<String> userKeys = searchLDAPUsersByDBProperties(searchCriterias);
-        // now that we have the keys, let's load all the users.
-        for (String userKey : userKeys) {
-            JahiaUser user = lookupUserByKey(userKey);
-            result.add(user);
-        }
 
         if (searchCriterias != null && searchCriterias.size() == 1
-                && searchCriterias.containsKey(cookieAuthConfig.getUserPropertyName())) {
+                && cookieAuthConfig != null && searchCriterias.containsKey(cookieAuthConfig.getUserPropertyName())) {
             return result;
         }
 
@@ -1026,46 +1018,6 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             invalidateCtx(ctx);
         }
         return result;
-    }
-
-    /**
-     * Find users according to a table of name=value properties. If the left
-     * side value is "*" for a property then it will be tested against all the
-     * properties. ie *=test* will match every property that starts with "test"
-     *
-     * @param searchCriterias a Properties object that contains search criteria
-     *                        in the format name,value (for example "*"="*" or "username"="*test*") or
-     *                        null to search without criteria
-     * @return Set a set of JahiaUser elements that correspond to those
-     *         search criteria
-     */
-    private Set<String> searchLDAPUsersByDBProperties(Properties searchCriterias) {
-        if (searchCriterias == null) {
-            return Collections.emptySet();
-        }
-
-        boolean allEmpty = true;
-        for (Object propValue : searchCriterias.values()) {
-            String val = String.valueOf(propValue);
-            if (propValue != null && val.length() > 0 && !"*".equals(val)) {
-                allEmpty = false;
-                break;
-            }
-        }
-        if (allEmpty) {
-            return Collections.emptySet();
-        }
-        Set<JahiaUser> users = JCRUserManagerProvider.getInstance().searchUsers(searchCriterias, true, getKey());
-        if (users.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        Set<String> userkeys = new HashSet<String>(users.size());
-        for (JahiaUser user : users) {
-            userkeys.add(keyPrefix + user.getUsername());
-        }
-
-        return userkeys;
     }
 
     //--------------------------------------------------------------------------

@@ -78,9 +78,6 @@ import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.usermanager.JahiaGroup;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
-import org.jahia.services.usermanager.jcr.JCRGroup;
-import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
-
 import java.security.Principal;
 import java.util.*;
 
@@ -152,23 +149,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
     }
 
     public boolean removeProperty (String key) {
-        boolean result = false;
-
-        if ((key != null) && (key.length () > 0)) {
-            // Remove these lines if LDAP problem --------------------
-            JCRGroupManagerProvider userManager = (JCRGroupManagerProvider) SpringContextSingleton.getInstance().getContext().getBean("JCRGroupManagerProvider");
-            JCRGroup jcrGroup = (JCRGroup) userManager.lookupExternalGroup(getName());
-            if(jcrGroup!=null) {
-                jcrGroup.removeProperty(key);
-            }
-        }
-
-        if (result) {
-            mProperties.remove (key);
-        }
-        // End remove --------------------
-        return result;
-
+        return false;
     }
 
     public Properties getProperties () {
@@ -198,23 +179,7 @@ public class JahiaLDAPGroup extends JahiaGroup {
     }
 
     public boolean setProperty (String key, String value) {
-        boolean result = false;
-
-        if ((key != null) && (value != null)) {
-            // Remove these lines if LDAP problem --------------------
-            JCRGroupManagerProvider userManager = (JCRGroupManagerProvider) SpringContextSingleton.getInstance().getContext().getBean("JCRGroupManagerProvider");
-            JCRGroup jcrGroup = (JCRGroup) userManager.lookupExternalGroup(getName());
-            if(jcrGroup!=null) {
-                jcrGroup.setProperty(key, value);
-            }
-
-            // End remove --------------------
-            if (result) {
-                mProperties.setProperty(key, value);
-            }
-        }
-        return result;
-
+        return false;
     }
 
     public String getProviderName () {
@@ -289,15 +254,12 @@ public class JahiaLDAPGroup extends JahiaGroup {
        if (!(user instanceof JahiaLDAPUser) && !(user instanceof JahiaLDAPGroup)) {
            return false;
        }
-        if (super.isMember(user)) {
-            return true;
-        }
         if (!preloadedGroups && user instanceof JahiaUser) {
             boolean result = getLDAPProvider().getUserMembership((JahiaUser) principal).contains(getGroupKey());
-            membership.put(JahiaUserManagerService.getKey(principal), result);
+            membership.put(((JahiaUser) user).getUserKey(), result);
             return result;
         }
-        return false;
+       return false;
     }
 
    @Override

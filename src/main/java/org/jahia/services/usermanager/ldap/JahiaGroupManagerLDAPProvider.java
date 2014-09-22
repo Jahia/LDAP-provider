@@ -83,17 +83,10 @@ import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.cache.CacheHelper;
 import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
-import org.jahia.services.content.JCRCallback;
-import org.jahia.services.content.JCRNodeWrapper;
-import org.jahia.services.content.JCRSessionWrapper;
-import org.jahia.services.content.JCRTemplate;
 import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.sites.JahiaSite;
-import org.jahia.services.sites.JahiaSiteTools;
 import org.jahia.services.sites.JahiaSitesService;
 import org.jahia.services.usermanager.*;
-import org.jahia.services.usermanager.jcr.JCRGroup;
-import org.jahia.services.usermanager.jcr.JCRGroupManagerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -377,15 +370,13 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                     logger.debug("check granted site " + jahiaSite.getSiteKey());
                 }
 
-                if (JahiaSiteTools.getAdminGroup(sitesService.getSite(jahiaSite.getName())).isMember(user)) {
+                if (groupManagerService.getAdministratorGroup(jahiaSite.getSiteKey()).isMember(user.getLocalPath())) {
                     if (logger.isDebugEnabled()) {
                         logger.debug("granted site for " + jahiaSite.getSiteKey());
                     }
-                    grantedSites.add(sitesService.getSite(jahiaSite.getName()));
+                    grantedSites.add(jahiaSite);
                 }
             }
-        } catch (JahiaException e) {
-            logger.error("getAdminGrantedSites", e);
         } catch (RepositoryException e) {
             logger.error(e.getMessage(), e);
         }
@@ -1041,59 +1032,6 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         } finally {
             invalidateCtx(ctx);
         }
-
-        List<String> recursedGroups = Collections.emptyList();
-        try {
-            final List<String> fResults = new ArrayList<String>(result);
-            recursedGroups = JCRTemplate.getInstance().doExecuteWithSystemSession(new JCRCallback<List<String>>() {
-                public List<String> doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                    JCRGroupManagerProvider jcrGroupManagerProvider = (JCRGroupManagerProvider) SpringContextSingleton.getBean("JCRGroupManagerProvider");
-                    List<String> groups = new ArrayList<String>();
-                    for (String groupKey : fResults) {
-                        try {
-                            JCRGroup jcrGroup = jcrGroupManagerProvider.lookupExternalGroup(StringUtils.substringAfter(groupKey, providerKeyPrefix));
-                            if (jcrGroup != null) {
-                                recurseOnGroups(session, groups, jcrGroup.getIdentifier());
-                            }
-                        } catch (JahiaException e) {
-                            logger.warn("Error retrieving membership for user " + groupKey, e);
-                        }
-                    }
-                    return groups;
-                }
-
-                private void recurseOnGroups(JCRSessionWrapper session, List<String> groups, String principalId) throws RepositoryException, JahiaException {
-                    JCRNodeWrapper node = session.getNodeByUUID(principalId);
-                    PropertyIterator weakReferences = node.getWeakReferences();
-                    while (weakReferences.hasNext()) {
-                        try {
-                            Property property = weakReferences.nextProperty();
-                            if (property.getPath().contains("j:members")) {
-                                Node group = property.getParent().getParent().getParent();
-                                if (group.isNodeType("jnt:group")) {
-                                    int siteID = 0;
-                                    try {
-                                        String siteKey = group.getParent().getParent().getName();
-                                        if (!StringUtils.isEmpty(siteKey)) {
-                                            siteID = ServicesRegistry.getInstance().getJahiaSitesService().getSiteByKey(siteKey).getID();
-                                        }
-                                    } catch (NullPointerException e) {
-                                        siteID = 0;
-                                    }
-                                    groups.add(group.getName() + ":" + siteID);
-                                    recurseOnGroups(session, groups, group.getIdentifier());
-                                }
-                            }
-                        } catch (ItemNotFoundException e) {
-                            logger.warn("Cannot find group for " + node.getPath(), e);
-                        }
-                    }
-                }
-            });
-        } catch (RepositoryException e) {
-            logger.error("Error retrieving user membership", e);
-        }
-        result.addAll(new HashSet<String>(recursedGroups));
 
         ((JahiaLDAPUser) user).setGroups(result);
         return result;
