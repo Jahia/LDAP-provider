@@ -72,10 +72,8 @@
 package org.jahia.services.usermanager.ldap;
 
 import org.apache.commons.lang.StringUtils;
-import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.DefaultDirObjectFactory;
@@ -103,10 +101,15 @@ public class JahiaLDAPConfig {
 
     public JahiaLDAPConfig(ApplicationContext context, Dictionary<String, ?> dictionary) {
         providerKey = computeProviderKey(dictionary);
-        startContext(context, dictionary);
+        setContext(context, dictionary);
     }
 
-    public void startContext(ApplicationContext context, Dictionary<String, ?> dictionary) {
+    /**
+     * defines or update the context of the provider
+     * @param context
+     * @param dictionary
+     */
+    public void setContext(ApplicationContext context, Dictionary<String, ?> dictionary) {
         userLdapProperties = new HashMap<String, String>();
         groupLdapProperties = new HashMap<String, String>();
         Enumeration<String> keys = dictionary.keys();
@@ -142,13 +145,18 @@ public class JahiaLDAPConfig {
             lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
             lcs.afterPropertiesSet();
             LdapTemplate ldap = new LdapTemplate(lcs);
-
-            ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
-
+            boolean doRegister = false;
+            if (ldapUserGroupProvider == null) {
+                ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
+                doRegister = true;
+            }
             ldapUserGroupProvider.setKey(providerKey);
-            ldapUserGroupProvider.setLdapTemplate(ldap);
             ldapUserGroupProvider.setUserProperties(userLdapProperties);
             ldapUserGroupProvider.setGroupProperties(groupLdapProperties);
+            ldapUserGroupProvider.setLdapTemplate(ldap);
+            if (doRegister) {
+                ldapUserGroupProvider.register();
+            }
         } else {
             unregister();
         }

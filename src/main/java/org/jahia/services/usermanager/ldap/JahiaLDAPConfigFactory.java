@@ -91,12 +91,14 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
 
     public void updated(String pid, Dictionary<String, ?> dictionary) throws ConfigurationException {
+        JahiaLDAPConfig ldapConfig;
         if (ldapConfigs.containsKey(pid)) {
-            JahiaLDAPConfig ldapConfig = ldapConfigs.get(pid);
-            ldapConfig.startContext(context, dictionary);
+            ldapConfig = ldapConfigs.get(pid);
         } else {
-            ldapConfigs.put(pid, new JahiaLDAPConfig(context, dictionary));
+            ldapConfig = new JahiaLDAPConfig(context, dictionary);
+            ldapConfigs.put(pid, ldapConfig);
         }
+        ldapConfig.setContext(context, dictionary);
     }
 
     public void deleted(String pid) {

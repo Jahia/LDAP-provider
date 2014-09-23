@@ -214,10 +214,21 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      */
     public void setLdapTemplate(LdapTemplate ldapTemplate) {
         this.ldapTemplate = ldapTemplate;
-        // register the provider
+        groupMembersCache.clear();
+        groupsCache.clear();
+        groupCache.clear();
+    }
+
+    /**
+     * register the provider
+     */
+    public void register() {
         externalUserGroupService.register(key,this);
     }
 
+    /**
+     * unregister the provider
+     */
     public void unregister() {
         externalUserGroupService.unregister(key);
     }
