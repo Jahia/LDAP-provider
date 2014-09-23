@@ -72,12 +72,14 @@
 package org.jahia.services.usermanager.ldap;
 
 import org.apache.commons.lang.StringUtils;
-import org.jahia.exceptions.JahiaInitializationException;
+import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.core.support.DefaultDirObjectFactory;
+import org.springframework.ldap.core.support.LdapContextSource;
 
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -89,20 +91,22 @@ import java.util.Map;
  */
 public class JahiaLDAPConfig {
 
-    private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
-
     private String providerKey;
     private Map<String, String> userLdapProperties;
     private Map<String, String> groupLdapProperties;
-    private JahiaUserManagerLDAPProvider jahiaUserManagerLDAPProvider;
-    private JahiaGroupManagerLDAPProvider jahiaGroupManagerLDAPProvider;
+    private LDAPUserGroupProvider ldapUserGroupProvider;
+
+    public static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
+    public static String PUBLIC_BIND_PASSWORD_PROP = "public.bind.password";
+    public static String LDAP_URL_PROP = "url";
+    public static String USE_CONNECTION_POOL = "ldap.connect.pool";
 
     public JahiaLDAPConfig(ApplicationContext context, Dictionary<String, ?> dictionary) {
         providerKey = computeProviderKey(dictionary);
-        populate(context, dictionary);
+        startContext(context, dictionary);
     }
 
-    public void populate(ApplicationContext context, Dictionary<String, ?> dictionary) {
+    public void startContext(ApplicationContext context, Dictionary<String, ?> dictionary) {
         userLdapProperties = new HashMap<String, String>();
         groupLdapProperties = new HashMap<String, String>();
         Enumeration<String> keys = dictionary.keys();
@@ -123,56 +127,43 @@ public class JahiaLDAPConfig {
                 groupLdapProperties.put(key, value);
             }
         }
+
+        // instantiate ldap context
         if (!userLdapProperties.isEmpty()) {
-            if (jahiaUserManagerLDAPProvider == null) {
-                jahiaUserManagerLDAPProvider = (JahiaUserManagerLDAPProvider) context.getBean("JahiaUserManagerLDAPProvider");
-                jahiaUserManagerLDAPProvider.setKey(providerKey);
+            LdapContextSource lcs = new LdapContextSource();
+            lcs.setUrl(userLdapProperties.get(LDAP_URL_PROP));
+            if (StringUtils.isNotEmpty(userLdapProperties.get(PUBLIC_BIND_DN_PROP))) {
+                lcs.setUserDn(userLdapProperties.get(PUBLIC_BIND_DN_PROP));
             }
+            if (StringUtils.isNotEmpty(userLdapProperties.get(PUBLIC_BIND_PASSWORD_PROP))) {
+                lcs.setPassword(userLdapProperties.get(PUBLIC_BIND_PASSWORD_PROP));
+            }
+            lcs.setPooled(Boolean.parseBoolean(userLdapProperties.get(USE_CONNECTION_POOL)));
+            lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
+            lcs.afterPropertiesSet();
+            LdapTemplate ldap = new LdapTemplate(lcs);
 
-            jahiaUserManagerLDAPProvider.setLdapProperties(userLdapProperties);
-            try {
-                jahiaUserManagerLDAPProvider.initProperties();
-            } catch (JahiaInitializationException e) {
-                logger.error("Failed to initialize JahiaUserManagerLDAPProvider");
-            }
-        } else if (jahiaUserManagerLDAPProvider != null) {
-            unregisterUserProvider();
-        }
-        if (!groupLdapProperties.isEmpty()) {
-            if (jahiaGroupManagerLDAPProvider == null) {
-                jahiaGroupManagerLDAPProvider = (JahiaGroupManagerLDAPProvider) context.getBean("JahiaGroupManagerLDAPProvider");
-                jahiaGroupManagerLDAPProvider.setKey(providerKey);
-                jahiaGroupManagerLDAPProvider.setUserProvider(jahiaUserManagerLDAPProvider);
-            }
+            ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
 
-            jahiaGroupManagerLDAPProvider.setLdapProperties(groupLdapProperties);
-            try {
-                jahiaGroupManagerLDAPProvider.initProperties();
-            } catch (JahiaInitializationException e) {
-                logger.error("Failed to initialize JahiaGroupManagerLDAPProvider");
-            }
-        } else if (jahiaGroupManagerLDAPProvider != null) {
-            unregisterGroupProvider();
+            ldapUserGroupProvider.setKey(providerKey);
+            ldapUserGroupProvider.setLdapTemplate(ldap);
+            ldapUserGroupProvider.setUserProperties(userLdapProperties);
+            ldapUserGroupProvider.setGroupProperties(groupLdapProperties);
+        } else {
+            unregister();
         }
     }
 
     public void unregister() {
-        if (jahiaUserManagerLDAPProvider != null) {
+        if (ldapUserGroupProvider != null) {
             unregisterUserProvider();
         }
-        if (jahiaGroupManagerLDAPProvider != null) {
-            unregisterGroupProvider();
-        }
+
     }
 
     private void unregisterUserProvider() {
-        jahiaUserManagerLDAPProvider.unregister();
-        jahiaUserManagerLDAPProvider = null;
-    }
-
-    private void unregisterGroupProvider() {
-        jahiaGroupManagerLDAPProvider.unregister();
-        jahiaGroupManagerLDAPProvider = null;
+        ldapUserGroupProvider.unregister();
+        ldapUserGroupProvider = null;
     }
 
     private String computeProviderKey(Dictionary<String, ?> dictionary) {

@@ -93,7 +93,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
     public void updated(String pid, Dictionary<String, ?> dictionary) throws ConfigurationException {
         if (ldapConfigs.containsKey(pid)) {
             JahiaLDAPConfig ldapConfig = ldapConfigs.get(pid);
-            ldapConfig.populate(context, dictionary);
+            ldapConfig.startContext(context, dictionary);
         } else {
             ldapConfigs.put(pid, new JahiaLDAPConfig(context, dictionary));
         }
