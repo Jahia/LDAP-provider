@@ -71,6 +71,7 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import com.sun.jndi.ldap.LdapCtx;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.Member;
@@ -79,8 +80,8 @@ import org.jahia.modules.external.users.UserNotFoundException;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserImpl;
 import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.ContextMapper;
 import org.springframework.ldap.core.LdapTemplate;
-import org.springframework.ldap.support.LdapNameBuilder;
 import org.springframework.ldap.support.LdapUtils;
 
 import javax.naming.NamingException;
@@ -96,24 +97,16 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  */
 public class LDAPUserGroupProvider implements UserGroupProvider {
 
-    private ExternalUserGroupService externalUserGroupService;
-
-
     // the LDAP User cache name.
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
-
     public static final String LDAP_NON_EXISTANT_USER_CACHE = "LDAPNonExistantUsersCache";
-
     // the LDAP Group cache name.
     public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
-
     public static final String LDAP_NONEXISTANT_GROUP_CACHE = "LDAPNonExistantGroupsCache";
-
     public static String LDAP_USERNAME_ATTRIBUTE = "username.attribute.map";
-
     public static String UID_SEARCH_NAME_PROP = "uid.search.name";
-
-
+    public static String SEARCH_NAME_PROP = "search.name";
+    private ExternalUserGroupService externalUserGroupService;
     private Map<String, String> groupProperties;
     private Map<String, String> userProperties;
     private String key;
@@ -135,7 +128,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return true;
         } else {
             if (!ldapTemplate.search(
-                    query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames").and("cn").is(name),
+                    query().base(groupProperties.get(SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames").and("cn").is(name),
                     new AttributesMapper<String>() {
                         public String mapFromAttributes(Attributes attrs)
                                 throws NamingException {
@@ -158,7 +151,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return groupMembersCache.get(groupName);
         }
         String members = ldapTemplate.search(
-                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames").and("cn").is(groupName),
+                query().base(groupProperties.get(SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames").and("cn").is(groupName),
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
@@ -182,7 +175,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     @Override
     public List<String> searchUsers(Properties searchCriterias) {
         return ldapTemplate.search(
-                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person"),
+                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person").and("cn").is(searchCriterias.get("username").toString()),
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
@@ -197,7 +190,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return groupsCache.get(searchCriterias);
         }
         List<String> groups = ldapTemplate.search(
-                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames"),
+                query().base(groupProperties.get(SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames"),
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
@@ -237,7 +230,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public boolean verifyPassword(String userName, String userPassword) {
         DirContext ctx = null;
         try {
-            String userDn = LdapNameBuilder.newInstance().add("cn", userName).build().toString();
+            String userDn = getUserDnFromName(userName);
             ctx = ldapTemplate.getContextSource().getContext(userDn, userPassword);
             // Take care here - if a base was specified on the ContextSource
             // that needs to be removed from the user DN for the lookup to succeed.
@@ -270,6 +263,16 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         this.externalUserGroupService = externalUserGroupService;
     }
 
+    private String getUserDnFromName(String name) {
+        return ldapTemplate.searchForObject(
+                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person").and("cn").is(name), new ContextMapper<String>() {
+                    @Override
+                    public String mapFromContext(Object ctx) throws NamingException {
+                        return ((LdapCtx) ctx).getNameInNamespace();
+                    }
+                });
+    }
+
     private class JahiaUserAttributesMapper implements AttributesMapper<JahiaUser> {
         public JahiaUser mapFromAttributes(Attributes attrs) throws NamingException {
             Properties props = new Properties();
@@ -281,13 +284,6 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
             }
             return new JahiaUserImpl(StringUtils.substringAfterLast(attrs.get("cn").toString(), ":").trim(),null,props,false,key);
-        }
-    }
-
-    private class JahiaGroupAttributesMapper implements AttributesMapper<Member> {
-        @Override
-        public Member mapFromAttributes(Attributes attributes) throws NamingException {
-            return new Member(StringUtils.substringAfterLast(attributes.get("cn").toString(), ":").trim(),Member.MemberType.USER);
         }
     }
 

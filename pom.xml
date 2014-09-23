@@ -122,6 +122,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <version>3.2.5.RELEASE</version>
+        </dependency>
+        <dependency>
             <groupId>org.jahia.modules</groupId>
             <artifactId>external-provider-users-groups</artifactId>
             <version>1.0.0-SNAPSHOT</version>
@@ -316,6 +321,7 @@
                         </Export-Package>
                         <Embed-Dependency>*;groupId=org.springframework.ldap|org.springframework.data;scope=compile; type=!pom; inline=!META-INF/**</Embed-Dependency>
                         <Jahia-Module-Type>system</Jahia-Module-Type>
+                        <Jahia-Depends>default,external-provider-users-groups</Jahia-Depends>
                     </instructions>
                 </configuration>
             </plugin>
