@@ -483,9 +483,11 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 return p;
             }
         }
-        for (Map.Entry<String, String> property : mappedProperties.entrySet()) {
-            if (userProps.getProperty(property.getKey()) != null) {
-                p.setProperty(property.getValue(), (String) userProps.get(property.getKey()));
+        if(mappedProperties != null){
+            for (Map.Entry<String, String> property : mappedProperties.entrySet()) {
+                if (userProps.getProperty(property.getKey()) != null) {
+                    p.setProperty(property.getValue(), (String) userProps.get(property.getKey()));
+                }
             }
         }
 
