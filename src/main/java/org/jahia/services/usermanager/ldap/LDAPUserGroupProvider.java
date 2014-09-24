@@ -82,6 +82,12 @@ import org.jahia.services.usermanager.JahiaUserImpl;
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.core.ContextMapper;
 import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.filter.AndFilter;
+import org.springframework.ldap.filter.EqualsFilter;
+import org.springframework.ldap.filter.Filter;
+import org.springframework.ldap.query.ConditionCriteria;
+import org.springframework.ldap.query.ContainerCriteria;
+import org.springframework.ldap.query.LdapQueryBuilder;
 import org.springframework.ldap.support.LdapUtils;
 
 import javax.naming.NamingException;
@@ -119,7 +125,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public JahiaUser getUser(String name) throws UserNotFoundException {
-        return ldapTemplate.search(query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("cn").is(name),new JahiaUserAttributesMapper()).get(0);
+        List<JahiaUser> users = ldapTemplate.search(query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("cn").is(name), new JahiaUserAttributesMapper());
+        if (users.isEmpty()) {
+            throw new UserNotFoundException("unable to find user " + name + " on provider " + key);
+        }
+        return users.get(0);
     }
 
     @Override
@@ -174,8 +184,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> searchUsers(Properties searchCriterias) {
-        return ldapTemplate.search(
-                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person").and("cn").is(searchCriterias.get("username").toString()),
+        ContainerCriteria query = query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person");
+        if (searchCriterias.get("username") != null) {
+            query.and("cn").like(searchCriterias.get("username").toString());
+        }
+        return ldapTemplate.search(query,
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
