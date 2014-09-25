@@ -72,6 +72,7 @@
 package org.jahia.services.usermanager.ldap;
 
 import com.sun.jndi.ldap.LdapCtx;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.Member;
@@ -79,18 +80,16 @@ import org.jahia.modules.external.users.UserGroupProvider;
 import org.jahia.modules.external.users.UserNotFoundException;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserImpl;
+import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.core.ContextMapper;
 import org.springframework.ldap.core.LdapTemplate;
-import org.springframework.ldap.filter.AndFilter;
-import org.springframework.ldap.filter.EqualsFilter;
-import org.springframework.ldap.filter.Filter;
 import org.springframework.ldap.query.ConditionCriteria;
 import org.springframework.ldap.query.ContainerCriteria;
-import org.springframework.ldap.query.LdapQueryBuilder;
 import org.springframework.ldap.support.LdapUtils;
 
 import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import java.util.*;
@@ -112,6 +111,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public static String LDAP_USERNAME_ATTRIBUTE = "username.attribute.map";
     public static String UID_SEARCH_NAME_PROP = "uid.search.name";
     public static String SEARCH_NAME_PROP = "search.name";
+    public static String USERS_OBJECTCLASS_ATTRIBUTE = "search.objectclass";
+    public static String UID_SEARCH_ATTRIBUTE_PROP = "uid.search.attribute";
+    public static String SEARCH_WILDCARD_ATTRIBUTE_LIST = "search.wildcards.attributes";
     private ExternalUserGroupService externalUserGroupService;
     private Map<String, String> groupProperties;
     private Map<String, String> userProperties;
@@ -184,10 +186,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> searchUsers(Properties searchCriterias) {
-        ContainerCriteria query = query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person");
-        if (searchCriterias.get("username") != null) {
-            query.and("cn").like(searchCriterias.get("username").toString());
-        }
+        ContainerCriteria query = buildUserQuery(searchCriterias);
         return ldapTemplate.search(query,
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
@@ -291,8 +290,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             Properties props = new Properties();
             for (String propertyKey : userProperties.keySet()) {
                 if (StringUtils.endsWith(propertyKey,"attribute.map")) {
-                    String propertyName = StringUtils.substringBefore(".attribute.map", userProperties.get(propertyKey));
-                    props.put(propertyName,attrs.get(propertyKey));
+                    String propertyName = StringUtils.substringBefore(propertyKey, ".attribute.map").replace("_", ":");
+                    Attribute ldapAttribute = attrs.get(userProperties.get(propertyKey));
+                    if(ldapAttribute.get() instanceof String){
+                        props.put(propertyName, ldapAttribute.get());
+                    }
                 }
 
             }
@@ -300,6 +302,112 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    private ContainerCriteria buildUserQuery(Properties searchCriterias){
+        ContainerCriteria query = query().base(userProperties.get(UID_SEARCH_NAME_PROP))
+                .where("objectclass").is(StringUtils.defaultString(userProperties.get(USERS_OBJECTCLASS_ATTRIBUTE), "*"));
 
+        // transform jnt:user props to ldap props
+        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriterias, userProperties);
+
+        // define and / or operator
+        boolean orOp = true;
+        if (ldapfilters.size() > 1) {
+            if (searchCriterias.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                if (((String) searchCriterias.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
+                    orOp = false;
+                }
+            }
+        }
+
+        // process the user specific filters
+        ContainerCriteria filterQuery = null;
+        if (ldapfilters.containsKey("*")){
+            // Search on all wildcards attributes
+            String filterValue = ldapfilters.getProperty("*");
+            List<String> wildcardAttributes = getWildcardAttributes(userProperties);
+            if (CollectionUtils.isNotEmpty(wildcardAttributes)) {
+                for (String wildcardAttribute : wildcardAttributes) {
+                    if(filterQuery == null){
+                        filterQuery = query().where(wildcardAttribute).like(filterValue);
+                    } else {
+                        addCriteriaToQuery(filterQuery, true, wildcardAttribute).like(filterValue);
+                    }
+                }
+            }
+        }else {
+            // consider the attributes
+            Iterator<?> filterKeys = ldapfilters.keySet().iterator();
+            while (filterKeys.hasNext()) {
+                String filterName = (String) filterKeys.next();
+                String filterValue = ldapfilters.getProperty(filterName);
+
+                if (filterQuery == null){
+                    filterQuery = query().where(filterName).like(filterValue);
+                } else {
+                    addCriteriaToQuery(filterQuery, orOp, filterName).like(filterValue);
+                }
+            }
+        }
+
+        if(filterQuery != null){
+            query.and(filterQuery);
+        }
+
+        return query;
+    }
+
+    private ConditionCriteria addCriteriaToQuery(ContainerCriteria query, boolean isOr, String attribute){
+        if (isOr){
+            return query.or(attribute);
+        } else {
+            return query.and(attribute);
+        }
+    }
+
+    private Properties mapJahiaPropertiesToLDAP(Properties searchCriteria, Map<String, String> configProperties) {
+        if (searchCriteria.size() == 0) {
+            return searchCriteria;
+        }
+        Properties p = new Properties();
+        if (searchCriteria.containsKey("*")) {
+            p.setProperty("*", searchCriteria.getProperty("*"));
+            if (searchCriteria.size() == 1) {
+                return p;
+            }
+        }
+
+        for (Map.Entry<String, String> property : getAttributesMapping(configProperties).entrySet()) {
+            String propertyKey = property.getKey().replace("_", ":");
+            if (StringUtils.isNotEmpty(propertyKey) && searchCriteria.get(propertyKey) != null) {
+                p.setProperty(property.getValue(), (String) searchCriteria.get(propertyKey));
+            }
+        }
+
+        return p;
+    }
+
+    private Map<String, String> getAttributesMapping(Map<String, String> properties) {
+        Map<String, String> mappedAttributes = new HashMap<String, String>();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            if (entry.getKey().endsWith(".attribute.map")) {
+                mappedAttributes.put(StringUtils.substringBeforeLast(entry.getKey(),
+                        ".attribute.map"), entry.getValue());
+            }
+        }
+        return mappedAttributes;
+    }
+
+    private List<String> getWildcardAttributes(Map<String, String> properties) {
+        List<String> wildcardAttributes = new ArrayList<String>();
+        String wildCardAttributeStr = properties.get(SEARCH_WILDCARD_ATTRIBUTE_LIST);
+        if (wildCardAttributeStr != null) {
+            StringTokenizer wildCardTokens = new StringTokenizer(wildCardAttributeStr, ", ");
+            while (wildCardTokens.hasMoreTokens()) {
+                String curAttrName = wildCardTokens.nextToken().trim();
+                wildcardAttributes.add(curAttrName);
+            }
+        }
+        return wildcardAttributes;
+    }
 }
 
