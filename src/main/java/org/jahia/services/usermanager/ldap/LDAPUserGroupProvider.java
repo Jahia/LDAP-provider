@@ -126,7 +126,10 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public JahiaUser getUser(String name) throws UserNotFoundException {
-        List<JahiaUser> users = ldapTemplate.search(query().base(userConfig.getUidSearchName()).where("cn").is(name), new JahiaUserAttributesMapper());
+        List<JahiaUser> users = ldapTemplate.search(query()
+                .base(userConfig.getUidSearchName())
+                .where(userConfig.getUidSearchAttribute())
+                .is(name), new JahiaUserAttributesMapper());
         if (users.isEmpty()) {
             throw new UserNotFoundException("unable to find user " + name + " on provider " + key);
         }
@@ -190,7 +193,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
-                        return attrs.get("cn").get().toString();
+                        return attrs.get(userConfig.getUidSearchAttribute()).get().toString();
                     }
                 });
     }
@@ -363,25 +366,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        for (Map.Entry<String, String> property : getAttributesMapping(configProperties).entrySet()) {
-            String propertyKey = property.getKey().replace("_", ":");
-            if (StringUtils.isNotEmpty(propertyKey) && searchCriteria.get(propertyKey) != null) {
-                p.setProperty(property.getValue(), (String) searchCriteria.get(propertyKey));
+        for (Map.Entry<String, String> property : configProperties.entrySet()) {
+            if (StringUtils.isNotEmpty(property.getKey()) && searchCriteria.get(property.getKey()) != null) {
+                p.setProperty(property.getValue(), (String) searchCriteria.get(property.getKey()));
             }
         }
 
         return p;
-    }
-
-    private Map<String, String> getAttributesMapping(Map<String, String> properties) {
-        Map<String, String> mappedAttributes = new HashMap<String, String>();
-        for (Map.Entry<String, String> entry : properties.entrySet()) {
-            if (entry.getKey().endsWith(".attribute.map")) {
-                mappedAttributes.put(StringUtils.substringBeforeLast(entry.getKey(),
-                        ".attribute.map"), entry.getValue());
-            }
-        }
-        return mappedAttributes;
     }
 
     public void setUserConfig(UserConfig userConfig) {

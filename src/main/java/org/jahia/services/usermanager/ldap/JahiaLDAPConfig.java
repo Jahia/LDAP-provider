@@ -87,6 +87,7 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.DefaultDirObjectFactory;
 import org.springframework.ldap.core.support.LdapContextSource;
 
+import javax.naming.Context;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
@@ -142,7 +143,7 @@ public class JahiaLDAPConfig {
             groupConfig.handleDefaults();
 
             // instantiate ldap context
-            if (userConfig != null && userConfig.isMinimalSettingsOk()) {
+            if (userConfig.isMinimalSettingsOk()) {
                 LdapContextSource lcs = new LdapContextSource();
                 lcs.setUrl(userConfig.getUrl());
                 if (StringUtils.isNotEmpty(userConfig.getPublicBindDn())) {
@@ -152,6 +153,7 @@ public class JahiaLDAPConfig {
                     lcs.setPassword(userConfig.getPublicBindPassword());
                 }
                 lcs.setPooled(userConfig.isLdapConnectPool());
+                lcs.setReferral(groupConfig.getRefferal());
                 lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
                 lcs.afterPropertiesSet();
                 LdapTemplate ldap = new LdapTemplate(lcs);
