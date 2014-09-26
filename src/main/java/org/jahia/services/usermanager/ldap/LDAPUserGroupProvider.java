@@ -81,6 +81,7 @@ import org.jahia.modules.external.users.UserNotFoundException;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserImpl;
 import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.services.usermanager.ldap.config.AbstractConfig;
 import org.jahia.services.usermanager.ldap.config.GroupConfig;
 import org.jahia.services.usermanager.ldap.config.UserConfig;
 import org.springframework.ldap.core.AttributesMapper;
@@ -188,7 +189,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> searchUsers(Properties searchCriterias) {
-        ContainerCriteria query = buildUserQuery(searchCriterias);
+        ContainerCriteria query = buildQuery(searchCriterias, true);
         return ldapTemplate.search(query,
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
@@ -203,41 +204,16 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         if (groupsCache.containsKey(searchCriterias)) {
             return groupsCache.get(searchCriterias);
         }
-        List<String> groups = ldapTemplate.search(
-                query().base(groupConfig.getSearchName()).where("objectclass").is("groupOfUniqueNames"),
+        ContainerCriteria query = buildQuery(searchCriterias, false);
+        List<String> groups = ldapTemplate.search(query,
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
-                        return attrs.get("cn").get().toString();
+                        return attrs.get(groupConfig.getSearchAttribute()).get().toString();
                     }
                 });
         groupsCache.put(searchCriterias,groups);
         return groups;
-    }
-
-    /**
-     * defines the LdapTemplate for this provider
-     * @param ldapTemplate
-     */
-    public void setLdapTemplate(LdapTemplate ldapTemplate) {
-        this.ldapTemplate = ldapTemplate;
-        groupMembersCache.clear();
-        groupsCache.clear();
-        groupCache.clear();
-    }
-
-    /**
-     * register the provider
-     */
-    public void register() {
-        externalUserGroupService.register(key,this);
-    }
-
-    /**
-     * unregister the provider
-     */
-    public void unregister() {
-        externalUserGroupService.unregister(key);
     }
 
     @Override
@@ -260,16 +236,6 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
-
-
-    public void setKey(String key) {
-        this.key = key;
-    }
-
-    public void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
-        this.externalUserGroupService = externalUserGroupService;
-    }
-
     private String getUserDnFromName(String name) {
         return ldapTemplate.searchForObject(
                 query().base(userConfig.getUidSearchName())
@@ -277,11 +243,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                         .is(userConfig.getSearchObjectclass())
                         .and(userConfig.getUidSearchAttribute())
                         .is(name), new ContextMapper<String>() {
-                    @Override
-                    public String mapFromContext(Object ctx) throws NamingException {
-                        return ((LdapCtx) ctx).getNameInNamespace();
-                    }
-                });
+            @Override
+            public String mapFromContext(Object ctx) throws NamingException {
+                return ((LdapCtx) ctx).getNameInNamespace();
+            }
+        });
     }
 
     private class JahiaUserAttributesMapper implements AttributesMapper<JahiaUser> {
@@ -298,12 +264,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    private ContainerCriteria buildUserQuery(Properties searchCriterias){
-        ContainerCriteria query = query().base(userConfig.getUidSearchName())
-                .where("objectclass").is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
+    private ContainerCriteria buildQuery(Properties searchCriterias, boolean isUser){
+        AbstractConfig config = isUser ? userConfig : groupConfig;
+        ContainerCriteria query = query().base(isUser ? userConfig.getUidSearchName() : groupConfig.getSearchName())
+                .where("objectclass").is(StringUtils.defaultString(config.getSearchObjectclass(), "*"));
 
         // transform jnt:user props to ldap props
-        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriterias, userConfig.getAttributesMapper());
+        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriterias, config.getAttributesMapper());
 
         // define and / or operator
         boolean orOp = true;
@@ -320,8 +287,8 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         if (ldapfilters.containsKey("*")){
             // Search on all wildcards attributes
             String filterValue = ldapfilters.getProperty("*");
-            if (CollectionUtils.isNotEmpty(userConfig.getSearchWildcardsAttributes())) {
-                for (String wildcardAttribute : userConfig.getSearchWildcardsAttributes()) {
+            if (CollectionUtils.isNotEmpty(config.getSearchWildcardsAttributes())) {
+                for (String wildcardAttribute : config.getSearchWildcardsAttributes()) {
                     if(filterQuery == null){
                         filterQuery = query().where(wildcardAttribute).like(filterValue);
                     } else {
@@ -378,6 +345,39 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
 
         return p;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
+        this.externalUserGroupService = externalUserGroupService;
+    }
+
+    /**
+     * defines the LdapTemplate for this provider
+     * @param ldapTemplate
+     */
+    public void setLdapTemplate(LdapTemplate ldapTemplate) {
+        this.ldapTemplate = ldapTemplate;
+        groupMembersCache.clear();
+        groupsCache.clear();
+        groupCache.clear();
+    }
+
+    /**
+     * register the provider
+     */
+    public void register() {
+        externalUserGroupService.register(key,this);
+    }
+
+    /**
+     * unregister the provider
+     */
+    public void unregister() {
+        externalUserGroupService.unregister(key);
     }
 
     public void setUserConfig(UserConfig userConfig) {
