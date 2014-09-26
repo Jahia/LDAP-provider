@@ -71,33 +71,32 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jahia.services.usermanager.ldap.config.AbstractConfig;
+import org.jahia.services.usermanager.ldap.config.GroupConfig;
+import org.jahia.services.usermanager.ldap.config.UserConfig;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.DefaultDirObjectFactory;
 import org.springframework.ldap.core.support.LdapContextSource;
 
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
 /**
  * Helper class to configure LDAP user and group providers via OSGi Config Admin service.
  */
 public class JahiaLDAPConfig {
-
+    private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
     private String providerKey;
-    private Map<String, String> userLdapProperties;
-    private Map<String, String> groupLdapProperties;
     private LDAPUserGroupProvider ldapUserGroupProvider;
-
-    public static String PUBLIC_BIND_DN_PROP = "public.bind.dn";
-    public static String PUBLIC_BIND_PASSWORD_PROP = "public.bind.password";
-    public static String LDAP_URL_PROP = "url";
-    public static String USE_CONNECTION_POOL = "ldap.connect.pool";
 
     public JahiaLDAPConfig(ApplicationContext context, Dictionary<String, ?> dictionary) {
         providerKey = computeProviderKey(dictionary);
@@ -110,9 +109,12 @@ public class JahiaLDAPConfig {
      * @param dictionary
      */
     public void setContext(ApplicationContext context, Dictionary<String, ?> dictionary) {
-        userLdapProperties = new HashMap<String, String>();
-        groupLdapProperties = new HashMap<String, String>();
+        Properties userLdapProperties = new Properties();
+        Properties groupLdapProperties = new Properties();
+        UserConfig userConfig = new UserConfig();
+        GroupConfig groupConfig = new GroupConfig();
         Enumeration<String> keys = dictionary.keys();
+
         while (keys.hasMoreElements()) {
             String key = keys.nextElement();
             if (Constants.SERVICE_PID.equals(key) ||
@@ -120,45 +122,59 @@ public class JahiaLDAPConfig {
                     "felix.fileinstall.filename".equals(key)) {
                 continue;
             }
-            String value = (String) dictionary.get(key);
+            Object value = dictionary.get(key);
             if (key.startsWith("user.")) {
-                userLdapProperties.put(key.substring(5), value);
+                buildConfig(userLdapProperties, userConfig, key, value, true);
             } else if (key.startsWith("group.")) {
-                groupLdapProperties.put(key.substring(6), value);
+                buildConfig(groupLdapProperties, groupConfig, key, value, false);
             } else {
-                userLdapProperties.put(key, value);
-                groupLdapProperties.put(key, value);
+                userLdapProperties.put(transformPropKeyToBeanAttr(key), value);
+                groupLdapProperties.put(transformPropKeyToBeanAttr(key), value);
             }
         }
+        try {
+            // populate config beans
+            BeanUtils.populate(userConfig, userLdapProperties);
+            BeanUtils.populate(groupConfig, groupLdapProperties);
 
-        // instantiate ldap context
-        if (!userLdapProperties.isEmpty()) {
-            LdapContextSource lcs = new LdapContextSource();
-            lcs.setUrl(userLdapProperties.get(LDAP_URL_PROP));
-            if (StringUtils.isNotEmpty(userLdapProperties.get(PUBLIC_BIND_DN_PROP))) {
-                lcs.setUserDn(userLdapProperties.get(PUBLIC_BIND_DN_PROP));
+            // handle defaults values
+            userConfig.handleDefaults();
+            groupConfig.handleDefaults();
+
+            // instantiate ldap context
+            if (userConfig != null && userConfig.isMinimalSettingsOk()) {
+                LdapContextSource lcs = new LdapContextSource();
+                lcs.setUrl(userConfig.getUrl());
+                if (StringUtils.isNotEmpty(userConfig.getPublicBindDn())) {
+                    lcs.setUserDn(userConfig.getPublicBindDn());
+                }
+                if (StringUtils.isNotEmpty(userConfig.getPublicBindPassword())) {
+                    lcs.setPassword(userConfig.getPublicBindPassword());
+                }
+                lcs.setPooled(userConfig.isLdapConnectPool());
+                lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
+                lcs.afterPropertiesSet();
+                LdapTemplate ldap = new LdapTemplate(lcs);
+                boolean doRegister = false;
+                if (ldapUserGroupProvider == null) {
+                    ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
+                    doRegister = true;
+                }
+
+                ldapUserGroupProvider.setKey(providerKey);
+                ldapUserGroupProvider.setUserConfig(userConfig);
+                ldapUserGroupProvider.setGroupConfig(groupConfig);
+                ldapUserGroupProvider.setLdapTemplate(ldap);
+                if (doRegister) {
+                    ldapUserGroupProvider.register();
+                }
+            } else {
+                unregister();
             }
-            if (StringUtils.isNotEmpty(userLdapProperties.get(PUBLIC_BIND_PASSWORD_PROP))) {
-                lcs.setPassword(userLdapProperties.get(PUBLIC_BIND_PASSWORD_PROP));
-            }
-            lcs.setPooled(Boolean.parseBoolean(userLdapProperties.get(USE_CONNECTION_POOL)));
-            lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
-            lcs.afterPropertiesSet();
-            LdapTemplate ldap = new LdapTemplate(lcs);
-            boolean doRegister = false;
-            if (ldapUserGroupProvider == null) {
-                ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
-                doRegister = true;
-            }
-            ldapUserGroupProvider.setKey(providerKey);
-            ldapUserGroupProvider.setUserProperties(userLdapProperties);
-            ldapUserGroupProvider.setGroupProperties(groupLdapProperties);
-            ldapUserGroupProvider.setLdapTemplate(ldap);
-            if (doRegister) {
-                ldapUserGroupProvider.register();
-            }
-        } else {
-            unregister();
+        } catch (IllegalAccessException e) {
+            logger.error("Config LDAP invalid, pls read the documentation on LDAP configuration", e);
+        } catch (InvocationTargetException e) {
+            logger.error("Config LDAP invalid, pls read the documentation on LDAP configuration", e);
         }
     }
 
@@ -191,6 +207,30 @@ public class JahiaLDAPConfig {
             return "ldap";
         } else {
             return "ldap." + confId;
+        }
+    }
+
+    private String transformPropKeyToBeanAttr(String key){
+        Iterable<String> upperStrings = Iterables.transform(Arrays.asList(StringUtils.split(key, '.')), new Function<String,String>() {
+            public String apply(String input) {
+                return (input == null) ? null : StringUtils.capitalize(input);
+            }
+        });
+        return StringUtils.uncapitalize(StringUtils.join(upperStrings.iterator(), ""));
+    }
+
+    private void buildConfig(Properties properties, AbstractConfig config, String key, Object value, boolean isUser){
+        if(key.contains(".attribute.map")){
+            config.getAttributesMapper().put(StringUtils.substringBetween(key, isUser ? "user." : "group.", ".attribute.map").replace("_", ":"),
+                    (String) value);
+        } else if(key.contains("search.wildcards.attributes")){
+            if(StringUtils.isNotEmpty((String) value)){
+                for (String wildcardAttr : ((String) value).split(",")) {
+                    config.getSearchWildcardsAttributes().add(wildcardAttr.trim());
+                }
+            }
+        } else {
+            properties.put(transformPropKeyToBeanAttr(key.substring(isUser ? 5 : 6)), value);
         }
     }
 }

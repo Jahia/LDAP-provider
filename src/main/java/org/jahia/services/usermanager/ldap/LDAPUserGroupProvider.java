@@ -81,6 +81,8 @@ import org.jahia.modules.external.users.UserNotFoundException;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserImpl;
 import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.services.usermanager.ldap.config.GroupConfig;
+import org.jahia.services.usermanager.ldap.config.UserConfig;
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.core.ContextMapper;
 import org.springframework.ldap.core.LdapTemplate;
@@ -108,26 +110,23 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     // the LDAP Group cache name.
     public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
     public static final String LDAP_NONEXISTANT_GROUP_CACHE = "LDAPNonExistantGroupsCache";
-    public static String LDAP_USERNAME_ATTRIBUTE = "username.attribute.map";
-    public static String UID_SEARCH_NAME_PROP = "uid.search.name";
-    public static String SEARCH_NAME_PROP = "search.name";
-    public static String USERS_OBJECTCLASS_ATTRIBUTE = "search.objectclass";
-    public static String UID_SEARCH_ATTRIBUTE_PROP = "uid.search.attribute";
-    public static String SEARCH_WILDCARD_ATTRIBUTE_LIST = "search.wildcards.attributes";
+
     private ExternalUserGroupService externalUserGroupService;
-    private Map<String, String> groupProperties;
-    private Map<String, String> userProperties;
+    private LdapTemplate ldapTemplate;
     private String key;
     private List<String> groupCache = new ArrayList<String>();
+
+    // Configs
+    private UserConfig userConfig;
+    private GroupConfig groupConfig;
 
     // todo : handle properly caches
     private Map<String,List<Member>> groupMembersCache = new HashMap<String, List<Member>>();
     private Map<Properties,List<String>> groupsCache = new HashMap<Properties, List<String>>();
-    private LdapTemplate ldapTemplate;
 
     @Override
     public JahiaUser getUser(String name) throws UserNotFoundException {
-        List<JahiaUser> users = ldapTemplate.search(query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("cn").is(name), new JahiaUserAttributesMapper());
+        List<JahiaUser> users = ldapTemplate.search(query().base(userConfig.getUidSearchName()).where("cn").is(name), new JahiaUserAttributesMapper());
         if (users.isEmpty()) {
             throw new UserNotFoundException("unable to find user " + name + " on provider " + key);
         }
@@ -140,7 +139,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return true;
         } else {
             if (!ldapTemplate.search(
-                    query().base(groupProperties.get(SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames").and("cn").is(name),
+                    query().base(groupConfig.getSearchName()).where("objectclass").is("groupOfUniqueNames").and("cn").is(name),
                     new AttributesMapper<String>() {
                         public String mapFromAttributes(Attributes attrs)
                                 throws NamingException {
@@ -163,7 +162,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return groupMembersCache.get(groupName);
         }
         String members = ldapTemplate.search(
-                query().base(groupProperties.get(SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames").and("cn").is(groupName),
+                query().base(groupConfig.getSearchName()).where("objectclass").is("groupOfUniqueNames").and("cn").is(groupName),
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
@@ -202,7 +201,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return groupsCache.get(searchCriterias);
         }
         List<String> groups = ldapTemplate.search(
-                query().base(groupProperties.get(SEARCH_NAME_PROP)).where("objectclass").is("groupOfUniqueNames"),
+                query().base(groupConfig.getSearchName()).where("objectclass").is("groupOfUniqueNames"),
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
                             throws NamingException {
@@ -259,13 +258,6 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
 
-    public void setGroupProperties(Map<String, String> groupProperties) {
-        this.groupProperties = groupProperties;
-    }
-
-    public void setUserProperties(Map<String, String> userProperties) {
-        this.userProperties = userProperties;
-    }
 
     public void setKey(String key) {
         this.key = key;
@@ -277,7 +269,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     private String getUserDnFromName(String name) {
         return ldapTemplate.searchForObject(
-                query().base(userProperties.get(UID_SEARCH_NAME_PROP)).where("objectclass").is("person").and("cn").is(name), new ContextMapper<String>() {
+                query().base(userConfig.getUidSearchName()).where("objectclass").is("person").and("cn").is(name), new ContextMapper<String>() {
                     @Override
                     public String mapFromContext(Object ctx) throws NamingException {
                         return ((LdapCtx) ctx).getNameInNamespace();
@@ -288,26 +280,22 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private class JahiaUserAttributesMapper implements AttributesMapper<JahiaUser> {
         public JahiaUser mapFromAttributes(Attributes attrs) throws NamingException {
             Properties props = new Properties();
-            for (String propertyKey : userProperties.keySet()) {
-                if (StringUtils.endsWith(propertyKey,"attribute.map")) {
-                    String propertyName = StringUtils.substringBefore(propertyKey, ".attribute.map").replace("_", ":");
-                    Attribute ldapAttribute = attrs.get(userProperties.get(propertyKey));
-                    if(ldapAttribute.get() instanceof String){
-                        props.put(propertyName, ldapAttribute.get());
-                    }
+            for (String propertyKey : userConfig.getAttributesMapper().keySet()) {
+                Attribute ldapAttribute = attrs.get(userConfig.getAttributesMapper().get(propertyKey));
+                if (ldapAttribute != null && ldapAttribute.get() instanceof String) {
+                    props.put(propertyKey, ldapAttribute.get());
                 }
-
             }
             return new JahiaUserImpl(StringUtils.substringAfterLast(attrs.get("cn").toString(), ":").trim(),null,props,false,key);
         }
     }
 
     private ContainerCriteria buildUserQuery(Properties searchCriterias){
-        ContainerCriteria query = query().base(userProperties.get(UID_SEARCH_NAME_PROP))
-                .where("objectclass").is(StringUtils.defaultString(userProperties.get(USERS_OBJECTCLASS_ATTRIBUTE), "*"));
+        ContainerCriteria query = query().base(userConfig.getUidSearchName())
+                .where("objectclass").is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
 
         // transform jnt:user props to ldap props
-        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriterias, userProperties);
+        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriterias, userConfig.getAttributesMapper());
 
         // define and / or operator
         boolean orOp = true;
@@ -324,9 +312,8 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         if (ldapfilters.containsKey("*")){
             // Search on all wildcards attributes
             String filterValue = ldapfilters.getProperty("*");
-            List<String> wildcardAttributes = getWildcardAttributes(userProperties);
-            if (CollectionUtils.isNotEmpty(wildcardAttributes)) {
-                for (String wildcardAttribute : wildcardAttributes) {
+            if (CollectionUtils.isNotEmpty(userConfig.getSearchWildcardsAttributes())) {
+                for (String wildcardAttribute : userConfig.getSearchWildcardsAttributes()) {
                     if(filterQuery == null){
                         filterQuery = query().where(wildcardAttribute).like(filterValue);
                     } else {
@@ -397,17 +384,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return mappedAttributes;
     }
 
-    private List<String> getWildcardAttributes(Map<String, String> properties) {
-        List<String> wildcardAttributes = new ArrayList<String>();
-        String wildCardAttributeStr = properties.get(SEARCH_WILDCARD_ATTRIBUTE_LIST);
-        if (wildCardAttributeStr != null) {
-            StringTokenizer wildCardTokens = new StringTokenizer(wildCardAttributeStr, ", ");
-            while (wildCardTokens.hasMoreTokens()) {
-                String curAttrName = wildCardTokens.nextToken().trim();
-                wildcardAttributes.add(curAttrName);
-            }
-        }
-        return wildcardAttributes;
+    public void setUserConfig(UserConfig userConfig) {
+        this.userConfig = userConfig;
+    }
+
+    public void setGroupConfig(GroupConfig groupConfig) {
+        this.groupConfig = groupConfig;
     }
 }
 
