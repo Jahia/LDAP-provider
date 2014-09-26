@@ -272,7 +272,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     private String getUserDnFromName(String name) {
         return ldapTemplate.searchForObject(
-                query().base(userConfig.getUidSearchName()).where("objectclass").is("person").and("cn").is(name), new ContextMapper<String>() {
+                query().base(userConfig.getUidSearchName())
+                        .where("objectclass")
+                        .is(userConfig.getSearchObjectclass())
+                        .and(userConfig.getUidSearchAttribute())
+                        .is(name), new ContextMapper<String>() {
                     @Override
                     public String mapFromContext(Object ctx) throws NamingException {
                         return ((LdapCtx) ctx).getNameInNamespace();
@@ -289,7 +293,8 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                     props.put(propertyKey, ldapAttribute.get());
                 }
             }
-            return new JahiaUserImpl(StringUtils.substringAfterLast(attrs.get("cn").toString(), ":").trim(),null,props,false,key);
+            String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
+            return new JahiaUserImpl(userId, null, props, false, key);
         }
     }
 
