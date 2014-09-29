@@ -87,7 +87,6 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.DefaultDirObjectFactory;
 import org.springframework.ldap.core.support.LdapContextSource;
 
-import javax.naming.Context;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 

@@ -73,6 +73,7 @@ package org.jahia.services.usermanager.ldap;
 
 import com.sun.jndi.ldap.LdapCtx;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.Member;
@@ -84,13 +85,15 @@ import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.services.usermanager.ldap.config.AbstractConfig;
 import org.jahia.services.usermanager.ldap.config.GroupConfig;
 import org.jahia.services.usermanager.ldap.config.UserConfig;
-import org.springframework.ldap.core.AttributesMapper;
-import org.springframework.ldap.core.ContextMapper;
-import org.springframework.ldap.core.LdapTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ldap.core.*;
 import org.springframework.ldap.query.ConditionCriteria;
 import org.springframework.ldap.query.ContainerCriteria;
 import org.springframework.ldap.support.LdapUtils;
 
+import javax.naming.Name;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -104,6 +107,7 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  * Implementation of UserGroupProvider for Spring LDAP
  */
 public class LDAPUserGroupProvider implements UserGroupProvider {
+    private static Logger logger = LoggerFactory.getLogger(UserGroupProvider.class);
 
     // the LDAP User cache name.
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
@@ -143,11 +147,15 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return true;
         } else {
             if (!ldapTemplate.search(
-                    query().base(groupConfig.getSearchName()).where("objectclass").is("groupOfUniqueNames").and("cn").is(name),
+                    query().base(groupConfig.getSearchName())
+                            .where("objectclass")
+                            .is(groupConfig.getSearchObjectclass())
+                            .and(groupConfig.getSearchAttribute())
+                            .is(name),
                     new AttributesMapper<String>() {
                         public String mapFromAttributes(Attributes attrs)
                                 throws NamingException {
-                            return attrs.get("cn").get().toString();
+                            return attrs.get(groupConfig.getSearchAttribute()).get().toString();
                         }
                     }).isEmpty()) {
                 if (groupCache == null)  {
@@ -165,20 +173,61 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         if (groupMembersCache.containsKey(groupName)) {
             return groupMembersCache.get(groupName);
         }
-        String members = ldapTemplate.search(
-                query().base(groupConfig.getSearchName()).where("objectclass").is("groupOfUniqueNames").and("cn").is(groupName),
-                new AttributesMapper<String>() {
-                    public String mapFromAttributes(Attributes attrs)
+        NamingEnumeration<?> members = ldapTemplate.search(
+                query().base(groupConfig.getSearchName())
+                        .where("objectclass")
+                        .is(groupConfig.getSearchObjectclass())
+                        .and(groupConfig.getSearchAttribute())
+                        .is(groupName),
+                new AttributesMapper<NamingEnumeration<?>>() {
+                    public NamingEnumeration<?> mapFromAttributes(Attributes attrs)
                             throws NamingException {
-                        return attrs.get("uniqueMember").toString();
+                        return attrs.get(groupConfig.getMembersAttribute()).getAll();
                     }
                 }).get(0);
         List<Member> memberList = new ArrayList<Member>();
-        for (String member : StringUtils.split(members,",")) {
-            String userName = StringUtils.substringAfter(member, "cn=");
-            memberList.add(new Member(userName,groupExists(userName)? Member.MemberType.GROUP: Member.MemberType.USER));
+        try {
+            while (members.hasMore() && memberList.size() < groupConfig.getSearchCountlimit()){
+                final String memberNaming = (String) members.next();
+                Member member = ldapTemplate.lookup(memberNaming,
+                        new String[] {"objectclass", userConfig.getUidSearchAttribute(), groupConfig.getSearchAttribute()},
+                        new ContextMapper<Member>() {
+                    @Override
+                    public Member mapFromContext(Object ctx) throws NamingException {
+                        DirContextAdapter ctxAdapter = (DirContextAdapter) ctx;
+                        Object[] objectclass = ctxAdapter.getObjectAttributes("objectclass");
+                        if(ArrayUtils.contains(objectclass, userConfig.getSearchObjectclass())){
+                            // user
+                            return new Member(ctxAdapter.getStringAttribute(userConfig.getUidSearchAttribute()), Member.MemberType.USER);
+                        } else if (ArrayUtils.contains(objectclass, groupConfig.getSearchObjectclass())){
+                            // group
+                            return new Member(ctxAdapter.getStringAttribute(groupConfig.getSearchAttribute()), Member.MemberType.GROUP);
+                        } else {
+                            // no objectclass mapping found for member
+                            logger.warn("No matching objectclass found on member: " + memberNaming + ", " +
+                                    "valid objectclass are: " + userConfig.getSearchObjectclass() +", " + groupConfig.getSearchObjectclass() + ". " +
+                                    "Tyring to resolve member regarding the attributes.");
+                            if(ctxAdapter.attributeExists(userConfig.getUidSearchAttribute())){
+                                logger.warn("Member " + memberNaming + " resolved as a user");
+                                return new Member(ctxAdapter.getStringAttribute(userConfig.getUidSearchAttribute()), Member.MemberType.USER);
+                            } else if (ctxAdapter.attributeExists(groupConfig.getSearchAttribute())){
+                                logger.warn("Member " + memberNaming + " resolved as a group");
+                                return new Member(ctxAdapter.getStringAttribute(groupConfig.getSearchAttribute()), Member.MemberType.GROUP);
+                            } else {
+                                logger.warn("Member " + memberNaming + " not returned, because not resolved");
+                            }
+                        }
+                        return null;
+                    }
+                });
+                if(member != null) {
+                    memberList.add(member);
+                }
+            }
+        } catch (NamingException e) {
+            logger.error("Error retrieving LDAP group members for group: " + groupName, e);
         }
-        groupMembersCache.put(groupName,memberList);
+        groupMembersCache.put(groupName, memberList);
         return memberList;
     }
 
