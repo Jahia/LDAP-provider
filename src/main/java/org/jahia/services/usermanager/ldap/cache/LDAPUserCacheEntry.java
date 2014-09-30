@@ -7,31 +7,12 @@ import java.io.Serializable;
 /**
  * @author kevan
  */
-public class LDAPUserCacheEntry implements Serializable{
+public class LDAPUserCacheEntry extends LDAPAbstractCacheEntry implements Serializable{
     private static final long serialVersionUID = -1432235243384204528L;
-
-    private Boolean exist = false;
-    private String name;
     private JahiaUser user;
 
     public LDAPUserCacheEntry(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Boolean getExist() {
-        return exist;
-    }
-
-    public void setExist(Boolean exist) {
-        this.exist = exist;
+        setName(name);
     }
 
     public JahiaUser getUser() {

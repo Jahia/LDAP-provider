@@ -88,6 +88,7 @@ import org.jahia.services.cache.ehcache.EhCacheProvider;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserImpl;
 import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
 import org.jahia.services.usermanager.ldap.cache.LDAPCacheManager;
 import org.jahia.services.usermanager.ldap.cache.LDAPGroupCacheEntry;
 import org.jahia.services.usermanager.ldap.cache.LDAPUserCacheEntry;
@@ -258,7 +259,26 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> getMembership(Member member) {
-        return Collections.emptyList();
+        boolean isGroup = member.getType().equals(Member.MemberType.GROUP);
+        LDAPAbstractCacheEntry cacheEntry = isGroup ? ldapCacheManager.getGroupCacheEntry(getKey(), member.getName())
+                : ldapCacheManager.getUserCacheEntry(getKey(), member.getName());
+        if(cacheEntry != null && cacheEntry.getMemberships() != null){
+            return cacheEntry.getMemberships();
+        }
+
+        // TODO: getmemberships
+        List<String> memberships = Collections.emptyList();
+
+        if(cacheEntry == null){
+            cacheEntry = isGroup ? new LDAPGroupCacheEntry(member.getName()) : new LDAPUserCacheEntry(member.getName());
+        }
+        cacheEntry.setMemberships(memberships);
+        if(isGroup){
+            ldapCacheManager.cacheGroup(getKey(), (LDAPGroupCacheEntry) cacheEntry);
+        } else {
+            ldapCacheManager.cacheUser(getKey(), (LDAPUserCacheEntry) cacheEntry);
+        }
+        return cacheEntry.getMemberships();
     }
 
     @Override

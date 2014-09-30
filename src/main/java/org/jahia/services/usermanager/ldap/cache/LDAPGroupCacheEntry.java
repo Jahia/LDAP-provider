@@ -8,15 +8,13 @@ import java.util.List;
 /**
  * @author kevan
  */
-public class LDAPGroupCacheEntry implements Serializable{
+public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Serializable{
     private static final long serialVersionUID = -3585067276227107907L;
 
     private List<Member> members = null;
-    private Boolean exist = false;
-    private String name;
 
     public LDAPGroupCacheEntry(String name) {
-        this.name = name;
+        setName(name);
     }
 
     public List<Member> getMembers() {
@@ -25,21 +23,5 @@ public class LDAPGroupCacheEntry implements Serializable{
 
     public void setMembers(List<Member> members) {
         this.members = members;
-    }
-
-    public Boolean getExist() {
-        return exist;
-    }
-
-    public void setExist(Boolean exist) {
-        this.exist = exist;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 }
