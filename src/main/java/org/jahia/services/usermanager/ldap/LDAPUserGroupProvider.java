@@ -78,16 +78,11 @@ import net.sf.ehcache.Element;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jahia.modules.external.users.ExternalUserGroupService;
-import org.jahia.modules.external.users.Member;
-import org.jahia.modules.external.users.UserGroupProvider;
-import org.jahia.modules.external.users.UserNotFoundException;
+import org.jahia.modules.external.users.*;
 import org.jahia.services.cache.CacheHelper;
 import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
-import org.jahia.services.usermanager.JahiaUser;
-import org.jahia.services.usermanager.JahiaUserImpl;
-import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
 import org.jahia.services.usermanager.ldap.cache.LDAPCacheManager;
 import org.jahia.services.usermanager.ldap.cache.LDAPGroupCacheEntry;
@@ -145,7 +140,10 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 .where(userConfig.getUidSearchAttribute())
                 .is(name), new JahiaUserAttributesMapper());
 
-        userCacheEntry = new LDAPUserCacheEntry(name);
+        if(userCacheEntry == null){
+            userCacheEntry = new LDAPUserCacheEntry(name);
+        }
+
         if (users.isEmpty()) {
             userCacheEntry.setExist(false);
             ldapCacheManager.cacheUser(getKey(), userCacheEntry);
@@ -159,33 +157,37 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public boolean groupExists(String name) {
+    public JahiaGroup getGroup(String name) throws GroupNotFoundException {
         LDAPGroupCacheEntry groupCacheEntry = ldapCacheManager.getGroupCacheEntry(getKey(), name);
-        if(groupCacheEntry != null && groupCacheEntry.getExist() != null) {
-            return groupCacheEntry.getExist();
+        if(groupCacheEntry != null){
+            if(groupCacheEntry.getExist() != null && !groupCacheEntry.getExist()){
+                throw new GroupNotFoundException("unable to find group " + name + " on provider " + key);
+            }else if(groupCacheEntry.getGroup() != null) {
+                return groupCacheEntry.getGroup();
+            }
         }
 
-        List<String> groups = ldapTemplate.search(
+        List<JahiaGroup> groups = ldapTemplate.search(
                 query().base(groupConfig.getSearchName())
                         .where("objectclass")
                         .is(groupConfig.getSearchObjectclass())
                         .and(groupConfig.getSearchAttribute())
-                        .is(name),
-                new AttributesMapper<String>() {
-                    public String mapFromAttributes(Attributes attrs)
-                            throws NamingException {
-                        return attrs.get(groupConfig.getSearchAttribute()).get().toString();
-                    }
-                });
+                        .is(name), new JahiaGroupAttributesMapper());
 
-        groupCacheEntry = new LDAPGroupCacheEntry(name);
-        if (!groups.isEmpty()) {
-            groupCacheEntry.setExist(true);
-        } else {
-            groupCacheEntry.setExist(false);
+        if(groupCacheEntry == null){
+            groupCacheEntry = new LDAPGroupCacheEntry(name);
         }
-        ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
-        return groupCacheEntry.getExist();
+
+        if (groups.isEmpty()) {
+            groupCacheEntry.setExist(false);
+            ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
+            throw new GroupNotFoundException("unable to find group " + name + " on provider " + key);
+        } else {
+            groupCacheEntry.setExist(true);
+            groupCacheEntry.setGroup(groups.get(0));
+            ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
+            return groupCacheEntry.getGroup();
+        }
     }
 
     @Override
@@ -351,6 +353,20 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
             String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
             return new JahiaUserImpl(userId, null, props, false, key);
+        }
+    }
+
+    private class JahiaGroupAttributesMapper implements AttributesMapper<JahiaGroup> {
+        public JahiaGroup mapFromAttributes(Attributes attrs) throws NamingException {
+            Properties props = new Properties();
+            for (String propertyKey : groupConfig.getAttributesMapper().keySet()) {
+                Attribute ldapAttribute = attrs.get(groupConfig.getAttributesMapper().get(propertyKey));
+                if (ldapAttribute != null && ldapAttribute.get() instanceof String) {
+                    props.put(propertyKey, ldapAttribute.get());
+                }
+            }
+            String groupId = (String) attrs.get(groupConfig.getSearchAttribute()).get();
+            return new JahiaGroupImpl(groupId, null, null, props);
         }
     }
 

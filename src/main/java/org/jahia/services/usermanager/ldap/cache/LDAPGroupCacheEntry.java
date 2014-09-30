@@ -1,6 +1,7 @@
 package org.jahia.services.usermanager.ldap.cache;
 
 import org.jahia.modules.external.users.Member;
+import org.jahia.services.usermanager.JahiaGroup;
 
 import java.io.Serializable;
 import java.util.List;
@@ -11,7 +12,8 @@ import java.util.List;
 public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Serializable{
     private static final long serialVersionUID = -3585067276227107907L;
 
-    private List<Member> members = null;
+    private JahiaGroup group;
+    private List<Member> members;
 
     public LDAPGroupCacheEntry(String name) {
         setName(name);
@@ -23,5 +25,13 @@ public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Seria
 
     public void setMembers(List<Member> members) {
         this.members = members;
+    }
+
+    public JahiaGroup getGroup() {
+        return group;
+    }
+
+    public void setGroup(JahiaGroup group) {
+        this.group = group;
     }
 }
