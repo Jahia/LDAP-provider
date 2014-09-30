@@ -72,17 +72,17 @@
 package org.jahia.services.usermanager.ldap;
 
 import com.sun.jndi.ldap.LdapCtx;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Ehcache;
-import net.sf.ehcache.Element;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jahia.modules.external.users.*;
-import org.jahia.services.cache.CacheHelper;
-import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
-import org.jahia.services.cache.ehcache.EhCacheProvider;
-import org.jahia.services.usermanager.*;
+import org.jahia.modules.external.users.ExternalUserGroupService;
+import org.jahia.modules.external.users.Member;
+import org.jahia.modules.external.users.UserGroupProvider;
+import org.jahia.modules.external.users.UserNotFoundException;
+import org.jahia.services.usermanager.JahiaGroup;
+import org.jahia.services.usermanager.JahiaUser;
+import org.jahia.services.usermanager.JahiaUserImpl;
+import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
 import org.jahia.services.usermanager.ldap.cache.LDAPCacheManager;
 import org.jahia.services.usermanager.ldap.cache.LDAPGroupCacheEntry;
@@ -92,7 +92,10 @@ import org.jahia.services.usermanager.ldap.config.GroupConfig;
 import org.jahia.services.usermanager.ldap.config.UserConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ldap.core.*;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.ContextMapper;
+import org.springframework.ldap.core.DirContextAdapter;
+import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.query.ConditionCriteria;
 import org.springframework.ldap.query.ContainerCriteria;
 import org.springframework.ldap.support.LdapUtils;
@@ -268,8 +271,19 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return cacheEntry.getMemberships();
         }
 
-        // TODO: getmemberships
-        List<String> memberships = Collections.emptyList();
+        String dnName = getDnFromName(member.getName(), isGroup);
+        List<String> memberships = ldapTemplate.search(
+                query().base(groupConfig.getSearchName())
+                        .where("objectclass")
+                        .is(groupConfig.getSearchObjectclass())
+                        .and(groupConfig.getMembersAttribute())
+                        .like(dnName),
+                new AttributesMapper<String>() {
+                    public String mapFromAttributes(Attributes attrs)
+                            throws NamingException {
+                        return attrs.get(groupConfig.getSearchAttribute()).get().toString();
+                    }
+                });
 
         if(cacheEntry == null){
             cacheEntry = isGroup ? new LDAPGroupCacheEntry(member.getName()) : new LDAPUserCacheEntry(member.getName());
@@ -284,8 +298,8 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public List<String> searchUsers(Properties searchCriterias) {
-        ContainerCriteria query = buildQuery(searchCriterias, true);
+    public List<String> searchUsers(Properties searchCriteria) {
+        ContainerCriteria query = buildQuery(searchCriteria, true);
         return ldapTemplate.search(query,
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
@@ -296,8 +310,8 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public List<String> searchGroups(Properties searchCriterias) {
-        ContainerCriteria query = buildQuery(searchCriterias, false);
+    public List<String> searchGroups(Properties searchCriteria) {
+        ContainerCriteria query = buildQuery(searchCriteria, false);
         List<String> groups = ldapTemplate.search(query,
                 new AttributesMapper<String>() {
                     public String mapFromAttributes(Attributes attrs)
@@ -312,7 +326,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public boolean verifyPassword(String userName, String userPassword) {
         DirContext ctx = null;
         try {
-            String userDn = getUserDnFromName(userName);
+            String userDn = getDnFromName(userName,false);
             ctx = ldapTemplate.getContextSource().getContext(userDn, userPassword);
             // Take care here - if a base was specified on the ContextSource
             // that needs to be removed from the user DN for the lookup to succeed.
@@ -328,12 +342,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    private String getUserDnFromName(String name) {
+    private String getDnFromName(String name, boolean isGroup) {
         return ldapTemplate.searchForObject(
-                query().base(userConfig.getUidSearchName())
+                query().base(isGroup?groupConfig.getSearchName():userConfig.getUidSearchName())
                         .where("objectclass")
-                        .is(userConfig.getSearchObjectclass())
-                        .and(userConfig.getUidSearchAttribute())
+                        .is(isGroup?groupConfig.getSearchObjectclass():userConfig.getSearchObjectclass())
+                        .and(isGroup?groupConfig.getSearchAttribute():userConfig.getUidSearchAttribute())
                         .is(name), new ContextMapper<String>() {
             @Override
             public String mapFromContext(Object ctx) throws NamingException {
@@ -370,19 +384,19 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    private ContainerCriteria buildQuery(Properties searchCriterias, boolean isUser){
+    private ContainerCriteria buildQuery(Properties searchCriteria, boolean isUser){
         AbstractConfig config = isUser ? userConfig : groupConfig;
         ContainerCriteria query = query().base(isUser ? userConfig.getUidSearchName() : groupConfig.getSearchName())
                 .where("objectclass").is(StringUtils.defaultString(config.getSearchObjectclass(), "*"));
 
         // transform jnt:user props to ldap props
-        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriterias, config.getAttributesMapper());
+        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, config.getAttributesMapper());
 
         // define and / or operator
         boolean orOp = true;
         if (ldapfilters.size() > 1) {
-            if (searchCriterias.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
-                if (((String) searchCriterias.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
+            if (searchCriteria.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                if (((String) searchCriteria.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
                     orOp = false;
                 }
             }
