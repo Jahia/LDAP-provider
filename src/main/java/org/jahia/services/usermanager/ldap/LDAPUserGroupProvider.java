@@ -75,14 +75,8 @@ import com.sun.jndi.ldap.LdapCtx;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jahia.modules.external.users.ExternalUserGroupService;
-import org.jahia.modules.external.users.Member;
-import org.jahia.modules.external.users.UserGroupProvider;
-import org.jahia.modules.external.users.UserNotFoundException;
-import org.jahia.services.usermanager.JahiaGroup;
-import org.jahia.services.usermanager.JahiaUser;
-import org.jahia.services.usermanager.JahiaUserImpl;
-import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.jahia.modules.external.users.*;
+import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
 import org.jahia.services.usermanager.ldap.cache.LDAPCacheManager;
 import org.jahia.services.usermanager.ldap.cache.LDAPGroupCacheEntry;
@@ -326,7 +320,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public boolean verifyPassword(String userName, String userPassword) {
         DirContext ctx = null;
         try {
-            String userDn = getDnFromName(userName,false);
+            String userDn = getDnFromName(userName, false);
             ctx = ldapTemplate.getContextSource().getContext(userDn, userPassword);
             // Take care here - if a base was specified on the ContextSource
             // that needs to be removed from the user DN for the lookup to succeed.
