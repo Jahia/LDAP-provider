@@ -24,11 +24,15 @@ public class LDAPCacheManager {
         if (userCache == null) {
             cacheManager.addCache(LDAP_USER_CACHE);
             userCache = cacheManager.getCache(LDAP_USER_CACHE);
+        } else {
+            userCache.removeAll();
         }
         groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
         if (groupCache == null) {
             cacheManager.addCache(LDAP_GROUP_CACHE);
             groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
+        } else  {
+            groupCache.removeAll();
         }
     }
 
