@@ -182,6 +182,11 @@ public class JahiaLDAPGroup extends JahiaGroup {
         return false;
     }
 
+    @Override
+    public String getLocalPath() {
+        return null;
+    }
+
     public String getProviderName () {
         return providerKey;
     }
