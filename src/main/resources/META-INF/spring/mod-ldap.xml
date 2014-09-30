@@ -20,9 +20,13 @@
         <property name="managedServiceFactory" ref="JahiaLDAPConfigFactory" />
     </bean>
 
-    <bean id="ldapUserGroupProvider" class="org.jahia.services.usermanager.ldap.LDAPUserGroupProvider" scope="prototype">
-        <property name="externalUserGroupService" ref="ExternalUserGroupService"/>
+    <bean id="ldapCacheManager" class="org.jahia.services.usermanager.ldap.cache.LDAPCacheManager"
+            init-method="start" destroy-method="stop">
+        <property name="cacheProvider" ref="ehCacheProvider"/>
     </bean>
 
-
+    <bean id="ldapUserGroupProvider" class="org.jahia.services.usermanager.ldap.LDAPUserGroupProvider" scope="prototype">
+        <property name="externalUserGroupService" ref="ExternalUserGroupService"/>
+        <property name="ldapCacheManager" ref="ldapCacheManager"/>
+    </bean>
 </beans>
