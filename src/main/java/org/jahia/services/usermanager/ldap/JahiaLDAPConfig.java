@@ -156,6 +156,11 @@ public class JahiaLDAPConfig {
                 lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
                 lcs.afterPropertiesSet();
                 LdapTemplate ldap = new LdapTemplate(lcs);
+
+                // AD workaround to ignore Exceptions
+                ldap.setIgnorePartialResultException(true);
+                ldap.setIgnoreNameNotFoundException(true);
+                
                 boolean doRegister = false;
                 if (ldapUserGroupProvider == null) {
                     ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
