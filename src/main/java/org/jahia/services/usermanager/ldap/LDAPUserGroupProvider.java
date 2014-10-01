@@ -164,26 +164,21 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        List<JahiaGroup> groups = ldapTemplate.search(
+        List<LDAPGroupCacheEntry> groupCacheEntries = ldapTemplate.search(
                 query().base(groupConfig.getSearchName())
                         .where("objectclass")
                         .is(groupConfig.getSearchObjectclass())
                         .and(groupConfig.getSearchAttribute())
-                        .is(name), new JahiaGroupAttributesMapper());
+                        .is(name), new JahiaGroupAttributesMapper(groupCacheEntry, groupConfig.isPreload()));
 
-        if(groupCacheEntry == null){
+        if (groupCacheEntries.isEmpty()) {
             groupCacheEntry = new LDAPGroupCacheEntry(name);
-        }
-
-        if (groups.isEmpty()) {
             groupCacheEntry.setExist(false);
             ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
             throw new GroupNotFoundException("unable to find group " + name + " on provider " + key);
         } else {
-            groupCacheEntry.setExist(true);
-            groupCacheEntry.setGroup(groups.get(0));
-            ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
-            return groupCacheEntry.getGroup();
+            ldapCacheManager.cacheGroup(getKey(), groupCacheEntries.get(0));
+            return groupCacheEntries.get(0).getGroup();
         }
     }
 
@@ -194,6 +189,17 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return groupCacheEntry.getMembers();
         }
 
+        if(groupCacheEntry == null) {
+            groupCacheEntry = new LDAPGroupCacheEntry(groupName);
+        }
+
+        groupCacheEntry.setExist(true);
+        groupCacheEntry.setMembers(loadMembers(groupName));
+        ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
+        return groupCacheEntry.getMembers();
+    }
+
+    private List<Member> loadMembers(String groupName) {
         NamingEnumeration<?> members = ldapTemplate.search(
                 query().base(groupConfig.getSearchName())
                         .where("objectclass")
@@ -206,6 +212,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                         return attrs.get(groupConfig.getMembersAttribute()).getAll();
                     }
                 }).get(0);
+
+        return loadMembers(groupName, members);
+    }
+
+    private List<Member> loadMembers(String groupName, NamingEnumeration<?> members) {
         List<Member> memberList = new ArrayList<Member>();
         try {
             while (members.hasMore() && memberList.size() < groupConfig.getSearchCountlimit()){
@@ -213,34 +224,34 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 Member member = ldapTemplate.lookup(memberNaming,
                         new String[] {"objectclass", userConfig.getUidSearchAttribute(), groupConfig.getSearchAttribute()},
                         new ContextMapper<Member>() {
-                    @Override
-                    public Member mapFromContext(Object ctx) throws NamingException {
-                        DirContextAdapter ctxAdapter = (DirContextAdapter) ctx;
-                        Object[] objectclass = ctxAdapter.getObjectAttributes("objectclass");
-                        if(ArrayUtils.contains(objectclass, userConfig.getSearchObjectclass())){
-                            // user
-                            return new Member(ctxAdapter.getStringAttribute(userConfig.getUidSearchAttribute()), Member.MemberType.USER);
-                        } else if (ArrayUtils.contains(objectclass, groupConfig.getSearchObjectclass())){
-                            // group
-                            return new Member(ctxAdapter.getStringAttribute(groupConfig.getSearchAttribute()), Member.MemberType.GROUP);
-                        } else {
-                            // no objectclass mapping found for member
-                            logger.warn("No matching objectclass found on member: " + memberNaming + ", " +
-                                    "valid objectclass are: " + userConfig.getSearchObjectclass() +", " + groupConfig.getSearchObjectclass() + ". " +
-                                    "Tyring to resolve member regarding the attributes.");
-                            if(ctxAdapter.attributeExists(userConfig.getUidSearchAttribute())){
-                                logger.warn("Member " + memberNaming + " resolved as a user");
-                                return new Member(ctxAdapter.getStringAttribute(userConfig.getUidSearchAttribute()), Member.MemberType.USER);
-                            } else if (ctxAdapter.attributeExists(groupConfig.getSearchAttribute())){
-                                logger.warn("Member " + memberNaming + " resolved as a group");
-                                return new Member(ctxAdapter.getStringAttribute(groupConfig.getSearchAttribute()), Member.MemberType.GROUP);
-                            } else {
-                                logger.warn("Member " + memberNaming + " not returned, because not resolved");
+                            @Override
+                            public Member mapFromContext(Object ctx) throws NamingException {
+                                DirContextAdapter ctxAdapter = (DirContextAdapter) ctx;
+                                Object[] objectclass = ctxAdapter.getObjectAttributes("objectclass");
+                                if(ArrayUtils.contains(objectclass, userConfig.getSearchObjectclass())){
+                                    // user
+                                    return new Member(ctxAdapter.getStringAttribute(userConfig.getUidSearchAttribute()), Member.MemberType.USER);
+                                } else if (ArrayUtils.contains(objectclass, groupConfig.getSearchObjectclass())){
+                                    // group
+                                    return new Member(ctxAdapter.getStringAttribute(groupConfig.getSearchAttribute()), Member.MemberType.GROUP);
+                                } else {
+                                    // no objectclass mapping found for member
+                                    logger.warn("No matching objectclass found on member: " + memberNaming + ", " +
+                                            "valid objectclass are: " + userConfig.getSearchObjectclass() +", " + groupConfig.getSearchObjectclass() + ". " +
+                                            "Tyring to resolve member regarding the attributes.");
+                                    if(ctxAdapter.attributeExists(userConfig.getUidSearchAttribute())){
+                                        logger.warn("Member " + memberNaming + " resolved as a user");
+                                        return new Member(ctxAdapter.getStringAttribute(userConfig.getUidSearchAttribute()), Member.MemberType.USER);
+                                    } else if (ctxAdapter.attributeExists(groupConfig.getSearchAttribute())){
+                                        logger.warn("Member " + memberNaming + " resolved as a group");
+                                        return new Member(ctxAdapter.getStringAttribute(groupConfig.getSearchAttribute()), Member.MemberType.GROUP);
+                                    } else {
+                                        logger.warn("Member " + memberNaming + " not returned, because not resolved");
+                                    }
+                                }
+                                return null;
                             }
-                        }
-                        return null;
-                    }
-                });
+                        });
                 if(member != null) {
                     memberList.add(member);
                 }
@@ -249,11 +260,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             logger.error("Error retrieving LDAP group members for group: " + groupName, e);
         }
 
-        groupCacheEntry = new LDAPGroupCacheEntry(groupName);
-        groupCacheEntry.setExist(true);
-        groupCacheEntry.setMembers(memberList);
-        ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
-        return groupCacheEntry.getMembers();
+        return memberList;
     }
 
     @Override
@@ -364,8 +371,16 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    private class JahiaGroupAttributesMapper implements AttributesMapper<JahiaGroup> {
-        public JahiaGroup mapFromAttributes(Attributes attrs) throws NamingException {
+    private class JahiaGroupAttributesMapper implements AttributesMapper<LDAPGroupCacheEntry> {
+        private LDAPGroupCacheEntry groupCacheEntry;
+        private boolean loadMembers;
+
+        private JahiaGroupAttributesMapper(LDAPGroupCacheEntry groupCacheEntry, boolean loadMembers) {
+            this.groupCacheEntry = groupCacheEntry;
+            this.loadMembers = loadMembers;
+        }
+
+        public LDAPGroupCacheEntry mapFromAttributes(Attributes attrs) throws NamingException {
             Properties props = new Properties();
             for (String propertyKey : groupConfig.getAttributesMapper().keySet()) {
                 Attribute ldapAttribute = attrs.get(groupConfig.getAttributesMapper().get(propertyKey));
@@ -374,7 +389,18 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 }
             }
             String groupId = (String) attrs.get(groupConfig.getSearchAttribute()).get();
-            return new JahiaGroupImpl(groupId, null, null, props);
+            JahiaGroup jahiaGroup = new  JahiaGroupImpl(groupId, null, null, props);
+
+            if(groupCacheEntry == null) {
+                groupCacheEntry = new LDAPGroupCacheEntry(jahiaGroup.getName());
+                groupCacheEntry.setExist(true);
+                groupCacheEntry.setGroup(jahiaGroup);
+                if(loadMembers){
+                    groupCacheEntry.setMembers(loadMembers(jahiaGroup.getName(), attrs.get(groupConfig.getMembersAttribute()).getAll()));
+                }
+            }
+
+            return groupCacheEntry;
         }
     }
 
