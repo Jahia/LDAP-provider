@@ -209,7 +209,8 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 new AttributesMapper<NamingEnumeration<?>>() {
                     public NamingEnumeration<?> mapFromAttributes(Attributes attrs)
                             throws NamingException {
-                        return attrs.get(groupConfig.getMembersAttribute()).getAll();
+                        return attrs.get(groupConfig.getMembersAttribute()) != null ?
+                                attrs.get(groupConfig.getMembersAttribute()).getAll() : null;
                     }
                 }).get(0);
 
@@ -219,7 +220,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private List<Member> loadMembers(String groupName, NamingEnumeration<?> members) {
         List<Member> memberList = new ArrayList<Member>();
         try {
-            while (members.hasMore()){
+            while (members != null && members.hasMore()){
                 final String memberNaming = (String) members.next();
                 Member member = ldapTemplate.lookup(memberNaming,
                         new String[] {"objectclass", userConfig.getUidSearchAttribute(), groupConfig.getSearchAttribute()},
