@@ -219,7 +219,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private List<Member> loadMembers(String groupName, NamingEnumeration<?> members) {
         List<Member> memberList = new ArrayList<Member>();
         try {
-            while (members.hasMore() && memberList.size() < groupConfig.getSearchCountlimit()){
+            while (members.hasMore()){
                 final String memberNaming = (String) members.next();
                 Member member = ldapTemplate.lookup(memberNaming,
                         new String[] {"objectclass", userConfig.getUidSearchAttribute(), groupConfig.getSearchAttribute()},
@@ -407,6 +407,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private ContainerCriteria buildQuery(Properties searchCriteria, boolean isUser){
         AbstractConfig config = isUser ? userConfig : groupConfig;
         ContainerCriteria query = query().base(isUser ? userConfig.getUidSearchName() : groupConfig.getSearchName())
+                .countLimit((int) config.getSearchCountlimit())
                 .where("objectclass").is(StringUtils.defaultString(config.getSearchObjectclass(), "*"));
 
         // transform jnt:user props to ldap props
