@@ -11,6 +11,7 @@ public abstract class LDAPAbstractCacheEntry implements Serializable{
 
     private Boolean exist = false;
     private String name;
+    private String dn;
     private List<String> memberships;
 
     public Boolean getExist() {
@@ -35,5 +36,13 @@ public abstract class LDAPAbstractCacheEntry implements Serializable{
 
     public void setMemberships(List<String> memberships) {
         this.memberships = memberships;
+    }
+
+    public String getDn() {
+        return dn;
+    }
+
+    public void setDn(String dn) {
+        this.dn = dn;
     }
 }
