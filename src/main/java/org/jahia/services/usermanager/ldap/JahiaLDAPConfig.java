@@ -151,6 +151,16 @@ public class JahiaLDAPConfig {
                 if (StringUtils.isNotEmpty(userConfig.getPublicBindPassword())) {
                     lcs.setPassword(userConfig.getPublicBindPassword());
                 }
+
+                if(userConfig.isLdapConnectPool()){
+                    lcs.setPooled(userConfig.isLdapConnectPool());
+                    Map<String, Object> publicEnv = new Hashtable<String, Object>(1);
+                    if (Long.valueOf(userConfig.getLdapConnectTimeout()) > 0) {
+                        publicEnv.put("com.sun.jndi.ldap.connect.timeout", userConfig.getLdapConnectTimeout());
+                    }
+                    lcs.setBaseEnvironmentProperties(publicEnv);
+                }
+
                 lcs.setPooled(userConfig.isLdapConnectPool());
                 lcs.setReferral(groupConfig.getRefferal());
                 lcs.setDirObjectFactory(DefaultDirObjectFactory.class);

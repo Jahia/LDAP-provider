@@ -291,6 +291,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         List<String> memberships = ldapTemplate.search(
                 query().base(groupConfig.getSearchName())
+                        .attributes(groupConfig.getSearchAttribute())
                         .where("objectclass")
                         .is(groupConfig.getSearchObjectclass())
                         .and(groupConfig.getMembersAttribute())
@@ -359,6 +360,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private String getDnFromName(String name, boolean isGroup) {
         List<String> results = ldapTemplate.search(
                 query().base(isGroup?groupConfig.getSearchName():userConfig.getUidSearchName())
+                        .attributes(isGroup?groupConfig.getSearchAttribute():userConfig.getUidSearchAttribute())
                         .where("objectclass")
                         .is(isGroup?groupConfig.getSearchObjectclass():userConfig.getSearchObjectclass())
                         .and(isGroup?groupConfig.getSearchAttribute():userConfig.getUidSearchAttribute())
@@ -454,6 +456,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private ContainerCriteria buildQuery(Properties searchCriteria, boolean isUser){
         AbstractConfig config = isUser ? userConfig : groupConfig;
         ContainerCriteria query = query().base(isUser ? userConfig.getUidSearchName() : groupConfig.getSearchName())
+                .attributes(isUser ? userConfig.getUidSearchAttribute() : groupConfig.getSearchAttribute())
                 .countLimit((int) config.getSearchCountlimit())
                 .where("objectclass").is(StringUtils.defaultString(config.getSearchObjectclass(), "*"));
 

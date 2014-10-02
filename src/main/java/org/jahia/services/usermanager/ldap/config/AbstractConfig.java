@@ -88,7 +88,7 @@ public abstract class AbstractConfig {
     private String authentificationMode = "simple";
     private String contextFactory = "com.sun.jndi.ldap.LdapCtxFactory";
     private boolean ldapConnectPool = true;
-    private long ldapConnectTimeout = 5000;
+    private String ldapConnectTimeout = "5000";
     private long searchCountlimit = 100;
     private String searchObjectclass;
     private Set<String> searchWildcardsAttributes = Sets.newHashSet();
@@ -118,10 +118,6 @@ public abstract class AbstractConfig {
         this.ldapConnectPool = ldapConnectPool;
     }
 
-    public void setLdapConnectTimeout(long ldapConnectTimeout) {
-        this.ldapConnectTimeout = ldapConnectTimeout;
-    }
-
     public String getUrl() {
         return url;
     }
@@ -144,10 +140,6 @@ public abstract class AbstractConfig {
 
     public boolean isLdapConnectPool() {
         return ldapConnectPool;
-    }
-
-    public long getLdapConnectTimeout() {
-        return ldapConnectTimeout;
     }
 
     public Set<String> getSearchWildcardsAttributes() {
@@ -180,5 +172,13 @@ public abstract class AbstractConfig {
 
     public void setSearchCountlimit(long searchCountlimit) {
         this.searchCountlimit = searchCountlimit;
+    }
+
+    public String getLdapConnectTimeout() {
+        return ldapConnectTimeout;
+    }
+
+    public void setLdapConnectTimeout(String ldapConnectTimeout) {
+        this.ldapConnectTimeout = ldapConnectTimeout;
     }
 }
