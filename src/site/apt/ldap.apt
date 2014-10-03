@@ -217,7 +217,7 @@ Jahia LDAP Connector
 *----------------+-------------------+------------------------------------------------+
 | <<Key>>        | <<Default value>> | <<Description>>                                |
 *----------------+-------------------+------------------------------------------------+
-| <<<uid.search.name>>> | <<<\<none\>>>>           | The search base that defines which part of the LDAP directory tree to search, e.g. <<<dc=jahia,dc=com>>> |
+| <<<uid.search.name>>> | <<<\<none\>>>>           | The search base that defines which part of the LDAP directory tree to search, e.g. <<<dc=jahia,dc=com>>>. To improve performance when retrieving the members of groups it is advisable to have a different base between user and group search |
 *----------------+-------------------+------------------------------------------------+
 | <<<uid.search.attribute>>> | <<<cn>>>          | The name of the attribute that will be used as a user key. |
 *----------------+-----------------+------------------------------------------------+
@@ -226,6 +226,8 @@ Jahia LDAP Connector
 | <<<search.wildcards.attributes>>>  | <<<ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn>>> | A list of attributes to use for wildcard searches such as <*=*test*> |
 *----------------+-------------+------------------------------------------------+
 | <<<search.countlimit>>> | <<<100>>>    | The number of entries to limit search results to. If the LDAP user search returns more matching entries than specified with this parameter, the first <<<search.countlimit>>> will be returned only. |
+*----------------+-------------+------------------------------------------------+
+| <<<search.attribute.inDn>>> | false    | If set to true, signal that the users and groups ids are contains in the dn. Useful to improve the performance when lookup the members |
 *----------------+-------------+------------------------------------------------+
 
   [[III]] Attribute mapping parameters - defines a mapping between Jahia's <<<jnt:user>>> node properties and the corresponding LDAP object attributes.
@@ -284,7 +286,7 @@ Jahia LDAP Connector
 *----------------+-------------+------------------------------------------------+
 |<<<ad.range.step>>> | <<<0>>>    | Handle Active Directory range searches when retrieving group members. If set to <<<0>>> all members are retrieved with a single search. If set e.g. to <<<100>>>, searches like <<<range=0-100>>>, <<<range=101-200>>>, <<<range=201-300>>> etc. are used to retrieve all members iteratively. |
 *----------------+-------------------+------------------------------------------------+
-| <<<search.name>>> | <<<\<none\>>>> | The search base that defines which part of the LDAP directory tree to search, e.g. <<<dc=jahia,dc=com>>> |
+| <<<search.name>>> | <<<\<none\>>>> | The search base that defines which part of the LDAP directory tree to search, e.g. <<<dc=jahia,dc=com>>>, To improve performance when retrieving the members of groups it is advisable to have a different base between user and group search|
 *----------------+-------------------+------------------------------------------------+
 | <<<search.attribute>>> | <<<cn>>>          | The name of the attribute that will be used as a user key. |
 *----------------+-----------------+------------------------------------------------+
