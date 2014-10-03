@@ -114,6 +114,7 @@ public abstract class AbstractConfig {
 
     private long searchCountlimit = 100;
     private String searchObjectclass;
+    private boolean searchAttributeInDn = false;
     private Set<String> searchWildcardsAttributes = Sets.newHashSet();
     private Map<String, String> attributesMapper = Maps.newHashMap();
 
@@ -347,5 +348,13 @@ public abstract class AbstractConfig {
 
     public void setAttributesMapper(Map<String, String> attributesMapper) {
         this.attributesMapper = attributesMapper;
+    }
+
+    public boolean isSearchAttributeInDn() {
+        return searchAttributeInDn;
+    }
+
+    public void setSearchAttributeInDn(boolean searchAttributeInDn) {
+        this.searchAttributeInDn = searchAttributeInDn;
     }
 }

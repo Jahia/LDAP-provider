@@ -46,23 +46,39 @@ public class LDAPCacheManager {
         this.cacheProvider = cacheProvider;
     }
 
-    public LDAPUserCacheEntry getUserCacheEntry(String providerKey, String username) {
-        return (LDAPUserCacheEntry) CacheHelper.getObjectValue(userCache, getCacheKey(providerKey, username));
+    public LDAPUserCacheEntry getUserCacheEntryByName(String providerKey, String username) {
+        return (LDAPUserCacheEntry) CacheHelper.getObjectValue(userCache, getCacheNameKey(providerKey, username));
+    }
+
+    public LDAPUserCacheEntry getUserCacheEntryByDn(String providerKey, String dn) {
+        return (LDAPUserCacheEntry) CacheHelper.getObjectValue(userCache, getCacheDnKey(providerKey, dn));
     }
 
     public void cacheUser(String providerKey, LDAPUserCacheEntry ldapUserCacheEntry) {
-        userCache.put(new Element(getCacheKey(providerKey, ldapUserCacheEntry.getName()), new ModuleClassLoaderAwareCacheEntry(ldapUserCacheEntry, "ldap")));
+        ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapUserCacheEntry, "ldap");
+        userCache.put(new Element(getCacheNameKey(providerKey, ldapUserCacheEntry.getName()), cacheEntry));
+        userCache.put(new Element(getCacheDnKey(providerKey, ldapUserCacheEntry.getDn()), cacheEntry));
     }
 
-    public LDAPGroupCacheEntry getGroupCacheEntry(String providerKey, String groupname) {
-        return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheKey(providerKey, groupname));
+    public LDAPGroupCacheEntry getGroupCacheEntryName(String providerKey, String groupname) {
+        return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheNameKey(providerKey, groupname));
+    }
+
+    public LDAPGroupCacheEntry getGroupCacheEntryDn(String providerKey, String dn) {
+        return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheDnKey(providerKey, dn));
     }
 
     public void cacheGroup(String providerKey, LDAPGroupCacheEntry ldapGroupCacheEntry) {
-        groupCache.put(new Element(getCacheKey(providerKey, ldapGroupCacheEntry.getName()), new ModuleClassLoaderAwareCacheEntry(ldapGroupCacheEntry, "ldap")));
+        ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapGroupCacheEntry, "ldap");
+        groupCache.put(new Element(getCacheNameKey(providerKey, ldapGroupCacheEntry.getName()), cacheEntry));
+        groupCache.put(new Element(getCacheDnKey(providerKey, ldapGroupCacheEntry.getDn()), cacheEntry));
     }
 
-    private String getCacheKey(String providerKey, String objectName) {
+    private String getCacheNameKey(String providerKey, String objectName) {
         return providerKey + "n" + objectName;
+    }
+
+    private String getCacheDnKey(String providerKey, String objectName) {
+        return providerKey + "d" + objectName;
     }
 }

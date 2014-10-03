@@ -215,6 +215,10 @@ public class JahiaLDAPConfig {
                 ldapUserGroupProvider.setKey(providerKey);
                 ldapUserGroupProvider.setUserConfig(userConfig);
                 ldapUserGroupProvider.setGroupConfig(groupConfig);
+                if(StringUtils.isNotEmpty(userConfig.getUidSearchName()) && StringUtils.isNotEmpty(groupConfig.getSearchName())){
+                    ldapUserGroupProvider.setDistinctBase(!userConfig.getUidSearchName().startsWith(groupConfig.getSearchName()) &&
+                            !groupConfig.getSearchName().startsWith(userConfig.getUidSearchName()));
+                }
                 ldapUserGroupProvider.setLdapTemplate(ldap);
                 ldapUserGroupProvider.setContextSource(lcs);
                 if (doRegister) {
