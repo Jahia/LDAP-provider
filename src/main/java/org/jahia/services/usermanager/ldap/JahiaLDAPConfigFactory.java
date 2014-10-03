@@ -90,6 +90,17 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
 
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
 
+    public void start() {
+    }
+
+    public void stop() {
+        for (JahiaLDAPConfig config : ldapConfigs.values()) {
+            config.unregister();
+        }
+        ldapConfigs.clear();
+    }
+
+
     public void updated(String pid, Dictionary<String, ?> dictionary) throws ConfigurationException {
         JahiaLDAPConfig ldapConfig;
         if (ldapConfigs.containsKey(pid)) {
