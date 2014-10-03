@@ -106,7 +106,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
         if (ldapConfigs.containsKey(pid)) {
             ldapConfig = ldapConfigs.get(pid);
         } else {
-            ldapConfig = new JahiaLDAPConfig(context, dictionary);
+            ldapConfig = new JahiaLDAPConfig(dictionary);
             ldapConfigs.put(pid, ldapConfig);
         }
         ldapConfig.setContext(context, dictionary);

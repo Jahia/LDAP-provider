@@ -91,6 +91,7 @@ import org.springframework.ldap.core.ContextMapper;
 import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.DefaultIncrementalAttributesMapper;
+import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.ldap.query.ConditionCriteria;
 import org.springframework.ldap.query.ContainerCriteria;
 import org.springframework.ldap.support.LdapUtils;
@@ -112,6 +113,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private static Logger logger = LoggerFactory.getLogger(UserGroupProvider.class);
 
     private ExternalUserGroupService externalUserGroupService;
+    private LdapContextSource contextSource;
     private LdapTemplate ldapTemplate;
     private String key;
 
@@ -342,7 +344,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         DirContext ctx = null;
         try {
             String userDn = getDnFromName(userName, false);
-            ctx = ldapTemplate.getContextSource().getContext(userDn, userPassword);
+            ctx = contextSource.getContext(userDn, userPassword);
             // Take care here - if a base was specified on the ContextSource
             // that needs to be removed from the user DN for the lookup to succeed.
             ctx.lookup(userDn);
@@ -556,6 +558,10 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      */
     public void setLdapTemplate(LdapTemplate ldapTemplate) {
         this.ldapTemplate = ldapTemplate;
+    }
+
+    public void setContextSource(LdapContextSource contextSource) {
+        this.contextSource = contextSource;
     }
 
     /**

@@ -87,59 +87,250 @@ public abstract class AbstractConfig {
     private String publicBindPassword;
     private String authentificationMode = "simple";
     private String contextFactory = "com.sun.jndi.ldap.LdapCtxFactory";
-    private boolean ldapConnectPool = true;
+
+    private String ldapConnectPool = "apache-commons";
+
     private String ldapConnectTimeout = "5000";
+    private String ldapReadTimeout = "5000";
+
+    private String ldapConnectPoolTimeout;
+    private String ldapConnectPoolDebug;
+    private String ldapConnectPoolInitSize;
+    private String ldapConnectPoolMaxSize;
+    private String ldapConnectPoolPrefSize;
+
+    private Integer ldapConnectPoolMaxActive;
+    private Integer ldapConnectPoolMaxIdle;
+    private Integer ldapConnectPoolMaxTotal;
+    private Integer ldapConnectPoolMaxWait;
+    private Integer ldapConnectPoolMinEvictableIdleTimeMillis;
+    private Integer ldapConnectPoolMinIdle;
+    private Integer ldapConnectPoolNumTestsPerEvictionRun;
+    private Boolean ldapConnectPoolTestOnBorrow;
+    private Boolean ldapConnectPoolTestOnReturn;
+    private Boolean ldapConnectPoolTestWhileIdle;
+    private Long ldapConnectPoolTimeBetweenEvictionRunsMillis;
+    private String ldapConnectPoolWhenExhaustedAction;
+
     private long searchCountlimit = 100;
     private String searchObjectclass;
     private Set<String> searchWildcardsAttributes = Sets.newHashSet();
     private Map<String, String> attributesMapper = Maps.newHashMap();
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public void setPublicBindDn(String publicBindDn) {
-        this.publicBindDn = publicBindDn;
-    }
-
-    public void setPublicBindPassword(String publicBindPassword) {
-        this.publicBindPassword = publicBindPassword;
-    }
-
-    public void setAuthentificationMode(String authentificationMode) {
-        this.authentificationMode = authentificationMode;
-    }
-
-    public void setContextFactory(String contextFactory) {
-        this.contextFactory = contextFactory;
-    }
-
-    public void setLdapConnectPool(boolean ldapConnectPool) {
-        this.ldapConnectPool = ldapConnectPool;
-    }
-
     public String getUrl() {
         return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getPublicBindDn() {
         return publicBindDn;
     }
 
+    public void setPublicBindDn(String publicBindDn) {
+        this.publicBindDn = publicBindDn;
+    }
+
     public String getPublicBindPassword() {
         return publicBindPassword;
+    }
+
+    public void setPublicBindPassword(String publicBindPassword) {
+        this.publicBindPassword = publicBindPassword;
     }
 
     public String getAuthentificationMode() {
         return authentificationMode;
     }
 
+    public void setAuthentificationMode(String authentificationMode) {
+        this.authentificationMode = authentificationMode;
+    }
+
     public String getContextFactory() {
         return contextFactory;
     }
 
-    public boolean isLdapConnectPool() {
+    public void setContextFactory(String contextFactory) {
+        this.contextFactory = contextFactory;
+    }
+
+    public String getLdapConnectPool() {
         return ldapConnectPool;
+    }
+
+    public void setLdapConnectPool(String ldapConnectPool) {
+        this.ldapConnectPool = ldapConnectPool;
+    }
+
+    public String getLdapConnectTimeout() {
+        return ldapConnectTimeout;
+    }
+
+    public void setLdapConnectTimeout(String ldapConnectTimeout) {
+        this.ldapConnectTimeout = ldapConnectTimeout;
+    }
+
+    public String getLdapReadTimeout() {
+        return ldapReadTimeout;
+    }
+
+    public void setLdapReadTimeout(String ldapReadTimeout) {
+        this.ldapReadTimeout = ldapReadTimeout;
+    }
+
+    public String getLdapConnectPoolTimeout() {
+        return ldapConnectPoolTimeout;
+    }
+
+    public void setLdapConnectPoolTimeout(String ldapConnectPoolTimeout) {
+        this.ldapConnectPoolTimeout = ldapConnectPoolTimeout;
+    }
+
+    public String getLdapConnectPoolDebug() {
+        return ldapConnectPoolDebug;
+    }
+
+    public void setLdapConnectPoolDebug(String ldapConnectPoolDebug) {
+        this.ldapConnectPoolDebug = ldapConnectPoolDebug;
+    }
+
+    public String getLdapConnectPoolInitSize() {
+        return ldapConnectPoolInitSize;
+    }
+
+    public void setLdapConnectPoolInitSize(String ldapConnectPoolInitSize) {
+        this.ldapConnectPoolInitSize = ldapConnectPoolInitSize;
+    }
+
+    public String getLdapConnectPoolMaxSize() {
+        return ldapConnectPoolMaxSize;
+    }
+
+    public void setLdapConnectPoolMaxSize(String ldapConnectPoolMaxSize) {
+        this.ldapConnectPoolMaxSize = ldapConnectPoolMaxSize;
+    }
+
+    public String getLdapConnectPoolPrefSize() {
+        return ldapConnectPoolPrefSize;
+    }
+
+    public void setLdapConnectPoolPrefSize(String ldapConnectPoolPrefSize) {
+        this.ldapConnectPoolPrefSize = ldapConnectPoolPrefSize;
+    }
+
+    public Integer getLdapConnectPoolMaxActive() {
+        return ldapConnectPoolMaxActive;
+    }
+
+    public void setLdapConnectPoolMaxActive(Integer ldapConnectPoolMaxActive) {
+        this.ldapConnectPoolMaxActive = ldapConnectPoolMaxActive;
+    }
+
+    public Integer getLdapConnectPoolMaxIdle() {
+        return ldapConnectPoolMaxIdle;
+    }
+
+    public void setLdapConnectPoolMaxIdle(Integer ldapConnectPoolMaxIdle) {
+        this.ldapConnectPoolMaxIdle = ldapConnectPoolMaxIdle;
+    }
+
+    public Integer getLdapConnectPoolMaxTotal() {
+        return ldapConnectPoolMaxTotal;
+    }
+
+    public void setLdapConnectPoolMaxTotal(Integer ldapConnectPoolMaxTotal) {
+        this.ldapConnectPoolMaxTotal = ldapConnectPoolMaxTotal;
+    }
+
+    public Integer getLdapConnectPoolMaxWait() {
+        return ldapConnectPoolMaxWait;
+    }
+
+    public void setLdapConnectPoolMaxWait(Integer ldapConnectPoolMaxWait) {
+        this.ldapConnectPoolMaxWait = ldapConnectPoolMaxWait;
+    }
+
+    public Integer getLdapConnectPoolMinEvictableIdleTimeMillis() {
+        return ldapConnectPoolMinEvictableIdleTimeMillis;
+    }
+
+    public void setLdapConnectPoolMinEvictableIdleTimeMillis(Integer ldapConnectPoolMinEvictableIdleTimeMillis) {
+        this.ldapConnectPoolMinEvictableIdleTimeMillis = ldapConnectPoolMinEvictableIdleTimeMillis;
+    }
+
+    public Integer getLdapConnectPoolMinIdle() {
+        return ldapConnectPoolMinIdle;
+    }
+
+    public void setLdapConnectPoolMinIdle(Integer ldapConnectPoolMinIdle) {
+        this.ldapConnectPoolMinIdle = ldapConnectPoolMinIdle;
+    }
+
+    public Integer getLdapConnectPoolNumTestsPerEvictionRun() {
+        return ldapConnectPoolNumTestsPerEvictionRun;
+    }
+
+    public void setLdapConnectPoolNumTestsPerEvictionRun(Integer ldapConnectPoolNumTestsPerEvictionRun) {
+        this.ldapConnectPoolNumTestsPerEvictionRun = ldapConnectPoolNumTestsPerEvictionRun;
+    }
+
+    public Boolean getLdapConnectPoolTestOnBorrow() {
+        return ldapConnectPoolTestOnBorrow;
+    }
+
+    public void setLdapConnectPoolTestOnBorrow(Boolean ldapConnectPoolTestOnBorrow) {
+        this.ldapConnectPoolTestOnBorrow = ldapConnectPoolTestOnBorrow;
+    }
+
+    public Boolean getLdapConnectPoolTestOnReturn() {
+        return ldapConnectPoolTestOnReturn;
+    }
+
+    public void setLdapConnectPoolTestOnReturn(Boolean ldapConnectPoolTestOnReturn) {
+        this.ldapConnectPoolTestOnReturn = ldapConnectPoolTestOnReturn;
+    }
+
+    public Boolean getLdapConnectPoolTestWhileIdle() {
+        return ldapConnectPoolTestWhileIdle;
+    }
+
+    public void setLdapConnectPoolTestWhileIdle(Boolean ldapConnectPoolTestWhileIdle) {
+        this.ldapConnectPoolTestWhileIdle = ldapConnectPoolTestWhileIdle;
+    }
+
+    public Long getLdapConnectPoolTimeBetweenEvictionRunsMillis() {
+        return ldapConnectPoolTimeBetweenEvictionRunsMillis;
+    }
+
+    public void setLdapConnectPoolTimeBetweenEvictionRunsMillis(Long ldapConnectPoolTimeBetweenEvictionRunsMillis) {
+        this.ldapConnectPoolTimeBetweenEvictionRunsMillis = ldapConnectPoolTimeBetweenEvictionRunsMillis;
+    }
+
+    public String getLdapConnectPoolWhenExhaustedAction() {
+        return ldapConnectPoolWhenExhaustedAction;
+    }
+
+    public void setLdapConnectPoolWhenExhaustedAction(String ldapConnectPoolWhenExhaustedAction) {
+        this.ldapConnectPoolWhenExhaustedAction = ldapConnectPoolWhenExhaustedAction;
+    }
+
+    public long getSearchCountlimit() {
+        return searchCountlimit;
+    }
+
+    public void setSearchCountlimit(long searchCountlimit) {
+        this.searchCountlimit = searchCountlimit;
+    }
+
+    public String getSearchObjectclass() {
+        return searchObjectclass;
+    }
+
+    public void setSearchObjectclass(String searchObjectclass) {
+        this.searchObjectclass = searchObjectclass;
     }
 
     public Set<String> getSearchWildcardsAttributes() {
@@ -156,29 +347,5 @@ public abstract class AbstractConfig {
 
     public void setAttributesMapper(Map<String, String> attributesMapper) {
         this.attributesMapper = attributesMapper;
-    }
-
-    public String getSearchObjectclass() {
-        return searchObjectclass;
-    }
-
-    public void setSearchObjectclass(String searchObjectclass) {
-        this.searchObjectclass = searchObjectclass;
-    }
-
-    public long getSearchCountlimit() {
-        return searchCountlimit;
-    }
-
-    public void setSearchCountlimit(long searchCountlimit) {
-        this.searchCountlimit = searchCountlimit;
-    }
-
-    public String getLdapConnectTimeout() {
-        return ldapConnectTimeout;
-    }
-
-    public void setLdapConnectTimeout(String ldapConnectTimeout) {
-        this.ldapConnectTimeout = ldapConnectTimeout;
     }
 }

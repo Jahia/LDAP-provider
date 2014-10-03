@@ -159,12 +159,57 @@ Jahia LDAP Connector
 *----------------+-----------------+------------------------------------------------+
 |<<<context.factory>>> | <<<com.sun.jndi.ldap.LdapCtxFactory>>> | The implementation class for context factory to use |
 *----------------+-----------------+------------------------------------------------+
-|<<<ldap.connect.pool>>> | <<<true>>>        | Enables/disables {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} |
+|<<<ldap.connect.timeout>>> | <<<5000>>>    | Connection timeout. When connection pooling has been enabled and no pooled connection is available, the client application will block, waiting for an available connection. Setting this timeout value will specify how long to wait for a pooled connection (in milliseconds). If you omit this property, the application will wait indefinitely. See {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} for details. |
 *----------------+-----------------+------------------------------------------------+
-|<<<ldap.connect.timeout>>> | <<<5000>>>    | When connection pooling has been enabled and no pooled connection is available, the client application will block, waiting for an available connection. Setting this timeout value will specify how long to wait for a pooled connection (in milliseconds). If you omit this property, the application will wait indefinitely. See {{{http://download.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}connection pooling}} for details. |
+|<<<ldap.connect.pool>>> | <<<apache-commons>>>        | Type of pool to use : ldap, apache-commons, or none |
 *----------------+-------------+------------------------------------------------+
-|<<<search.countlimit>>> | <<<100>>>    | The number of entries to limit search results to. If the LDAP user search returns more matching entries than specified with this parameter, the first <<<search.countlimit>>> will be returned only. |
-*----------------+-------------+------------------------------------------------+
+
+  Connection parameters for native {{{http://docs.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}ldap}} pool :
+
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.debug>>> |    |  A string that indicates the level of debug output to produce. Valid values are "fine" (trace connection creation and removal) and "all" (all debugging information).  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.initSize>>> |  1  |  The string representation of an integer that represents the number of connections per connection identity to create when initially creating a connection for the identity.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.maxSize>>> |    |  The string representation of an integer that represents the maximum number of connections per connection identity that can be maintained concurrently.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.prefSize>>> |    | The string representation of an integer that represents the preferred number of connections per connection identity that should be maintained concurrently.   |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.timeout>>> |    | The string representation of an integer that represents the number of milliseconds that an idle connection may remain in the pool without being closed and removed from the pool.   |
+*----------------+-----------------+------------------------------------------------+
+
+  Connection parameters for {{{http://docs.spring.io/spring-ldap/docs/1.3.2.RELEASE/reference/html/pooling.html}apache-commons}} pool :
+
+*----------------+-------------------+------------------------------------------------+
+| <<Key>>        | <<Default value>> | <<Description>>                                |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.maxActive>>> |  8   |  The maximum number of active connections of each type (read-only|read-write) that can be allocated from this pool at the same time, or non-positive for no limit.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.maxTotal>>> | -1   | The overall maximum number of active connections (for all types) that can be allocated from this pool at the same time, or non-positive for no limit.   |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.maxIdle>>> |  8  |  The maximum number of active connections of each type (read-only|read-write) that can remain idle in the pool, without extra ones being released, or non-positive for no limit.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.minIdle>>> | 0   | The minimum number of active connections of each type (read-only|read-write) that can remain idle in the pool, without extra ones being created, or zero to create none.   |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.maxWait>>> | -1   |  The maximum number of milliseconds that the pool will wait (when there are no available connections) for a connection to be returned before throwing an exception, or non-positive to wait indefinitely.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.whenExhaustedAction>>> |  block  |  Specifies the behaviour when the pool is exhausted. The FAIL option will throw a NoSuchElementException when the pool is exhausted. The BLOCK option will wait until a new object is available. If maxWait is positive a NoSuchElementException is thrown if no new object is available after the maxWait time expires. The GROW option will create and return a new object (essentially making maxActive meaningless).  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.testOnBorrow>>> |  false  |  The indication of whether objects will be validated before being borrowed from the pool. If the object fails to validate, it will be dropped from the pool, and an attempt to borrow another will be made.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.testOnReturn>>> |  false  |  The indication of whether objects will be validated before being returned to the pool.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.testWhileIdle>>> | false   |  The indication of whether objects will be validated by the idle object evictor (if any). If an object fails to validate, it will be dropped from the pool.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.timeBetweenEvictionRunsMillis>>> | -1   |  The number of milliseconds to sleep between runs of the idle object evictor thread. When non-positive, no idle object evictor thread will be run.  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.numTestsPerEvictionRun>>> | 3   |  The number of objects to examine during each run of the idle object evictor thread (if any).  |
+*----------------+-----------------+------------------------------------------------+
+|<<<ldap.connect.pool.minEvictableIdleTimeMillis>>> | 1000 * 60 * 30 | The minimum amount of time an object may sit idle in the pool before it is eligible for eviction by the idle object evictor (if any). |
+*----------------+-----------------+------------------------------------------------+
+
 
 
   [[II]] Search parameters
@@ -179,6 +224,8 @@ Jahia LDAP Connector
 | <<<search.objectclass>>> | <<<person>>>    | The <<<objectClass>>> value for a user object |
 *----------------+-----------------+------------------------------------------------+
 | <<<search.wildcards.attributes>>>  | <<<ou, cn, o, c, mail, uid, uniqueIdentifier, givenName, sn, dn>>> | A list of attributes to use for wildcard searches such as <*=*test*> |
+*----------------+-------------+------------------------------------------------+
+| <<<search.countlimit>>> | <<<100>>>    | The number of entries to limit search results to. If the LDAP user search returns more matching entries than specified with this parameter, the first <<<search.countlimit>>> will be returned only. |
 *----------------+-------------+------------------------------------------------+
 
   [[III]] Attribute mapping parameters - defines a mapping between Jahia's <<<jnt:user>>> node properties and the corresponding LDAP object attributes.
@@ -233,7 +280,7 @@ Jahia LDAP Connector
 *----------------+-------------+------------------------------------------------+
 |<<<search.countlimit>>> | <<<100>>>    | The number of entries to limit search results to. If the LDAP user search returns more matching entries than specified with this parameter, the first <<<search.countlimit>>> will be returned only. |
 *----------------+-------------+------------------------------------------------+
-|<<<refferal>>> | <<<ignore>>> | Specifies how referrals encountered by the service provider are to be processed. PÜossible values are <<<follow>>> - follow referrals automatically, <<<ignore>>> - ignore referrals, <<<throw>>> - throw <<<ReferralException>>> when a referral is encountered |
+|<<<refferal>>> | <<<ignore>>> | Specifies how referrals encountered by the service provider are to be processed. Pï¿½ossible values are <<<follow>>> - follow referrals automatically, <<<ignore>>> - ignore referrals, <<<throw>>> - throw <<<ReferralException>>> when a referral is encountered |
 *----------------+-------------+------------------------------------------------+
 |<<<ad.range.step>>> | <<<0>>>    | Handle Active Directory range searches when retrieving group members. If set to <<<0>>> all members are retrieved with a single search. If set e.g. to <<<100>>>, searches like <<<range=0-100>>>, <<<range=101-200>>>, <<<range=201-300>>> etc. are used to retrieve all members iteratively. |
 *----------------+-------------------+------------------------------------------------+

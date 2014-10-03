@@ -207,6 +207,11 @@
             <artifactId>gemini-blueprint-core</artifactId>
             <version>${gemini.blueprint.version}</version>
         </dependency>
+        <dependency>
+            <groupId>commons-pool</groupId>
+            <artifactId>commons-pool</artifactId>
+            <version>1.6</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -319,7 +324,7 @@
                             org.springframework.data,
                             org.springframework.data.domain
                         </Export-Package>
-                        <Embed-Dependency>*;groupId=org.springframework.ldap|org.springframework.data;scope=compile; type=!pom; inline=!META-INF/**</Embed-Dependency>
+                        <Embed-Dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=!META-INF/**</Embed-Dependency>
                         <Jahia-Module-Type>system</Jahia-Module-Type>
                         <Jahia-Depends>default,external-provider-users-groups</Jahia-Depends>
                     </instructions>
