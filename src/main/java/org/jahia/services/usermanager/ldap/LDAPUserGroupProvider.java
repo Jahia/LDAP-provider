@@ -214,20 +214,22 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public boolean verifyPassword(String userName, String userPassword) {
         DirContext ctx = null;
         try {
-            String userDn = getDnFromName(userName, false);
-            ctx = contextSource.getContext(userDn, userPassword);
-            // Take care here - if a base was specified on the ContextSource
-            // that needs to be removed from the user DN for the lookup to succeed.
-            ctx.lookup(userDn);
-            return true;
+            LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
+            if(userCacheEntry.getExist()){
+                ctx = contextSource.getContext(userCacheEntry.getDn(), userPassword);
+                // Take care here - if a base was specified on the ContextSource
+                // that needs to be removed from the user DN for the lookup to succeed.
+                ctx.lookup(userCacheEntry.getDn());
+                return true;
+            }
         } catch (Exception e) {
             // Context creation failed - authentication did not succeed
             //logger.error("Login failed", e);
-            return false;
         } finally {
             // It is imperative that the created DirContext instance is always closed
             LdapUtils.closeContext(ctx);
         }
+        return false;
     }
 
     private List<Member> loadMembersFromDN(String groupDN) {
@@ -428,34 +430,6 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
 
         return groupCacheEntry;
-    }
-
-    private String getDnFromName(String name, boolean isGroup) {
-        List<String> results = ldapTemplate.search(
-                query().base(isGroup ? groupConfig.getSearchName() : userConfig.getUidSearchName())
-                        .attributes(isGroup ? groupConfig.getSearchAttribute() : userConfig.getUidSearchAttribute())
-                        .where("objectclass")
-                        .is(isGroup ? groupConfig.getSearchObjectclass() : userConfig.getSearchObjectclass())
-                        .and(isGroup ? groupConfig.getSearchAttribute() : userConfig.getUidSearchAttribute())
-                        .is(name), new ContextMapper<String>() {
-            @Override
-            public String mapFromContext(Object ctx) throws NamingException {
-                return ((LdapCtx) ctx).getNameInNamespace();
-            }
-        });
-
-        if (results == null || results.size() == 0) {
-            return null;
-        }
-        else if (results.size() != 1) {
-            String object = isGroup ? "group" : "user";
-            logger.warn("More than one LDAP " + object + " is retrieve with the attribute " +
-                    (isGroup ? groupConfig.getSearchAttribute() : userConfig.getUidSearchAttribute()) + ":");
-            for (String result : results){
-                logger.warn("LDAP " + object + " :" + result);
-            }
-        }
-        return results.get(0);
     }
 
     private String getNameFromDn(String dn, boolean isUser) {
