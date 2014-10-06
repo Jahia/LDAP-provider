@@ -93,11 +93,13 @@ import org.springframework.ldap.query.ContainerCriteria;
 import org.springframework.ldap.query.SearchScope;
 import org.springframework.ldap.support.LdapUtils;
 
+import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
+import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import java.util.*;
@@ -195,33 +197,17 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     @Override
     public List<String> searchUsers(Properties searchCriteria) {
         ContainerCriteria query = buildQuery(searchCriteria, true);
-        return ldapTemplate.search(query, new ContextMapper<String>() {
-            @Override
-            public String mapFromContext(Object ctx) throws NamingException {
-                LdapCtx ldapCtx = (LdapCtx) ctx;
-                LDAPUserCacheEntry cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), ldapCtx.getNameInNamespace());
-                JahiaUserContextMapper jahiaUserContextMapper = new JahiaUserContextMapper(cacheEntry);
-                cacheEntry = jahiaUserContextMapper.mapFromContext(ldapCtx);
-                ldapCacheManager.cacheUser(getKey(), cacheEntry);
-                return cacheEntry.getName();
-            }
-        });
+        SearchNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new SearchNameClassPairCallbackHandler(true);
+        ldapTemplate.search(query, searchNameClassPairCallbackHandler);
+        return searchNameClassPairCallbackHandler.getNames();
     }
 
     @Override
     public List<String> searchGroups(Properties searchCriteria) {
         ContainerCriteria query = buildQuery(searchCriteria, false);
-        return ldapTemplate.search(query, new ContextMapper<String>() {
-            @Override
-            public String mapFromContext(Object ctx) throws NamingException {
-                LdapCtx ldapCtx = (LdapCtx) ctx;
-                LDAPGroupCacheEntry cacheEntry = ldapCacheManager.getGroupCacheEntryDn(getKey(), ldapCtx.getNameInNamespace());
-                JahiaGroupContextMapper jahiaGroupContextMapper = new JahiaGroupContextMapper(cacheEntry);
-                cacheEntry = jahiaGroupContextMapper.mapFromContext(ldapCtx);
-                ldapCacheManager.cacheGroup(getKey(), cacheEntry);
-                return cacheEntry.getName();
-            }
-        });
+        SearchNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new SearchNameClassPairCallbackHandler(false);
+        ldapTemplate.search(query, searchNameClassPairCallbackHandler);
+        return searchNameClassPairCallbackHandler.getNames();
     }
 
     @Override
@@ -299,13 +285,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                     if(isUser) {
                         cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), memberNaming);
                     } else {
-                        cacheEntry = ldapCacheManager.getGroupCacheEntryDn(getKey(), memberNaming);
+                        cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), memberNaming);
                     }
                 } else {
                     // look in all cache
                     cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), memberNaming);
                     if(cacheEntry == null) {
-                        cacheEntry = ldapCacheManager.getGroupCacheEntryDn(getKey(), memberNaming);
+                        cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), memberNaming);
                         isUser = cacheEntry != null ? false : null;
                     } else {
                         isUser = true;
@@ -334,28 +320,30 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 Member member = null;
                 List<String> userAttrs = new ArrayList<String>(userConfig.getAttributesMapper().values());
                 userAttrs.add(userConfig.getUidSearchAttribute());
-                List<LDAPUserCacheEntry> ldapUserCacheEntries = ldapTemplate.search(query().base(memberNaming)
+                CacheEntryNameClassPairCallbackHandler nameClassPairCallbackHandler = new CacheEntryNameClassPairCallbackHandler(null, true);
+                ldapTemplate.search(query().base(memberNaming)
                         .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                         .searchScope(SearchScope.OBJECT)
                         .where("objectclass").is(userConfig.getSearchObjectclass()),
-                        new JahiaUserContextMapper(null));
+                        nameClassPairCallbackHandler);
 
-                if(ldapUserCacheEntries == null || ldapUserCacheEntries.size() == 0) {
+                if(nameClassPairCallbackHandler.getCacheEntry() == null) {
                     List<String> groupAttrs = new ArrayList<String>(groupConfig.getAttributesMapper().values());
                     groupAttrs.add(groupConfig.getSearchAttribute());
-                    List<LDAPGroupCacheEntry> ldapGroupCacheEntries = ldapTemplate.search(query().base(memberNaming)
+                    nameClassPairCallbackHandler = new CacheEntryNameClassPairCallbackHandler(null, false);
+                    ldapTemplate.search(query().base(memberNaming)
                             .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                             .searchScope(SearchScope.OBJECT)
                             .where("objectclass").is(groupConfig.getSearchObjectclass()),
-                            new JahiaGroupContextMapper(null));
-                    if(ldapGroupCacheEntries != null && ldapGroupCacheEntries.size() > 0) {
-                        LDAPGroupCacheEntry ldapGroupCacheEntry = ldapGroupCacheEntries.get(0);
+                            nameClassPairCallbackHandler);
+                    if(nameClassPairCallbackHandler.getCacheEntry() != null) {
+                        LDAPGroupCacheEntry ldapGroupCacheEntry = (LDAPGroupCacheEntry) nameClassPairCallbackHandler.getCacheEntry();
                         ldapGroupCacheEntry.setDn(memberNaming);
                         member = new Member(ldapGroupCacheEntry.getName(), Member.MemberType.GROUP);
                         ldapCacheManager.cacheGroup(getKey(), ldapGroupCacheEntry);
                     }
                 } else {
-                    LDAPUserCacheEntry ldapUserCacheEntry = ldapUserCacheEntries.get(0);
+                    LDAPUserCacheEntry ldapUserCacheEntry = (LDAPUserCacheEntry) nameClassPairCallbackHandler.getCacheEntry();
                     ldapUserCacheEntry.setDn(memberNaming);
                     member = new Member(ldapUserCacheEntry.getName(), Member.MemberType.USER);
                     ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
@@ -384,14 +372,15 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         List<String> userAttrs = new ArrayList<String>(userConfig.getAttributesMapper().values());
         userAttrs.add(userConfig.getUidSearchAttribute());
-        List<LDAPUserCacheEntry> ldapUserCacheEntries = ldapTemplate.search(query().base(userConfig.getUidSearchName())
+        CacheEntryNameClassPairCallbackHandler nameClassPairCallbackHandler = new CacheEntryNameClassPairCallbackHandler(userCacheEntry, true);
+        ldapTemplate.search(query().base(userConfig.getUidSearchName())
                 .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                 .where("objectclass").is(userConfig.getSearchObjectclass())
                 .and(userConfig.getUidSearchAttribute()).is(userName),
-                new JahiaUserContextMapper(userCacheEntry));
+                nameClassPairCallbackHandler);
 
-        if(ldapUserCacheEntries != null && ldapUserCacheEntries.size() > 0){
-            userCacheEntry = ldapUserCacheEntries.get(0);
+        if(nameClassPairCallbackHandler.getCacheEntry() != null){
+            userCacheEntry = (LDAPUserCacheEntry) nameClassPairCallbackHandler.getCacheEntry();
             userCacheEntry.setExist(true);
             return userCacheEntry;
         } else {
@@ -418,14 +407,15 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         List<String> groupAttrs = new ArrayList<String>(groupConfig.getAttributesMapper().values());
         groupAttrs.add(groupConfig.getSearchAttribute());
-        List<LDAPGroupCacheEntry> ldapGroupCacheEntries = ldapTemplate.search(query().base(groupConfig.getSearchName())
+        CacheEntryNameClassPairCallbackHandler nameClassPairCallbackHandler = new CacheEntryNameClassPairCallbackHandler(groupCacheEntry, false);
+        ldapTemplate.search(query().base(groupConfig.getSearchName())
                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                 .where("objectclass").is(groupConfig.getSearchObjectclass())
                 .and(groupConfig.getSearchAttribute()).is(groupName),
-                new JahiaGroupContextMapper(groupCacheEntry));
+                nameClassPairCallbackHandler);
 
-        if(ldapGroupCacheEntries != null && ldapGroupCacheEntries.size() > 0){
-            groupCacheEntry = ldapGroupCacheEntries.get(0);
+        if(nameClassPairCallbackHandler.getCacheEntry() != null){
+            groupCacheEntry = (LDAPGroupCacheEntry) nameClassPairCallbackHandler.getCacheEntry();
             groupCacheEntry.setExist(true);
             return groupCacheEntry;
         } else {
@@ -479,37 +469,65 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return null;
     }
 
-    private class JahiaUserContextMapper implements ContextMapper<LDAPUserCacheEntry> {
-        private LDAPUserCacheEntry userCacheEntry;
+    private class CacheEntryNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
+        private LDAPAbstractCacheEntry cacheEntry;
+        private boolean isUser;
 
-        private JahiaUserContextMapper(LDAPUserCacheEntry userCacheEntry) {
-            this.userCacheEntry = userCacheEntry;
+        public LDAPAbstractCacheEntry getCacheEntry() {
+            return cacheEntry;
+        }
+
+        private CacheEntryNameClassPairCallbackHandler(LDAPAbstractCacheEntry cacheEntry, boolean isUser) {
+            this.cacheEntry = cacheEntry;
+            this.isUser = isUser;
         }
 
         @Override
-        public LDAPUserCacheEntry mapFromContext(Object ctx) throws NamingException {
-            LdapCtx ctxAdapter = (LdapCtx) ctx;
-            userCacheEntry = attributesToUserCacheEntry(ctxAdapter.getAttributes(""), userCacheEntry);
-            userCacheEntry.setDn(ctxAdapter.getNameInNamespace());
-            return userCacheEntry;
+        public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
+            SearchResult searchResult = (SearchResult) nameClassPair;
+            if(isUser) {
+                cacheEntry = attributesToUserCacheEntry(searchResult.getAttributes(), (LDAPUserCacheEntry) cacheEntry);
+            } else {
+                cacheEntry = attributesToGroupCacheEntry(searchResult.getAttributes(), (LDAPGroupCacheEntry) cacheEntry);
+            }
+            cacheEntry.setDn(searchResult.getNameInNamespace());
         }
     }
 
-    private class JahiaGroupContextMapper implements ContextMapper<LDAPGroupCacheEntry> {
-        private LDAPGroupCacheEntry groupCacheEntry;
+    private class SearchNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
+        private List<String> names = new ArrayList<String>();
+        private boolean isUser;
 
-        private JahiaGroupContextMapper(LDAPGroupCacheEntry groupCacheEntry) {
-            this.groupCacheEntry = groupCacheEntry;
+        public List<String> getNames() {
+            return names;
+        }
+
+        private SearchNameClassPairCallbackHandler(boolean isUser) {
+            this.isUser = isUser;
         }
 
         @Override
-        public LDAPGroupCacheEntry mapFromContext(Object ctx) throws NamingException {
-            LdapCtx ctxAdapter = (LdapCtx) ctx;
-            groupCacheEntry = attributesToGroupCacheEntry(ctxAdapter.getAttributes(""), groupCacheEntry);
-            groupCacheEntry.setDn(ctxAdapter.getNameInNamespace());
-            return groupCacheEntry;
+        public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
+            SearchResult searchResult = (SearchResult) nameClassPair;
+            if(isUser) {
+                LDAPUserCacheEntry cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                CacheEntryNameClassPairCallbackHandler nameClassPairCallbackHandler = new CacheEntryNameClassPairCallbackHandler(cacheEntry, true);
+                nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+                LDAPUserCacheEntry ldapUserCacheEntry = (LDAPUserCacheEntry) nameClassPairCallbackHandler.getCacheEntry();
+                ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
+                names.add(ldapUserCacheEntry.getName());
+            } else {
+                LDAPGroupCacheEntry cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                CacheEntryNameClassPairCallbackHandler nameClassPairCallbackHandler = new CacheEntryNameClassPairCallbackHandler(cacheEntry, false);
+                nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+                LDAPGroupCacheEntry ldapGroupCacheEntry = (LDAPGroupCacheEntry) nameClassPairCallbackHandler.getCacheEntry();
+                ldapCacheManager.cacheGroup(getKey(), ldapGroupCacheEntry);
+                names.add(ldapGroupCacheEntry.getName());
+            }
         }
     }
+
+
 
     private LDAPUserCacheEntry attributesToUserCacheEntry(Attributes attrs, LDAPUserCacheEntry userCacheEntry) throws NamingException {
         String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();

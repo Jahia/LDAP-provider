@@ -64,7 +64,7 @@ public class LDAPCacheManager {
         return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheNameKey(providerKey, groupname));
     }
 
-    public LDAPGroupCacheEntry getGroupCacheEntryDn(String providerKey, String dn) {
+    public LDAPGroupCacheEntry getGroupCacheEntryByDn(String providerKey, String dn) {
         return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheDnKey(providerKey, dn));
     }
 
