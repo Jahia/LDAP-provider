@@ -195,19 +195,21 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public List<String> searchUsers(Properties searchCriteria) {
+    public List<String> searchUsers(Properties searchCriteria, long offset, long limit) {
         ContainerCriteria query = buildQuery(searchCriteria, true);
         SearchNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new SearchNameClassPairCallbackHandler(true);
         ldapTemplate.search(query, searchNameClassPairCallbackHandler);
-        return searchNameClassPairCallbackHandler.getNames();
+        ArrayList<String> l = new ArrayList<String>(searchNameClassPairCallbackHandler.getNames());
+        return l.subList(Math.min((int) offset, l.size()), limit < 0 ? l.size() : Math.min((int) (offset + limit), l.size()));
     }
 
     @Override
-    public List<String> searchGroups(Properties searchCriteria) {
+    public List<String> searchGroups(Properties searchCriteria, long offset, long limit) {
         ContainerCriteria query = buildQuery(searchCriteria, false);
         SearchNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new SearchNameClassPairCallbackHandler(false);
         ldapTemplate.search(query, searchNameClassPairCallbackHandler);
-        return searchNameClassPairCallbackHandler.getNames();
+        ArrayList<String> l = new ArrayList<String>(searchNameClassPairCallbackHandler.getNames());
+        return l.subList(Math.min((int) offset, l.size()), limit < 0 ? l.size() : Math.min((int) (offset + limit), l.size()));
     }
 
     @Override
@@ -692,6 +694,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     public void setDistinctBase(boolean distinctBase) {
         this.distinctBase = distinctBase;
+    }
+
+    @Override
+    public boolean supportsGroups() {
+        return true;
     }
 }
 
