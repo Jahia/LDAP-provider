@@ -81,7 +81,7 @@ import org.apache.commons.lang.StringUtils;
 public class GroupConfig extends AbstractConfig{
     private boolean preload = false;
     private boolean dynamicEnabled = false;
-    private String referral = "ignore";
+    private String refferal = "ignore";
     private int adRangeStep = 0;
     private String searchName;
     private String searchAttribute = "cn";
@@ -113,12 +113,12 @@ public class GroupConfig extends AbstractConfig{
         this.preload = preload;
     }
 
-    public String getReferral() {
-        return referral;
+    public String getRefferal() {
+        return refferal;
     }
 
-    public void setReferral(String referral) {
-        this.referral = referral;
+    public void setRefferal(String refferal) {
+        this.refferal = refferal;
     }
 
     public int getAdRangeStep() {
