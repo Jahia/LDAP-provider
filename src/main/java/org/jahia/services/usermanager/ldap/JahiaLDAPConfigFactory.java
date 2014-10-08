@@ -71,8 +71,6 @@
  */
 package org.jahia.services.usermanager.ldap;
 
-import org.jahia.data.templates.JahiaTemplatesPackage;
-import org.jahia.services.templates.JahiaModuleAware;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedServiceFactory;
 import org.springframework.beans.BeansException;
@@ -83,9 +81,8 @@ import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModuleAware, ApplicationContextAware {
+public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware {
 
-    private JahiaTemplatesPackage module;
     private ApplicationContext context;
 
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
@@ -120,12 +117,6 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, JahiaModul
     public String getName() {
         return "org.jahia.services.usermanager.ldap";
     }
-
-    @Override
-    public void setJahiaModule(JahiaTemplatesPackage module) {
-        this.module = module;
-    }
-
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
