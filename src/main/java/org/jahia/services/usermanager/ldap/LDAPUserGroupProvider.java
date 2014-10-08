@@ -110,6 +110,7 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  * Implementation of UserGroupProvider for Spring LDAP
  */
 public class LDAPUserGroupProvider implements UserGroupProvider {
+    protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
     private static Logger logger = LoggerFactory.getLogger(UserGroupProvider.class);
 
     private ExternalUserGroupService externalUserGroupService;
@@ -187,7 +188,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         List<String> memberships = ldapTemplate.search(
                 query().base(groupConfig.getSearchName())
                         .attributes(groupConfig.getSearchAttribute())
-                        .where("objectclass")
+                        .where(OBJECTCLASS_ATTRIBUTE)
                         .is(groupConfig.getSearchObjectclass())
                         .and(groupConfig.getMembersAttribute())
                         .like(cacheEntry.getDn()),
@@ -286,7 +287,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             if (groupConfig.isDynamicEnabled()) {
                 attrs.add(groupConfig.getDynamicSearchObjectclass());
             }
-            attrs.add("objectclass");
+            attrs.add(OBJECTCLASS_ATTRIBUTE);
 
             SearchScope searchScope;
             if ("one".equalsIgnoreCase(ldapURL.getScope())) {
@@ -442,7 +443,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(userCacheEntry);
         ldapTemplate.search(query().base(userConfig.getUidSearchName())
                 .attributes(userAttrs.toArray(new String[userAttrs.size()]))
-                .where("objectclass").is(userConfig.getSearchObjectclass())
+                .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())
                 .and(userConfig.getUidSearchAttribute()).is(userName),
                 nameClassPairCallbackHandler);
 
@@ -509,7 +510,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         ldapTemplate.search(query().base(groupConfig.getSearchName())
                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
-                .where("objectclass").is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
+                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
                 .and(groupConfig.getSearchAttribute()).is(name),
                 nameClassPairCallbackHandler);
         if(nameClassPairCallbackHandler.getCacheEntry() != null) {
@@ -535,7 +536,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         ldapTemplate.search(query().base(dn)
                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                 .searchScope(SearchScope.OBJECT)
-                .where("objectclass").is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass()),
+                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass()),
                 nameClassPairCallbackHandler);
         if(nameClassPairCallbackHandler.getCacheEntry() != null) {
             LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -559,7 +560,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         ldapTemplate.search(query().base(dn)
                 .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                 .searchScope(SearchScope.OBJECT)
-                .where("objectclass").is(userConfig.getSearchObjectclass()),
+                .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass()),
                 nameClassPairCallbackHandler);
 
         if(nameClassPairCallbackHandler.getCacheEntry() != null) {
@@ -735,9 +736,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
             // try the objectclass
             Boolean isDynamic = false;
-            searchResult.getAttributes().get("objectclass").getAll();
+            searchResult.getAttributes().get(OBJECTCLASS_ATTRIBUTE).getAll();
             List<String> objectclasses = new ArrayList<String>();
-            LdapUtils.collectAttributeValues(searchResult.getAttributes(), "objectclass", objectclasses, String.class);
+            LdapUtils.collectAttributeValues(searchResult.getAttributes(), OBJECTCLASS_ATTRIBUTE, objectclasses, String.class);
             if(objectclasses.contains(userConfig.getSearchObjectclass())){
                 isUser = true;
             } else if (objectclasses.contains(groupConfig.getSearchObjectclass())) {
@@ -869,7 +870,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         ContainerCriteria query = query().base(userConfig.getUidSearchName())
                 .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
                 .countLimit((int) userConfig.getSearchCountlimit())
-                .where("objectclass").is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
+                .where(OBJECTCLASS_ATTRIBUTE).is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
 
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, userConfig.getAttributesMapper());
@@ -902,7 +903,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         ContainerCriteria query = query().base(groupConfig.getSearchName())
                 .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
                 .countLimit((int) groupConfig.getSearchCountlimit())
-                .where("objectclass").is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass());
+                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass());
 
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());
