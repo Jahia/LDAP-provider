@@ -172,7 +172,7 @@ public class JahiaLDAPConfig {
                 if (userConfig.getLdapConnectTimeout() != null) { publicEnv.put("com.sun.jndi.ldap.connect.timeout", userConfig.getLdapConnectTimeout()); }
                 lcs.setBaseEnvironmentProperties(publicEnv);
 
-                lcs.setReferral(groupConfig.getRefferal());
+                lcs.setReferral(groupConfig.getReferral());
                 lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
                 lcs.afterPropertiesSet();
 
