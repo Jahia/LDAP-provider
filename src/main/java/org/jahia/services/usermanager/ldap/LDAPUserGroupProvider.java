@@ -272,6 +272,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return groups;
     }
 
+    /**
+     * get the members from a ldap URL used for dynamic groups
+     * @param url
+     * @return
+     */
     private List<Member> loadMembersFromUrl(String url) {
         try {
             LdapURL ldapURL = new LdapURL(url);
@@ -306,6 +311,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return null;
     }
 
+    /**
+     * get the members from a group DN
+     * @param groupDN
+     * @return
+     */
     private List<Member> loadMembersFromDN(String groupDN) {
         NamingEnumeration<?> members = null;
         // use AD range search if a range is specify in the conf
@@ -413,6 +423,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return memberList;
     }
 
+    /**
+     * Retrieve the cache entry for a given username, if not found create a new one, and cache it if the param "cache" set to true
+     * @param userName
+     * @param cache
+     * @return
+     */
     private LDAPUserCacheEntry getUserCacheEntry(String userName, boolean cache){
         LDAPUserCacheEntry userCacheEntry = ldapCacheManager.getUserCacheEntryByName(getKey(), userName);
         if(userCacheEntry != null){
@@ -447,6 +463,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return userCacheEntry;
     }
 
+    /**
+     * Retrieve the cache entry for a given groupname, if not found create a new one, and cache it if the param "cache" set to true
+     * @param groupName
+     * @param cache
+     * @return
+     */
     private LDAPGroupCacheEntry getGroupCacheEntry(String groupName, boolean cache){
         LDAPGroupCacheEntry groupCacheEntry = ldapCacheManager.getGroupCacheEntryName(getKey(), groupName);
         if(groupCacheEntry != null){
@@ -457,12 +479,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        groupCacheEntry = getGroupCacheEntryByName(groupCacheEntry, groupName, false, false);
+        groupCacheEntry = getGroupCacheEntryByName(groupName, false, false);
         if(groupCacheEntry != null){
             return groupCacheEntry;
         } else {
             if (groupConfig.isDynamicEnabled()) {
-                groupCacheEntry = getGroupCacheEntryByName(groupCacheEntry, groupName, false, true);
+                groupCacheEntry = getGroupCacheEntryByName(groupName, false, true);
             } else {
                 groupCacheEntry = new LDAPGroupCacheEntry(groupName);
                 groupCacheEntry.setExist(false);
@@ -476,9 +498,16 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return groupCacheEntry;
     }
 
-    private LDAPGroupCacheEntry getGroupCacheEntryByName(LDAPGroupCacheEntry groupCacheEntry, String name, boolean cache, boolean isDynamic) {
+    /**
+     * Retrieve the cache entry for a given groupname, if not found create a new one, and cache it if the param "cache" set to true
+     * @param name
+     * @param cache
+     * @param isDynamic
+     * @return
+     */
+    private LDAPGroupCacheEntry getGroupCacheEntryByName(String name, boolean cache, boolean isDynamic) {
         List<String> groupAttrs = getGroupAttributes();
-        GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(groupCacheEntry, isDynamic);
+        GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         ldapTemplate.search(query().base(groupConfig.getSearchName())
                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                 .where("objectclass").is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
