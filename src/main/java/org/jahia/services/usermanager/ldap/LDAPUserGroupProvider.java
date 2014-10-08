@@ -749,19 +749,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
             if(isUser != null) {
                 if (isUser) {
-                    UserNameClassPairCallbackHandler userNameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(null);
-                    userNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-                    LDAPUserCacheEntry userCacheEntry = userNameClassPairCallbackHandler.getCacheEntry();
-                    ldapCacheManager.cacheUser(getKey(), userCacheEntry);
-                    members.add(new Member(userCacheEntry.getName(), Member.MemberType.USER));
-                    logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a user");
+                    handleUserNameClassPair(nameClassPair, searchResult);
                 } else {
-                    GroupNameClassPairCallbackHandler groupNameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
-                    groupNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-                    LDAPGroupCacheEntry groupCacheEntry = groupNameClassPairCallbackHandler.getCacheEntry();
-                    ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
-                    members.add(new Member(groupCacheEntry.getName(), Member.MemberType.GROUP));
-                    logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a " + (isDynamic ? " dynamic group" : " group"));
+                    handleGroupNameClassPair(nameClassPair, searchResult, isDynamic);
                 }
                 return;
             }
@@ -775,25 +765,33 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             List<String> commonUserAttrs = getCommonAttributesSize(searchResultsAttr, getUserAttributes());
             List<String> commonGroupAttrs = getCommonAttributesSize(searchResultsAttr, getGroupAttributes());
             if(commonUserAttrs.size() > 0 && commonUserAttrs.contains(userConfig.getUidSearchAttribute()) && commonUserAttrs.size() > commonGroupAttrs.size()){
-                UserNameClassPairCallbackHandler userNameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(null);
-                userNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-                LDAPUserCacheEntry userCacheEntry = userNameClassPairCallbackHandler.getCacheEntry();
-                ldapCacheManager.cacheUser(getKey(), userCacheEntry);
-                members.add(new Member(userCacheEntry.getName(), Member.MemberType.USER));
-                logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a user");
+                handleUserNameClassPair(nameClassPair, searchResult);
                 return;
             } else if(commonGroupAttrs.size() > 0 && commonGroupAttrs.contains(groupConfig.getSearchAttribute())) {
-                GroupNameClassPairCallbackHandler groupNameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, false);
-                groupNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-                LDAPGroupCacheEntry groupCacheEntry = groupNameClassPairCallbackHandler.getCacheEntry();
-                ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
-                members.add(new Member(groupCacheEntry.getName(), Member.MemberType.GROUP));
-                logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a group");
+                handleGroupNameClassPair(nameClassPair, searchResult, false);
                 return;
             }
 
             // type not resolved
             logger.warn("Dynamic member: " + searchResult.getNameInNamespace() + " not resolved as a user or a group");
+        }
+
+        private void handleGroupNameClassPair(NameClassPair nameClassPair, SearchResult searchResult, Boolean isDynamic) throws NamingException {
+            GroupNameClassPairCallbackHandler groupNameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
+            groupNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+            LDAPGroupCacheEntry groupCacheEntry = groupNameClassPairCallbackHandler.getCacheEntry();
+            ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
+            members.add(new Member(groupCacheEntry.getName(), Member.MemberType.GROUP));
+            logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a " + (isDynamic ? " dynamic group" : " group"));
+        }
+
+        private void handleUserNameClassPair(NameClassPair nameClassPair, SearchResult searchResult) throws NamingException {
+            UserNameClassPairCallbackHandler userNameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(null);
+            userNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+            LDAPUserCacheEntry userCacheEntry = userNameClassPairCallbackHandler.getCacheEntry();
+            ldapCacheManager.cacheUser(getKey(), userCacheEntry);
+            members.add(new Member(userCacheEntry.getName(), Member.MemberType.USER));
+            logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a user");
         }
     }
 
