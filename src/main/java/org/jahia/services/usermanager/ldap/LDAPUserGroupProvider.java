@@ -72,7 +72,6 @@
 package org.jahia.services.usermanager.ldap;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.sun.jndi.ldap.LdapURL;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -352,7 +351,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             while (members != null && members.hasMore()){
                 final String memberNaming = (String) members.next();
                 // try to know if we deal with a group or a user
-                Boolean isUser = guessUserOrGroupFromDN(distinctBase, memberNaming);
+                Boolean isUser = guessUserOrGroupFromDN(memberNaming);
 
                 // try to retrieve the object from the cache
                 LDAPAbstractCacheEntry cacheEntry;
@@ -523,6 +522,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return null;
     }
 
+    /**
+     * Retrieve the cache entry for a given dn, if not found create a new one, and cache it if the param "cache" set to true
+     * @param dn
+     * @param cache
+     * @param isDynamic
+     * @return
+     */
     private LDAPGroupCacheEntry getGroupCacheEntryByDN(String dn, boolean cache, boolean isDynamic) {
         List<String> groupAttrs = getGroupAttributes();
         GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
@@ -541,6 +547,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return null;
     }
 
+    /**
+     * Retrieve the cache entry for a given dn, if not found create a new one, and cache it if the param "cache" set to true
+     * @param dn
+     * @param cache
+     * @return
+     */
     private LDAPUserCacheEntry getUserCacheEntryByDN(String dn, boolean cache) {
         List<String> userAttrs = getUserAttributes();
         UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(null);
@@ -560,6 +572,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return null;
     }
 
+    /**
+     * Retrieve the search attribute from a dn. If the dn does'nt contains the search attribute null is returned
+     * @param dn
+     * @param isUser
+     * @return
+     */
     private String getNameFromDn(String dn, boolean isUser) {
         LdapName ln = LdapUtils.newLdapName(dn);
         for (Rdn rdn : ln.getRdns()) {
@@ -571,6 +589,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return null;
     }
 
+    /**
+     * Callback handler for a single user, create the corresponding cache entry
+     */
     private class UserNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
         private LDAPUserCacheEntry cacheEntry;
 
@@ -590,6 +611,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    /**
+     * Callback handler for a single group, create the corresponding cache entry
+     */
     private class GroupNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
         private LDAPGroupCacheEntry cacheEntry;
         private boolean isDynamic;
@@ -615,6 +639,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    /**
+     * Callback handler for users, retrieve the list of usernames
+     */
     private class UsersNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
         private List<String> names = new ArrayList<String>();
 
@@ -634,6 +661,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    /**
+     * Callback handler for groups, retrieve the list of groupnames
+     */
     private class GroupsNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
         private List<String> names = new ArrayList<String>();
         private boolean isDynamic;
@@ -658,10 +688,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    /**
+     * Calback handler for dynamic members, retrieve the list of members
+     */
     private class DynMembersNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
-        Set<Member> members = Sets.newHashSet();
+        List<Member> members = Lists.newArrayList();
 
-        public Set<Member> getMembers() {
+        public List<Member> getMembers() {
             return members;
         }
 
@@ -670,7 +703,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             SearchResult searchResult = (SearchResult) nameClassPair;
 
             // try to know if we deal with a group or a user
-            Boolean isUser = guessUserOrGroupFromDN(distinctBase, searchResult.getNameInNamespace());
+            Boolean isUser = guessUserOrGroupFromDN(searchResult.getNameInNamespace());
 
             // try to retrieve the object from the cache
             LDAPAbstractCacheEntry cacheEntry;
@@ -763,6 +796,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    /**
+     * Populate the given cache entry or create new one if the given is null with the LDAP attributes
+     * @param attrs
+     * @param userCacheEntry
+     * @return
+     * @throws NamingException
+     */
     private LDAPUserCacheEntry attributesToUserCacheEntry(Attributes attrs, LDAPUserCacheEntry userCacheEntry) throws NamingException {
         String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
         JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), false, key);
@@ -775,6 +815,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return userCacheEntry;
     }
 
+    /**
+     * Populate the given cache entry or create new one if the given is null with the LDAP attributes
+     * @param attrs
+     * @param groupCacheEntry
+     * @return
+     * @throws NamingException
+     */
     private LDAPGroupCacheEntry attributesToGroupCacheEntry(Attributes attrs, LDAPGroupCacheEntry groupCacheEntry) throws NamingException {
         String groupId = (String) attrs.get(groupConfig.getSearchAttribute()).get();
         JahiaGroup jahiaGroup = new  JahiaGroupImpl(groupId, null, null, attributesToJahiaProperties(attrs, false));
@@ -788,6 +835,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return groupCacheEntry;
     }
 
+    /**
+     * Map ldap attributes to jahia properties
+     * @param attributes
+     * @param isUser
+     * @return
+     */
     private Properties attributesToJahiaProperties(Attributes attributes, boolean isUser) {
         Properties props = new Properties();
         Map<String, String> attributesMapper = isUser ? userConfig.getAttributesMapper() : groupConfig.getAttributesMapper();
@@ -805,6 +858,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return props;
     }
 
+    /**
+     * build a user query, that use the searchCriteria from jahia forms
+     * @param searchCriteria
+     * @return
+     */
     private ContainerCriteria buildUserQuery(Properties searchCriteria) {
         List<String> attributesToRetrieve = getUserAttributes();
 
@@ -829,6 +887,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return query;
     }
 
+    /**
+     * Build a group query based on search criteria
+     * @param searchCriteria
+     * @param isDynamic
+     * @return
+     */
     private ContainerCriteria buildGroupQuery(Properties searchCriteria, boolean isDynamic) {
         List<String> attributesToRetrieve = getGroupAttributes();
         if(isDynamic) {
@@ -867,6 +931,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return true;
     }
 
+    /**
+     * Construct the filters for queries
+     * @param ldapfilters
+     * @param config
+     * @param isOrOperator
+     * @return
+     */
     private ContainerCriteria getQueryFilters(Properties ldapfilters, AbstractConfig config,  boolean isOrOperator){
         ContainerCriteria filterQuery = null;
         if (ldapfilters.containsKey("*")){
@@ -906,6 +977,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
     }
 
+    /**
+     * Map jahia properties to ldap properties
+     * @param searchCriteria
+     * @param configProperties
+     * @return
+     */
     private Properties mapJahiaPropertiesToLDAP(Properties searchCriteria, Map<String, String> configProperties) {
         if (searchCriteria.size() == 0) {
             return searchCriteria;
@@ -927,7 +1004,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return p;
     }
 
-    private Boolean guessUserOrGroupFromDN(boolean isDistinctBase, String dn) throws InvalidNameException {
+    /**
+     * Try to guess if the given dn is a user or a group
+     * @param dn
+     * @return
+     * @throws InvalidNameException
+     */
+    private Boolean guessUserOrGroupFromDN(String dn) throws InvalidNameException {
         Boolean isUser = null;
         final LdapName memberLdapName = LdapUtils.newLdapName(dn);
         if (memberLdapName.startsWith(new LdapName(userConfig.getUidSearchName()))) {
@@ -940,18 +1023,32 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return isUser;
     }
 
+    /**
+     * get user ldap attributes that need to be return from the ldap
+     * @return
+     */
     private List<String> getUserAttributes() {
         List<String> attrs = new ArrayList<String>(userConfig.getAttributesMapper().values());
         attrs.add(userConfig.getUidSearchAttribute());
         return attrs;
     }
 
+    /**
+     * get group ldap attributes that need to be return from the ldap
+     * @return
+     */
     private List<String> getGroupAttributes() {
         List<String> attrs = new ArrayList<String>(groupConfig.getAttributesMapper().values());
         attrs.add(groupConfig.getSearchAttribute());
         return attrs;
     }
 
+    /**
+     * Construct a list that contain only the elements also contains from the other list
+     * @param first
+     * @param second
+     * @return
+     */
     private List<String> getCommonAttributesSize(List<String> first, List<String> second) {
         List<String> commons = new ArrayList<String>(first);
         commons.retainAll(second);
