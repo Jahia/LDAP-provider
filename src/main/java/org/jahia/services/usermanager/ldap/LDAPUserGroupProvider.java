@@ -199,7 +199,17 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                     }
                 });
 
-        // TODO dynamic
+        if(groupConfig.isDynamicEnabled()) {
+            Properties searchCriteria = new Properties();
+            searchCriteria.put("*", "*");
+            List<String> dynGroups = searchGroups(searchCriteria, true);
+            for (String dynGroup : dynGroups) {
+                List<Member> members = getGroupMembers(dynGroup);
+                if(members.contains(member)){
+                    memberships.add(dynGroup);
+                }
+            }
+        }
 
         cacheEntry.setMemberships(memberships);
         if(isGroup){
@@ -221,18 +231,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> searchGroups(Properties searchCriteria, long offset, long limit) {
-        List<String> groups = new LinkedList<String>();
-        ContainerCriteria query = buildGroupQuery(searchCriteria, false);
-        GroupsNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new GroupsNameClassPairCallbackHandler(false);
-        ldapTemplate.search(query, searchNameClassPairCallbackHandler);
-        groups.addAll(searchNameClassPairCallbackHandler.getNames());
+        List<String> groups = new LinkedList<String>(searchGroups(searchCriteria, false));
 
         // handle dynamics
         if(groupConfig.isDynamicEnabled()) {
-            query = buildGroupQuery(searchCriteria, true);
-            searchNameClassPairCallbackHandler = new GroupsNameClassPairCallbackHandler(true);
-            ldapTemplate.search(query, searchNameClassPairCallbackHandler);
-            groups.addAll(searchNameClassPairCallbackHandler.getNames());
+            groups.addAll(searchGroups(searchCriteria, true));
         }
 
         return groups.subList(Math.min((int) offset, groups.size()), limit < 0 ? groups.size() : Math.min((int) (offset + limit), groups.size()));
@@ -258,6 +261,15 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             LdapUtils.closeContext(ctx);
         }
         return false;
+    }
+
+    private List<String> searchGroups(Properties searchCriteria, boolean isDynamics) {
+        List<String> groups = new LinkedList<String>();
+        ContainerCriteria query = buildGroupQuery(searchCriteria, isDynamics);
+        GroupsNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new GroupsNameClassPairCallbackHandler(isDynamics);
+        ldapTemplate.search(query, searchNameClassPairCallbackHandler);
+        groups.addAll(searchNameClassPairCallbackHandler.getNames());
+        return groups;
     }
 
     private List<Member> loadMembersFromUrl(String url) {
@@ -686,7 +698,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                     LDAPGroupCacheEntry groupCacheEntry = groupNameClassPairCallbackHandler.getCacheEntry();
                     ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
                     members.add(new Member(groupCacheEntry.getName(), Member.MemberType.GROUP));
-                    logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a " + (isDynamic ? " dynamic group": " group"));
+                    logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " resolved as a " + (isDynamic ? " dynamic group" : " group"));
                 }
                 return;
             }
