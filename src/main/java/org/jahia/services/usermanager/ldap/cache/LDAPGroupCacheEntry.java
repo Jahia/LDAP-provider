@@ -14,6 +14,8 @@ public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Seria
 
     private JahiaGroup group;
     private List<Member> members;
+    private boolean isDynamic = false;
+    private String dynamicMembersURL;
 
     public LDAPGroupCacheEntry(String name) {
         setName(name);
@@ -33,5 +35,21 @@ public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Seria
 
     public void setGroup(JahiaGroup group) {
         this.group = group;
+    }
+
+    public boolean isDynamic() {
+        return isDynamic;
+    }
+
+    public void setDynamic(boolean isDynamic) {
+        this.isDynamic = isDynamic;
+    }
+
+    public String getDynamicMembersURL() {
+        return dynamicMembersURL;
+    }
+
+    public void setDynamicMembersURL(String dynamicMembersURL) {
+        this.dynamicMembersURL = dynamicMembersURL;
     }
 }

@@ -296,6 +296,8 @@ Jahia LDAP Connector
 *----------------+-------------+------------------------------------------------+
 | <<<members.attribute>>>  | <<<uniqueMember>>> | The name of the LDAP group object attribute to retrieve membership from |
 *----------------+-------------+------------------------------------------------+
+| <<<dynamic.enabled>>>  | <<<false>>> | Set to true if you want to use the dynamic groups |
+*----------------+-------------+------------------------------------------------+
 | <<<dynamic.search.objectclass>>>  | <<<groupOfURLs>>> | The name of the LDAP group object attribute to retrieve dynamic membership from |
 *----------------+-------------+------------------------------------------------+
 | <<<dynamic.members.attribute>>>  | <<<memberurl>>> | The name of the LDAP group object attribute to retrieve dynamic membership from |

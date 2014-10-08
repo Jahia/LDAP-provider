@@ -80,6 +80,7 @@ import org.apache.commons.lang.StringUtils;
  */
 public class GroupConfig extends AbstractConfig{
     private boolean preload = false;
+    private boolean dynamicEnabled = false;
     private String refferal = "ignore";
     private int adRangeStep = 0;
     private String searchName;
@@ -166,5 +167,13 @@ public class GroupConfig extends AbstractConfig{
 
     public void setDynamicMembersAttribute(String dynamicMembersAttribute) {
         this.dynamicMembersAttribute = dynamicMembersAttribute;
+    }
+
+    public boolean isDynamicEnabled() {
+        return dynamicEnabled;
+    }
+
+    public void setDynamicEnabled(boolean dynamicEnabled) {
+        this.dynamicEnabled = dynamicEnabled;
     }
 }
