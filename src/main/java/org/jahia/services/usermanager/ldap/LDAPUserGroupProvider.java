@@ -283,7 +283,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             DynMembersNameClassPairCallbackHandler nameClassPairCallbackHandler = new DynMembersNameClassPairCallbackHandler();
 
             Set<String> attrs = new HashSet<String>(getUserAttributes());
-            attrs.addAll(getGroupAttributes());
+            attrs.addAll(getGroupAttributes(true));
             if (groupConfig.isDynamicEnabled()) {
                 attrs.add(groupConfig.getDynamicSearchObjectclass());
             }
@@ -506,7 +506,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      * @return
      */
     private LDAPGroupCacheEntry getGroupCacheEntryByName(String name, boolean cache, boolean isDynamic) {
-        List<String> groupAttrs = getGroupAttributes();
+        List<String> groupAttrs = getGroupAttributes(isDynamic);
         GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         ldapTemplate.search(query().base(groupConfig.getSearchName())
                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
@@ -531,7 +531,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      * @return
      */
     private LDAPGroupCacheEntry getGroupCacheEntryByDN(String dn, boolean cache, boolean isDynamic) {
-        List<String> groupAttrs = getGroupAttributes();
+        List<String> groupAttrs = getGroupAttributes(isDynamic);
         GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         ldapTemplate.search(query().base(dn)
                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
@@ -763,7 +763,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 searchResultsAttr.add(attrs.next());
             }
             List<String> commonUserAttrs = getCommonAttributesSize(searchResultsAttr, getUserAttributes());
-            List<String> commonGroupAttrs = getCommonAttributesSize(searchResultsAttr, getGroupAttributes());
+            List<String> commonGroupAttrs = getCommonAttributesSize(searchResultsAttr, getGroupAttributes(isDynamic));
             if(commonUserAttrs.size() > 0 && commonUserAttrs.contains(userConfig.getUidSearchAttribute()) && commonUserAttrs.size() > commonGroupAttrs.size()){
                 handleUserNameClassPair(nameClassPair, searchResult);
                 return;
@@ -893,7 +893,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      * @return
      */
     private ContainerCriteria buildGroupQuery(Properties searchCriteria, boolean isDynamic) {
-        List<String> attributesToRetrieve = getGroupAttributes();
+        List<String> attributesToRetrieve = getGroupAttributes(isDynamic);
         if(isDynamic) {
             attributesToRetrieve.add(groupConfig.getDynamicMembersAttribute());
         }
@@ -1036,9 +1036,12 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      * get group ldap attributes that need to be return from the ldap
      * @return
      */
-    private List<String> getGroupAttributes() {
+    private List<String> getGroupAttributes(boolean isDynamic) {
         List<String> attrs = new ArrayList<String>(groupConfig.getAttributesMapper().values());
         attrs.add(groupConfig.getSearchAttribute());
+        if (isDynamic) {
+            attrs.add(groupConfig.getDynamicMembersAttribute());
+        }
         return attrs;
     }
 
