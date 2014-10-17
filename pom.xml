@@ -123,6 +123,9 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
+              <Import-Package>
+                  com.sun.jndi.ldap;resolution:=optional,
+                  ${jahia.plugin.projectPackageImport},*</Import-Package>
             <Export-Package>org.jahia.services.usermanager.ldap</Export-Package>
             <Jahia-Module-Type>system</Jahia-Module-Type>
           </instructions>

@@ -71,6 +71,7 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import com.sun.jndi.ldap.LdapURL;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
@@ -354,20 +355,19 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         if (filters.containsKey("ldap.url")) {
             String url = filters.getProperty("ldap.url");
             try {
-                StringTokenizer st = new StringTokenizer(url.substring(8), "?");
-                String thisBase = st.nextToken();
-                String thisScope = st.nextToken();
-                String thisFilter = st.nextToken();
+                LdapURL ldapURL = new LdapURL(url);
+                String thisBase = ldapURL.getDN();
+                String thisFilter = ldapURL.getFilter();
                 int intScope;
-                if ("one".equalsIgnoreCase(thisScope)) {
+                if ("one".equalsIgnoreCase(ldapURL.getScope())) {
                     intScope = SearchControls.ONELEVEL_SCOPE;
-                } else if ("base".equalsIgnoreCase(thisScope)) {
+                } else if ("base".equalsIgnoreCase(ldapURL.getScope())) {
                     intScope = SearchControls.OBJECT_SCOPE;
                 } else {
                     intScope = SearchControls.SUBTREE_SCOPE;
                 }
                 if (filters.containsKey("user.key")) {
-                    thisFilter = "(&(" + ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) + "=" + filters.get("user.key") + ")(" + thisFilter + "))";
+                    thisFilter = "(&(" + ldapProperties.get(UID_SEARCH_ATTRIBUTE_PROP) + "=" + filters.get("user.key") + ")(" + ldapURL.getFilter() + "))";
                 }
 
                 return getUsers(ctx, thisFilter, thisBase, countLimit, intScope);
