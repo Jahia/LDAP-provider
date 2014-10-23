@@ -93,7 +93,7 @@ public class UserConfig extends AbstractConfig{
             setSearchWildcardsAttributes(Sets.newHashSet("ou", "cn", "o", "c", "mail", "uid", "uniqueIdentifier", "givenName", "sn", "dn"));
         }
         if(getAttributesMapper().isEmpty()){
-            getAttributesMapper().put("username", "cn");
+            getAttributesMapper().put("username", uidSearchAttribute);
             getAttributesMapper().put("j:firstName", "givenName");
             getAttributesMapper().put("j:lastName", "sn");
             getAttributesMapper().put("j:email", "mail");
