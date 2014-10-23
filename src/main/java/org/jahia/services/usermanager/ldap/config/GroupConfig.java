@@ -100,7 +100,7 @@ public class GroupConfig extends AbstractConfig{
             setSearchWildcardsAttributes(Sets.newHashSet("cn", "description", "uniqueMember"));
         }
         if(getAttributesMapper().isEmpty()){
-            getAttributesMapper().put("groupname", "cn");
+            getAttributesMapper().put("groupname", searchAttribute);
             getAttributesMapper().put("description", "description");
         }
     }
