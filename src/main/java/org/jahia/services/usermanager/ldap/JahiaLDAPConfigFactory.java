@@ -86,6 +86,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     private ApplicationContext context;
 
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
+    private Map<String, String> pidsByProviderKey = new HashMap<String, String>();
 
     public void start() {
     }
@@ -105,12 +106,15 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
         } else {
             ldapConfig = new JahiaLDAPConfig(dictionary);
             ldapConfigs.put(pid, ldapConfig);
+            pidsByProviderKey.put(ldapConfig.getProviderKey(), pid);
         }
         ldapConfig.setContext(context, dictionary);
     }
 
     public void deleted(String pid) {
-        ldapConfigs.get(pid).unregister();
+        JahiaLDAPConfig ldapConfig = ldapConfigs.get(pid);
+        pidsByProviderKey.remove(ldapConfig.getProviderKey());
+        ldapConfig.unregister();
         ldapConfigs.remove(pid);
     }
 
@@ -121,5 +125,12 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.context = applicationContext;
+    }
+
+    public String getConfigPID(String providerKey) {
+        if (pidsByProviderKey.containsKey(providerKey)) {
+            return pidsByProviderKey.get(providerKey);
+        }
+        return null;
     }
 }

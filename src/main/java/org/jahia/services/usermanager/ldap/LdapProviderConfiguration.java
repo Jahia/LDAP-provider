@@ -69,87 +69,113 @@
  *
  *     For more information, please visit http://www.jahia.com
  */
-package org.jahia.services.usermanager.ldap.cache;
+package org.jahia.services.usermanager.ldap;
 
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Ehcache;
-import net.sf.ehcache.Element;
-import org.jahia.services.cache.CacheHelper;
-import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
-import org.jahia.services.cache.ehcache.EhCacheProvider;
+import org.jahia.modules.external.users.ExternalUserGroupService;
+import org.jahia.modules.external.users.UserGroupProviderConfiguration;
+import org.jahia.settings.SettingsBean;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.webflow.core.collection.ParameterMap;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
- * @author kevan
+ * Class to implement specific behaviour for configuration creation/edition/deletion in server settings
  */
-public class LDAPCacheManager {
-    public static final String LDAP_USER_CACHE = "LDAPUsersCache";
-    public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
+public class LdapProviderConfiguration implements UserGroupProviderConfiguration {
 
-    private Ehcache groupCache;
-    private Ehcache userCache;
-    private EhCacheProvider cacheProvider;
+    private static Logger logger = LoggerFactory.getLogger(LdapProviderConfiguration.class);
 
-    void start(){
-        final CacheManager cacheManager = cacheProvider.getCacheManager();
-        userCache = cacheManager.getCache(LDAP_USER_CACHE);
-        if (userCache == null) {
-            cacheManager.addCache(LDAP_USER_CACHE);
-            userCache = cacheManager.getCache(LDAP_USER_CACHE);
-        } else {
-            userCache.removeAll();
+    private String userGroupProviderClass;
+    private ExternalUserGroupService externalUserGroupService;
+    private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
+    private ConfigurationAdmin configurationAdmin;
+
+    @Override
+    public boolean isCreateSupported() {
+        return true;
+    }
+
+    @Override
+    public String getCreateJSP() {
+        return "/modules/ldap/userGroupProviderConfig.jsp";
+    }
+
+    @Override
+    public boolean create(ParameterMap parameters) {
+        return true;
+    }
+
+    @Override
+    public boolean isEditSupported() {
+        return true;
+    }
+
+    @Override
+    public String getEditJSP() {
+        return "/modules/ldap/userGroupProviderConfig.jsp";
+    }
+
+    @Override
+    public boolean edit(String providerKey, ParameterMap parameters) {
+        return true;
+    }
+
+    @Override
+    public boolean isDeleteSupported() {
+        return true;
+    }
+
+    @Override
+    public boolean delete(String providerKey) {
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid == null) {
+            return false;
         }
-        groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
-        if (groupCache == null) {
-            cacheManager.addCache(LDAP_GROUP_CACHE);
-            groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
-        } else  {
-            groupCache.removeAll();
+        try {
+            Configuration configuration = configurationAdmin.getConfiguration(pid);
+            configuration.delete();
+        } catch (IOException e) {
+            logger.error("Error while trying to delete configuration for " + providerKey, e);
+            return false;
         }
+
+        String configName = null;
+        if (providerKey.equals("ldap")) {
+            configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
+        } else if (providerKey.startsWith("ldap.")) {
+            configName = jahiaLDAPConfigFactory.getName() + "-" + providerKey.substring("ldap.".length()) + ".cfg";
+        }
+        if (configName != null) {
+            File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath() + File.separatorChar + configName);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
+        return true;
     }
 
-    void stop(){
-        // flush
-        userCache.removeAll();
-        groupCache.removeAll();
+    public void init() {
+        externalUserGroupService.setConfiguration(userGroupProviderClass, this);
     }
 
-    public void setCacheProvider(EhCacheProvider cacheProvider) {
-        this.cacheProvider = cacheProvider;
+    public void setUserGroupProviderClass(String userGroupProviderClass) {
+        this.userGroupProviderClass = userGroupProviderClass;
     }
 
-    public LDAPUserCacheEntry getUserCacheEntryByName(String providerKey, String username) {
-        return (LDAPUserCacheEntry) CacheHelper.getObjectValue(userCache, getCacheNameKey(providerKey, username));
+    public void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
+        this.externalUserGroupService = externalUserGroupService;
     }
 
-    public LDAPUserCacheEntry getUserCacheEntryByDn(String providerKey, String dn) {
-        return (LDAPUserCacheEntry) CacheHelper.getObjectValue(userCache, getCacheDnKey(providerKey, dn));
+    public void setJahiaLDAPConfigFactory(JahiaLDAPConfigFactory jahiaLDAPConfigFactory) {
+        this.jahiaLDAPConfigFactory = jahiaLDAPConfigFactory;
     }
 
-    public void cacheUser(String providerKey, LDAPUserCacheEntry ldapUserCacheEntry) {
-        ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapUserCacheEntry, "ldap");
-        userCache.put(new Element(getCacheNameKey(providerKey, ldapUserCacheEntry.getName()), cacheEntry));
-        userCache.put(new Element(getCacheDnKey(providerKey, ldapUserCacheEntry.getDn()), cacheEntry));
-    }
-
-    public LDAPGroupCacheEntry getGroupCacheEntryName(String providerKey, String groupname) {
-        return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheNameKey(providerKey, groupname));
-    }
-
-    public LDAPGroupCacheEntry getGroupCacheEntryByDn(String providerKey, String dn) {
-        return (LDAPGroupCacheEntry) CacheHelper.getObjectValue(groupCache, getCacheDnKey(providerKey, dn));
-    }
-
-    public void cacheGroup(String providerKey, LDAPGroupCacheEntry ldapGroupCacheEntry) {
-        ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapGroupCacheEntry, "ldap");
-        groupCache.put(new Element(getCacheNameKey(providerKey, ldapGroupCacheEntry.getName()), cacheEntry));
-        groupCache.put(new Element(getCacheDnKey(providerKey, ldapGroupCacheEntry.getDn()), cacheEntry));
-    }
-
-    private String getCacheNameKey(String providerKey, String objectName) {
-        return providerKey + "n" + objectName;
-    }
-
-    private String getCacheDnKey(String providerKey, String objectName) {
-        return providerKey + "d" + objectName;
+    public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
+        this.configurationAdmin = configurationAdmin;
     }
 }

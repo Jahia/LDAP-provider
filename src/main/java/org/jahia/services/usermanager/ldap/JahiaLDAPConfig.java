@@ -289,4 +289,8 @@ public class JahiaLDAPConfig {
             properties.put(transformPropKeyToBeanAttr(key.substring(isUser ? 5 : 6)), value);
         }
     }
+
+    public String getProviderKey() {
+        return providerKey;
+    }
 }
