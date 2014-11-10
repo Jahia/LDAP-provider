@@ -82,6 +82,8 @@ import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Properties;
 
 /**
  * Class to implement specific behaviour for configuration creation/edition/deletion in server settings
@@ -94,6 +96,11 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     private ExternalUserGroupService externalUserGroupService;
     private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
     private ConfigurationAdmin configurationAdmin;
+
+    @Override
+    public String getName() {
+        return "LDAP";
+    }
 
     @Override
     public boolean isCreateSupported() {
@@ -122,6 +129,39 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     @Override
     public boolean edit(String providerKey, ParameterMap parameters) {
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid == null) {
+            return false;
+        }
+        String[] propKeys = parameters.getArray("propKey");
+        String[] propValues = parameters.getArray("propValue");
+        if (propKeys == null || propValues == null) {
+            return false;
+        }
+        try {
+            Configuration configuration = configurationAdmin.getConfiguration(pid);
+            Dictionary properties = new Properties();
+            for (int i = 0; i < propKeys.length; i++) {
+                properties.put(propKeys[i], propValues[i]);
+            }
+            configuration.update(properties);
+        } catch (IOException e) {
+            logger.error("Error while trying to update configuration for " + providerKey, e);
+            return false;
+        }
+
+        String configName = null;
+        if (providerKey.equals("ldap")) {
+            configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
+        } else if (providerKey.startsWith("ldap.")) {
+            configName = jahiaLDAPConfigFactory.getName() + "-" + providerKey.substring("ldap.".length()) + ".cfg";
+        }
+        if (configName != null) {
+            File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath() + File.separatorChar + configName);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
         return true;
     }
 

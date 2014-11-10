@@ -36,4 +36,9 @@
         <property name="jahiaLDAPConfigFactory" ref="JahiaLDAPConfigFactory"/>
         <property name="configurationAdmin" ref="configurationAdmin"/>
     </bean>
+
+    <bean class="org.jahia.services.usermanager.ldap.action.GetLdapConfigurationAction">
+        <property name="jahiaLDAPConfigFactory" ref="JahiaLDAPConfigFactory"/>
+        <property name="configurationAdmin" ref="configurationAdmin"/>
+    </bean>
 </beans>
