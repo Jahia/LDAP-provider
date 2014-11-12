@@ -988,7 +988,9 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         // now that we have the keys, let's load all the users.
         for (String userKey : userKeys) {
             JahiaUser user = lookupUserByKey(userKey);
-            result.add(user);
+            if (user != null) {
+                result.add(user);
+            }
         }
 
         if (searchCriterias != null && searchCriterias.size() == 1
