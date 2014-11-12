@@ -129,7 +129,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
     @Override
-    public void create(ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
+    public String create(ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
         String[] propKeys = parameters.getArray("propKey");
         String[] propValues = parameters.getArray("propValue");
         if (propKeys == null || propValues == null) {
@@ -159,6 +159,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             restoreInputs(propKeys, propValues, flashScope);
             throw e;
         }
+        return providerKey;
     }
 
     @Override
