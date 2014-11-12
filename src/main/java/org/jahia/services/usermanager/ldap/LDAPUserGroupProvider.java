@@ -184,38 +184,39 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         if(cacheEntry.getMemberships() != null){
             return cacheEntry.getMemberships();
         }
+        if(cacheEntry.getExist()) {
+            List<String> memberships = ldapTemplate.search(
+                    query().base(groupConfig.getSearchName())
+                            .attributes(groupConfig.getSearchAttribute())
+                            .where(OBJECTCLASS_ATTRIBUTE)
+                            .is(groupConfig.getSearchObjectclass())
+                            .and(groupConfig.getMembersAttribute())
+                            .like(cacheEntry.getDn()),
+                    new AttributesMapper<String>() {
+                        public String mapFromAttributes(Attributes attrs)
+                                throws NamingException {
+                            return attrs.get(groupConfig.getSearchAttribute()).get().toString();
+                        }
+                    });
 
-        List<String> memberships = ldapTemplate.search(
-                query().base(groupConfig.getSearchName())
-                        .attributes(groupConfig.getSearchAttribute())
-                        .where(OBJECTCLASS_ATTRIBUTE)
-                        .is(groupConfig.getSearchObjectclass())
-                        .and(groupConfig.getMembersAttribute())
-                        .like(cacheEntry.getDn()),
-                new AttributesMapper<String>() {
-                    public String mapFromAttributes(Attributes attrs)
-                            throws NamingException {
-                        return attrs.get(groupConfig.getSearchAttribute()).get().toString();
+            if (groupConfig.isDynamicEnabled()) {
+                Properties searchCriteria = new Properties();
+                searchCriteria.put("*", "*");
+                List<String> dynGroups = searchGroups(searchCriteria, true);
+                for (String dynGroup : dynGroups) {
+                    List<Member> members = getGroupMembers(dynGroup);
+                    if (members.contains(member)) {
+                        memberships.add(dynGroup);
                     }
-                });
-
-        if(groupConfig.isDynamicEnabled()) {
-            Properties searchCriteria = new Properties();
-            searchCriteria.put("*", "*");
-            List<String> dynGroups = searchGroups(searchCriteria, true);
-            for (String dynGroup : dynGroups) {
-                List<Member> members = getGroupMembers(dynGroup);
-                if(members.contains(member)){
-                    memberships.add(dynGroup);
                 }
             }
-        }
 
-        cacheEntry.setMemberships(memberships);
-        if(isGroup){
-            ldapCacheManager.cacheGroup(getKey(), (LDAPGroupCacheEntry) cacheEntry);
-        } else {
-            ldapCacheManager.cacheUser(getKey(), (LDAPUserCacheEntry) cacheEntry);
+            cacheEntry.setMemberships(memberships);
+            if (isGroup) {
+                ldapCacheManager.cacheGroup(getKey(), (LDAPGroupCacheEntry) cacheEntry);
+            } else {
+                ldapCacheManager.cacheUser(getKey(), (LDAPUserCacheEntry) cacheEntry);
+            }
         }
         return cacheEntry.getMemberships();
     }
