@@ -71,6 +71,7 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.UserGroupProviderConfiguration;
 import org.jahia.settings.SettingsBean;
@@ -78,11 +79,14 @@ import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.webflow.core.collection.MutableAttributeMap;
 import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -112,9 +116,49 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         return "/modules/ldap/userGroupProviderConfig.jsp";
     }
 
+    private void restoreInputs(String[] propKeys, String[] propValues, MutableAttributeMap flashScope) {
+        Map<String, Map<String, String>> ldapProperties = new HashMap<>();
+        for (int i = 0; i < propKeys.length; i++) {
+            HashMap<String, String> m = new HashMap<>();
+            m.put("value", propValues[i]);
+            String propKey = propKeys[i];
+            m.put("required", Boolean.toString(JahiaLDAPConfig.MANDATORY_FIELDS.contains(propKey)));
+            ldapProperties.put(propKey, m);
+        }
+        flashScope.put("ldapProperties", ldapProperties);
+    }
+
     @Override
-    public boolean create(ParameterMap parameters) {
-        return true;
+    public void create(ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
+        String[] propKeys = parameters.getArray("propKey");
+        String[] propValues = parameters.getArray("propValue");
+        if (propKeys == null || propValues == null) {
+            throw new Exception("No property has been set");
+        }
+        String configName = parameters.get("configName");
+        String providerKey;
+        if (StringUtils.isBlank(configName)) {
+            providerKey = "ldap";
+        } else {
+            providerKey = "ldap." + configName;
+        }
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid != null) {
+            restoreInputs(propKeys, propValues, flashScope);
+            throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
+        }
+        Dictionary properties = new Properties();
+        for (int i = 0; i < propKeys.length; i++) {
+            properties.put(propKeys[i], propValues[i]);
+        }
+        properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
+        try {
+            Configuration configuration = configurationAdmin.createFactoryConfiguration(jahiaLDAPConfigFactory.getName());
+            configuration.update(properties);
+        } catch (IOException e) {
+            restoreInputs(propKeys, propValues, flashScope);
+            throw e;
+        }
     }
 
     @Override
@@ -128,26 +172,28 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
     @Override
-    public boolean edit(String providerKey, ParameterMap parameters) {
-        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-        if (pid == null) {
-            return false;
-        }
+    public void edit(String providerKey, ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
         String[] propKeys = parameters.getArray("propKey");
         String[] propValues = parameters.getArray("propValue");
         if (propKeys == null || propValues == null) {
-            return false;
+            throw new Exception("No property has been set");
         }
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid == null) {
+            restoreInputs(propKeys, propValues, flashScope);
+            throw new Exception("Cannot find LDAP provider " + providerKey);
+        }
+        Dictionary properties = new Properties();
+        for (int i = 0; i < propKeys.length; i++) {
+            properties.put(propKeys[i], propValues[i]);
+        }
+        properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
         try {
             Configuration configuration = configurationAdmin.getConfiguration(pid);
-            Dictionary properties = new Properties();
-            for (int i = 0; i < propKeys.length; i++) {
-                properties.put(propKeys[i], propValues[i]);
-            }
             configuration.update(properties);
         } catch (IOException e) {
-            logger.error("Error while trying to update configuration for " + providerKey, e);
-            return false;
+            restoreInputs(propKeys, propValues, flashScope);
+            throw e;
         }
 
         String configName = null;
@@ -162,7 +208,6 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
                 file.delete();
             }
         }
-        return true;
     }
 
     @Override
@@ -171,18 +216,13 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
     @Override
-    public boolean delete(String providerKey) {
+    public void delete(String providerKey, MutableAttributeMap flashScope) throws Exception {
         String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
         if (pid == null) {
-            return false;
+            throw new Exception("Cannot find LDAP provider " + providerKey);
         }
-        try {
-            Configuration configuration = configurationAdmin.getConfiguration(pid);
-            configuration.delete();
-        } catch (IOException e) {
-            logger.error("Error while trying to delete configuration for " + providerKey, e);
-            return false;
-        }
+        Configuration configuration = configurationAdmin.getConfiguration(pid);
+        configuration.delete();
 
         String configName = null;
         if (providerKey.equals("ldap")) {
@@ -196,7 +236,6 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
                 file.delete();
             }
         }
-        return true;
     }
 
     public void init() {

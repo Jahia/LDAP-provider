@@ -17,6 +17,7 @@
                     "</div>").insertBefore($("#addField${currentNode.identifier}"));
         }
 
+        <c:if test="${empty ldapProperties}">
         $(document).ready(function () {
             $.ajax({
                 type : 'get',
@@ -44,6 +45,7 @@
                 }
             });
         });
+        </c:if>
     </script>
 </template:addResources>
 
@@ -55,10 +57,25 @@
                     <fmt:message key="label.name"/>
                 </div>
                 <div class="span8">
-                    ldap.<input type="text" name="configName" required />
+                    ldap.<input type="text" name="configName" />
                 </div>
             </div>
         </label>
     </c:if>
+    <c:forEach var="previousProp" items="${ldapProperties}">
+        <div class="row-fluid">
+            <div class="span4">
+                <input type="text" name="propKey" value="${previousProp.key}" <c:if test="${previousProp.value.required}">readonly</c:if> required class="span12"/>
+            </div>
+            <div class="span7">
+                <input type="text" name="propValue" value="${previousProp.value.value}" <c:if test="${previousProp.value.required}">required</c:if> class="span12"/>
+            </div>
+            <c:if test="${not previousProp.value.required}">
+            <div class="span1">
+                <a class="btn" onclick="$(this).parent().parent().remove()"><i class="icon icon-minus"></i></a>
+            </div>
+            </c:if>
+        </div>
+    </c:forEach>
     <a id="addField${currentNode.identifier}" class="btn" onclick="addField()"><i class="icon icon-plus"></i></a>
 </fieldset>

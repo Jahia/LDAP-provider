@@ -78,6 +78,7 @@ import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.render.RenderContext;
 import org.jahia.services.render.Resource;
 import org.jahia.services.render.URLResolver;
+import org.jahia.services.usermanager.ldap.JahiaLDAPConfig;
 import org.jahia.services.usermanager.ldap.JahiaLDAPConfigFactory;
 import org.json.JSONObject;
 import org.osgi.service.cm.Configuration;
@@ -93,8 +94,6 @@ import java.util.*;
  */
 public class GetLdapConfigurationAction extends Action {
 
-    private static List<String> MANDATORY_FIELDS = Arrays.asList("url" ,"public.bind.dn" ,"public.bind.password" ,"user.uid.search.name" ,"group.search.name");
-
     private ConfigurationAdmin configurationAdmin;
     private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
 
@@ -102,12 +101,6 @@ public class GetLdapConfigurationAction extends Action {
                                   JCRSessionWrapper session, Map<String, List<String>> parameters, URLResolver urlResolver) throws Exception {
         String providerKey = req.getParameter("providerKey");
         Map<String, Map<String, String>> res = new HashMap<>();
-        for (String f : MANDATORY_FIELDS) {
-            HashMap<String, String> m = new HashMap<>();
-            m.put("value", "");
-            m.put("required", "true");
-            res.put(f, m);
-        }
         if (StringUtils.isNotBlank(providerKey)) {
             String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
             if (pid == null) {
@@ -118,12 +111,20 @@ public class GetLdapConfigurationAction extends Action {
             Enumeration<String> keys = properties.keys();
             while (keys.hasMoreElements()) {
                 String key = keys.nextElement();
-                if (!key.startsWith("service.") && !key.startsWith("felix.")) {
+                if (!key.startsWith("service.") && !key.startsWith("felix.") && !JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP.equals(key)) {
                     HashMap<String, String> m = new HashMap<>();
                     m.put("value", (String) properties.get(key));
-                    m.put("required", Boolean.toString(MANDATORY_FIELDS.contains(key)));
+                    m.put("required", Boolean.toString(JahiaLDAPConfig.MANDATORY_FIELDS.contains(key)));
                     res.put(key, m);
                 }
+            }
+        }
+        for (String f : JahiaLDAPConfig.MANDATORY_FIELDS) {
+            if (!res.containsKey(f)) {
+                HashMap<String, String> m = new HashMap<>();
+                m.put("value", "");
+                m.put("required", "true");
+                res.put(f, m);
             }
         }
         return new ActionResult(HttpServletResponse.SC_OK, null, new JSONObject(res));

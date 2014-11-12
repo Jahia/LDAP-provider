@@ -102,6 +102,10 @@ public class JahiaLDAPConfig {
     public static final String WHEN_EXHAUSTED_FAIL = "fail";
     public static final String WHEN_EXHAUSTED_GROW = "grow";
 
+    public static final String LDAP_PROVIDER_KEY_PROP = "ldap.provider.key";
+    public static List<String> MANDATORY_FIELDS = Arrays.asList("url" ,"public.bind.dn" ,"public.bind.password" ,"user.uid.search.name" ,"group.search.name");
+
+
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
     private String providerKey;
     private LDAPUserGroupProvider ldapUserGroupProvider;
@@ -247,6 +251,10 @@ public class JahiaLDAPConfig {
     }
 
     private String computeProviderKey(Dictionary<String, ?> dictionary) {
+        String provideKey = (String) dictionary.get(LDAP_PROVIDER_KEY_PROP);
+        if (provideKey != null) {
+            return provideKey;
+        }
         String filename = (String) dictionary.get("felix.fileinstall.filename");
         String factoryPid = (String) dictionary.get(ConfigurationAdmin.SERVICE_FACTORYPID);
         String confId;
