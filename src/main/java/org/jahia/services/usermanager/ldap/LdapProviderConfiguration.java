@@ -79,14 +79,14 @@ import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.webflow.core.collection.MutableAttributeMap;
 import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Dictionary;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -116,18 +116,6 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         return "/modules/ldap/userGroupProviderConfig.jsp";
     }
 
-    private void restoreInputs(String[] propKeys, String[] propValues, MutableAttributeMap flashScope) {
-        Map<String, Map<String, String>> ldapProperties = new HashMap<>();
-        for (int i = 0; i < propKeys.length; i++) {
-            HashMap<String, String> m = new HashMap<>();
-            m.put("value", propValues[i]);
-            String propKey = propKeys[i];
-            m.put("required", Boolean.toString(JahiaLDAPConfig.MANDATORY_FIELDS.contains(propKey)));
-            ldapProperties.put(propKey, m);
-        }
-        flashScope.put("ldapProperties", ldapProperties);
-    }
-
     @Override
     public String create(ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
         String[] propKeys = parameters.getArray("propKey");
@@ -135,6 +123,14 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         if (propKeys == null || propValues == null) {
             throw new Exception("No property has been set");
         }
+        Dictionary properties = new Properties();
+        for (int i = 0; i < propKeys.length; i++) {
+            String propValue = propValues[i];
+            if (StringUtils.isNotBlank(propValue)) {
+                properties.put(propKeys[i], propValue);
+            }
+        }
+        flashScope.put("ldapProperties", properties);
         String configName = parameters.get("configName");
         String providerKey;
         if (StringUtils.isBlank(configName)) {
@@ -144,19 +140,16 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         }
         String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
         if (pid != null) {
-            restoreInputs(propKeys, propValues, flashScope);
             throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
         }
-        Dictionary properties = new Properties();
-        for (int i = 0; i < propKeys.length; i++) {
-            properties.put(propKeys[i], propValues[i]);
+        if (!testConnection(properties)) {
+            throw new Exception("Connection to the LDAP server impossible");
         }
-        properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
         try {
             Configuration configuration = configurationAdmin.createFactoryConfiguration(jahiaLDAPConfigFactory.getName());
+            properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
             configuration.update(properties);
         } catch (IOException e) {
-            restoreInputs(propKeys, propValues, flashScope);
             throw e;
         }
         return providerKey;
@@ -179,21 +172,26 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         if (propKeys == null || propValues == null) {
             throw new Exception("No property has been set");
         }
-        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-        if (pid == null) {
-            restoreInputs(propKeys, propValues, flashScope);
-            throw new Exception("Cannot find LDAP provider " + providerKey);
-        }
         Dictionary properties = new Properties();
         for (int i = 0; i < propKeys.length; i++) {
-            properties.put(propKeys[i], propValues[i]);
+            String propValue = propValues[i];
+            if (StringUtils.isNotBlank(propValue)) {
+                properties.put(propKeys[i], propValue);
+            }
         }
-        properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
+        flashScope.put("ldapProperties", properties);
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid == null) {
+            throw new Exception("Cannot find LDAP provider " + providerKey);
+        }
+        if (!testConnection(properties)) {
+            throw new Exception("Connection to the LDAP server impossible");
+        }
         try {
             Configuration configuration = configurationAdmin.getConfiguration(pid);
+            properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
             configuration.update(properties);
         } catch (IOException e) {
-            restoreInputs(propKeys, propValues, flashScope);
             throw e;
         }
 
@@ -237,6 +235,41 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
                 file.delete();
             }
         }
+    }
+
+
+    private boolean testConnection(Dictionary properties) {
+        for (String prefix : Arrays.asList("", "user.", "group.")) {
+            String url = (String) properties.get(prefix + "url");
+            String bindDn = (String) properties.get(prefix + "public.bind.dn");
+            String bindPassword = (String) properties.get(prefix + "public.bind.password");
+
+            if (testConnection(url, bindDn, bindPassword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean testConnection(String url, String bindDn, String bindPassword) {
+        if (StringUtils.isBlank(url)) {
+            return false;
+        }
+        LdapContextSource lcs = new LdapContextSource();
+        lcs.setUrl(url);
+        if (StringUtils.isNotBlank(bindDn)) {
+            lcs.setUserDn(bindDn);
+        }
+        if (StringUtils.isNotBlank(bindPassword)) {
+            lcs.setPassword(bindPassword);
+        }
+        try {
+            lcs.afterPropertiesSet();
+            lcs.getReadOnlyContext();
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
     public void init() {

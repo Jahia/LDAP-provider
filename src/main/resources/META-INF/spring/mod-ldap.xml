@@ -40,5 +40,12 @@
     <bean class="org.jahia.services.usermanager.ldap.action.GetLdapConfigurationAction">
         <property name="jahiaLDAPConfigFactory" ref="JahiaLDAPConfigFactory"/>
         <property name="configurationAdmin" ref="configurationAdmin"/>
+        <property name="defaultProperties">
+            <list>
+                <value>url</value>
+                <value>uid.search.name</value>
+                <value>search.name</value>
+            </list>
+        </property>
     </bean>
 </beans>

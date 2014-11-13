@@ -97,10 +97,12 @@ public class GetLdapConfigurationAction extends Action {
     private ConfigurationAdmin configurationAdmin;
     private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
 
+    private List<String> defaultProperties;
+
     public ActionResult doExecute(HttpServletRequest req, RenderContext renderContext, Resource resource,
                                   JCRSessionWrapper session, Map<String, List<String>> parameters, URLResolver urlResolver) throws Exception {
         String providerKey = req.getParameter("providerKey");
-        Map<String, Map<String, String>> res = new HashMap<>();
+        Map<String, String> res = new HashMap<>();
         if (StringUtils.isNotBlank(providerKey)) {
             String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
             if (pid == null) {
@@ -112,19 +114,12 @@ public class GetLdapConfigurationAction extends Action {
             while (keys.hasMoreElements()) {
                 String key = keys.nextElement();
                 if (!key.startsWith("service.") && !key.startsWith("felix.") && !JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP.equals(key)) {
-                    HashMap<String, String> m = new HashMap<>();
-                    m.put("value", (String) properties.get(key));
-                    m.put("required", Boolean.toString(JahiaLDAPConfig.MANDATORY_FIELDS.contains(key)));
-                    res.put(key, m);
+                    res.put(key, (String) properties.get(key));
                 }
             }
-        }
-        for (String f : JahiaLDAPConfig.MANDATORY_FIELDS) {
-            if (!res.containsKey(f)) {
-                HashMap<String, String> m = new HashMap<>();
-                m.put("value", "");
-                m.put("required", "true");
-                res.put(f, m);
+        } else {
+            for (String f : defaultProperties) {
+                res.put(f, "");
             }
         }
         return new ActionResult(HttpServletResponse.SC_OK, null, new JSONObject(res));
@@ -136,5 +131,9 @@ public class GetLdapConfigurationAction extends Action {
 
     public void setJahiaLDAPConfigFactory(JahiaLDAPConfigFactory jahiaLDAPConfigFactory) {
         this.jahiaLDAPConfigFactory = jahiaLDAPConfigFactory;
+    }
+
+    public void setDefaultProperties(List<String> defaultProperties) {
+        this.defaultProperties = defaultProperties;
     }
 }

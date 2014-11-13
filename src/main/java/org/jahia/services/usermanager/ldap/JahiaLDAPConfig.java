@@ -103,7 +103,6 @@ public class JahiaLDAPConfig {
     public static final String WHEN_EXHAUSTED_GROW = "grow";
 
     public static final String LDAP_PROVIDER_KEY_PROP = "ldap.provider.key";
-    public static List<String> MANDATORY_FIELDS = Arrays.asList("url" ,"public.bind.dn" ,"public.bind.password" ,"user.uid.search.name" ,"group.search.name");
 
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
