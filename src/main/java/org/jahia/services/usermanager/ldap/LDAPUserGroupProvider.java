@@ -805,7 +805,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      */
     private LDAPUserCacheEntry attributesToUserCacheEntry(Attributes attrs, LDAPUserCacheEntry userCacheEntry) throws NamingException {
         String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
-        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), false, key);
+        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), false, key, null);
         if(userCacheEntry == null) {
             userCacheEntry = new LDAPUserCacheEntry(userId);
         }
@@ -1115,6 +1115,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     @Override
     public boolean supportsGroups() {
         return groupConfig.isMinimalSettingsOk();
+    }
+
+    @Override
+    public String toString() {
+        return "LDAPUserGroupProvider{" + "key='" + key + '\'' + '}';
     }
 }
 
