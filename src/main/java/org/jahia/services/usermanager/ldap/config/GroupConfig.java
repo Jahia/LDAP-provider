@@ -176,4 +176,9 @@ public class GroupConfig extends AbstractConfig{
     public void setDynamicEnabled(boolean dynamicEnabled) {
         this.dynamicEnabled = dynamicEnabled;
     }
+
+    public boolean isMinimalSettingsOk() {
+        return StringUtils.isNotEmpty(getUrl()) && StringUtils.isNotEmpty(getSearchName());
+    }
+
 }

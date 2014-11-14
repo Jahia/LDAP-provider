@@ -1114,7 +1114,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public boolean supportsGroups() {
-        return true;
+        return groupConfig.isMinimalSettingsOk();
     }
 }
 
