@@ -84,6 +84,7 @@ import org.springframework.webflow.core.collection.MutableAttributeMap;
 import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Dictionary;
@@ -123,7 +124,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         if (propKeys == null || propValues == null) {
             throw new Exception("No property has been set");
         }
-        Dictionary properties = new Properties();
+        Properties properties = new Properties();
         for (int i = 0; i < propKeys.length; i++) {
             String propValue = propValues[i];
             if (StringUtils.isNotBlank(propValue)) {
@@ -131,26 +132,29 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             }
         }
         flashScope.put("ldapProperties", properties);
+        if (!testConnection(properties)) {
+            throw new Exception("Connection to the LDAP server impossible");
+        }
         String configName = parameters.get("configName");
         String providerKey;
         if (StringUtils.isBlank(configName)) {
             providerKey = "ldap";
+            configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
         } else {
             providerKey = "ldap." + configName;
+            configName = jahiaLDAPConfigFactory.getName() + "-" + configName + ".cfg";
         }
-        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-        if (pid != null) {
-            throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
-        }
-        if (!testConnection(properties)) {
-            throw new Exception("Connection to the LDAP server impossible");
-        }
-        try {
+        File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath());
+        if (file.exists()) {
+            properties.store(new FileOutputStream(new File(file, configName)), "");
+        } else {
+            String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+            if (pid != null) {
+                throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
+            }
             Configuration configuration = configurationAdmin.createFactoryConfiguration(jahiaLDAPConfigFactory.getName());
             properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
-            configuration.update(properties);
-        } catch (IOException e) {
-            throw e;
+            configuration.update((Dictionary) properties);
         }
         return providerKey;
     }
@@ -172,7 +176,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         if (propKeys == null || propValues == null) {
             throw new Exception("No property has been set");
         }
-        Dictionary properties = new Properties();
+        Properties properties = new Properties();
         for (int i = 0; i < propKeys.length; i++) {
             String propValue = propValues[i];
             if (StringUtils.isNotBlank(propValue)) {
@@ -180,33 +184,28 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             }
         }
         flashScope.put("ldapProperties", properties);
-        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-        if (pid == null) {
-            throw new Exception("Cannot find LDAP provider " + providerKey);
-        }
         if (!testConnection(properties)) {
             throw new Exception("Connection to the LDAP server impossible");
         }
-        try {
-            Configuration configuration = configurationAdmin.getConfiguration(pid);
-            properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
-            configuration.update(properties);
-        } catch (IOException e) {
-            throw e;
-        }
-
-        String configName = null;
+        String configName;
         if (providerKey.equals("ldap")) {
             configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
         } else if (providerKey.startsWith("ldap.")) {
             configName = jahiaLDAPConfigFactory.getName() + "-" + providerKey.substring("ldap.".length()) + ".cfg";
+        } else {
+            throw new Exception("Wrong LDAP provider key: " + providerKey);
         }
-        if (configName != null) {
-            File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath() + File.separatorChar + configName);
-            if (file.exists()) {
-                file.delete();
-            }
+        File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath(), configName);
+        if (file.exists()) {
+            properties.store(new FileOutputStream(file), "");
         }
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid == null) {
+            throw new Exception("Cannot find LDAP provider " + providerKey);
+        }
+        Configuration configuration = configurationAdmin.getConfiguration(pid);
+        properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
+        configuration.update((Dictionary) properties);
     }
 
     @Override
@@ -216,24 +215,24 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     @Override
     public void delete(String providerKey, MutableAttributeMap flashScope) throws Exception {
-        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-        if (pid == null) {
-            throw new Exception("Cannot find LDAP provider " + providerKey);
-        }
-        Configuration configuration = configurationAdmin.getConfiguration(pid);
-        configuration.delete();
-
-        String configName = null;
+        String configName;
         if (providerKey.equals("ldap")) {
             configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
         } else if (providerKey.startsWith("ldap.")) {
             configName = jahiaLDAPConfigFactory.getName() + "-" + providerKey.substring("ldap.".length()) + ".cfg";
+        } else {
+            throw new Exception("Wrong LDAP provider key: " + providerKey);
         }
-        if (configName != null) {
-            File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath() + File.separatorChar + configName);
-            if (file.exists()) {
-                file.delete();
+        File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath(), configName);
+        if (file.exists()) {
+            file.delete();
+        } else {
+            String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+            if (pid == null) {
+                throw new Exception("Cannot find LDAP provider " + providerKey);
             }
+            Configuration configuration = configurationAdmin.getConfiguration(pid);
+            configuration.delete();
         }
     }
 
