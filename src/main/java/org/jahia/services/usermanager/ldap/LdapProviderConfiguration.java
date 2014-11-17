@@ -114,7 +114,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     @Override
     public String getCreateJSP() {
-        return "/modules/ldap/userGroupProviderConfig.jsp";
+        return "/modules/ldap/userGroupProviderCreate.jsp";
     }
 
     @Override
@@ -132,10 +132,11 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             }
         }
         flashScope.put("ldapProperties", properties);
+        String configName = parameters.get("configName");
+        flashScope.put("configName", configName);
         if (!testConnection(properties)) {
             throw new Exception("Connection to the LDAP server impossible");
         }
-        String configName = parameters.get("configName");
         String providerKey;
         if (StringUtils.isBlank(configName)) {
             providerKey = "ldap";
@@ -166,7 +167,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     @Override
     public String getEditJSP() {
-        return "/modules/ldap/userGroupProviderConfig.jsp";
+        return "/modules/ldap/userGroupProviderEdit.jsp";
     }
 
     @Override

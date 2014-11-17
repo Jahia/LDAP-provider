@@ -118,6 +118,8 @@ public abstract class AbstractConfig {
     private Set<String> searchWildcardsAttributes = Sets.newHashSet();
     private Map<String, String> attributesMapper = Maps.newHashMap();
 
+    private String targetSite;
+
     public String getUrl() {
         return url;
     }
@@ -356,5 +358,13 @@ public abstract class AbstractConfig {
 
     public void setSearchAttributeInDn(boolean searchAttributeInDn) {
         this.searchAttributeInDn = searchAttributeInDn;
+    }
+
+    public String getTargetSite() {
+        return targetSite;
+    }
+
+    public void setTargetSite(String targetSite) {
+        this.targetSite = targetSite;
     }
 }

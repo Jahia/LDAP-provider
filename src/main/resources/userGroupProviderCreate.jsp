@@ -11,6 +11,7 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="jcr" uri="http://www.jahia.org/tags/jcr" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="query" uri="http://www.jahia.org/tags/queryLib" %>
 <%--@elvariable id="providerKey" type="java.lang.String"--%>
 
 <%
@@ -42,12 +43,16 @@
                 dataType: "json",
                 success: function(data, textStatus, jqXHR) {
                     $.each(data, function(key, value) {
-                        $("<label><div class=\"row-fluid\"><div class=\"span4\">" + key +
-                                "<input type=\"hidden\" name=\"propKey\" value=\"" + key +
-                                "\" /></div><div class=\"span7\"><input type=\"text\" name=\"propValue\" value=\"" +
-                                value + "\" class=\"span12\"/></div>" +
-                                "<div class=\"span1\"><a class=\"btn\" onclick=\"$(this).parent().parent().remove()\"><i class=\"icon icon-minus\"></i></a></div>" +
-                                "</div></label>").insertBefore($("#addField${currentNode.identifier}"));
+                        if (key == 'target.site') {
+                            $("#${currentNode.identifier}-targetSite").val(value);
+                        } else {
+                            $("<label><div class=\"row-fluid\"><div class=\"span4\">" + key +
+                                    "<input type=\"hidden\" name=\"propKey\" value=\"" + key +
+                                    "\" /></div><div class=\"span7\"><input type=\"text\" name=\"propValue\" value=\"" +
+                                    value + "\" class=\"span12\"/></div>" +
+                                    "<div class=\"span1\"><a class=\"btn\" onclick=\"$(this).parent().parent().remove()\"><i class=\"icon icon-minus\"></i></a></div>" +
+                                    "</div></label>").insertBefore($("#addField${currentNode.identifier}"));
+                        }
                     });
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -59,19 +64,35 @@
 </template:addResources>
 
 <fieldset class="box-1">
-    <c:if test="${empty providerKey}">
     <label>
         <div class="row-fluid">
             <div class="span4">
                 <fmt:message bundle="${bundle}" key="ldap.provider.name"/>
             </div>
             <div class="span8">
-                <input type="text" name="configName" />
+                <input type="text" name="configName" value="${configName}" />
             </div>
         </div>
     </label>
-    </c:if>
+    <label>
+        <div class="row-fluid">
+            <div class="span4">
+                <fmt:message bundle="${bundle}"  key="ldap.provider.target.site"/>
+                <input type="hidden" name="propKey" value="target.site" class="span12"/>
+            </div>
+            <div class="span7">
+                <select name="propValue" id="${currentNode.identifier}-targetSite">
+                    <option value=""></option>
+                    <jcr:jqom statement="select * from [jnt:virtualsite] as site where ischildnode(site,'/sites') and localname(site) <> 'systemsite'" var="sites"/>
+                    <c:forEach items="${sites.nodes}" var="site">
+                        <option ${ldapProperties['target.site'] == site.name ? 'selected' : ''} value="${site.name}">${site.name}</option>
+                    </c:forEach>
+                </select>
+            </div>
+        </div>
+    </label>
     <c:forEach var="previousProp" items="${ldapProperties}">
+        <c:if test="${previousProp.key ne 'target.site'}">
     <label>
         <div class="row-fluid">
             <div class="span4">
@@ -86,6 +107,7 @@
             </div>
         </div>
     </label>
+        </c:if>
     </c:forEach>
     <a id="addField${currentNode.identifier}" class="btn" onclick="addField()"><i class="icon icon-plus"></i></a>
 </fieldset>

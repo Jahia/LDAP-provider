@@ -163,6 +163,8 @@ Jahia LDAP Connector
 *----------------+-----------------+------------------------------------------------+
 |<<<ldap.connect.pool>>> | <<<apache-commons>>>        | Type of pool to use : ldap, apache-commons, or none |
 *----------------+-------------+------------------------------------------------+
+| <<<target.site>>>    | <<<\<none\>>>>        | The site key to mount the provider on. If not specified, users and groups will be global |
+*----------------+-------------+------------------------------------------------+
 
   Connection parameters for native {{{http://docs.oracle.com/javase/jndi/tutorial/ldap/connect/pool.html}ldap}} pool :
 

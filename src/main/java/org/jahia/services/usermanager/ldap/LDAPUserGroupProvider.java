@@ -1086,7 +1086,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      * register the provider
      */
     public void register() {
-        externalUserGroupService.register(key,this);
+        externalUserGroupService.register(key, userConfig.getTargetSite(), this);
     }
 
     /**
