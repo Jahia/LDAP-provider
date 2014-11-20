@@ -224,6 +224,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     @Override
     public List<String> searchUsers(Properties searchCriteria, long offset, long limit) {
         ContainerCriteria query = buildUserQuery(searchCriteria);
+        if (query == null) {
+            return Collections.<String>emptyList();
+        }
         UsersNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new UsersNameClassPairCallbackHandler();
         ldapTemplate.search(query, searchNameClassPairCallbackHandler);
         ArrayList<String> l = new ArrayList<String>(searchNameClassPairCallbackHandler.getNames());
@@ -874,6 +877,10 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, userConfig.getAttributesMapper());
 
+        if (ldapfilters == null) {
+            return null;
+        }
+
         // define and / or operator
         boolean orOp = isOrOperator(ldapfilters, searchCriteria);
 
@@ -995,9 +1002,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        for (Map.Entry<String, String> property : configProperties.entrySet()) {
-            if (StringUtils.isNotEmpty(property.getKey()) && searchCriteria.get(property.getKey()) != null) {
-                p.setProperty(property.getValue(), (String) searchCriteria.get(property.getKey()));
+        for (Map.Entry<Object, Object> entry : searchCriteria.entrySet()) {
+            if (configProperties.containsKey(entry.getKey())) {
+                p.setProperty(configProperties.get(entry.getKey()), (String) entry.getValue());
+            } else if (!entry.getKey().equals("*") && !entry.getKey().equals(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
+                return null;
             }
         }
 
