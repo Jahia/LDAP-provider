@@ -71,6 +71,7 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.UserGroupProviderConfiguration;
@@ -85,7 +86,6 @@ import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Properties;
@@ -147,7 +147,12 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         }
         File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath());
         if (file.exists()) {
-            properties.store(new FileOutputStream(new File(file, configName)), "");
+            FileOutputStream out = new FileOutputStream(new File(file, configName));
+            try {
+                properties.store(out, "");
+            } finally {
+                IOUtils.closeQuietly(out);
+            }
         } else {
             String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
             if (pid != null) {
@@ -198,7 +203,12 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         }
         File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath(), configName);
         if (file.exists()) {
-            properties.store(new FileOutputStream(file), "");
+            FileOutputStream out = new FileOutputStream(file);
+            try {
+                properties.store(out, "");
+            } finally {
+                IOUtils.closeQuietly(out);
+            }
         }
         String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
         if (pid == null) {
