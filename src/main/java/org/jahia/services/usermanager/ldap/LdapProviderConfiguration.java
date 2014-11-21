@@ -78,15 +78,14 @@ import org.jahia.modules.external.users.UserGroupProviderConfiguration;
 import org.jahia.settings.SettingsBean;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.core.NestedCheckedException;
+import org.springframework.core.NestedRuntimeException;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.webflow.core.collection.MutableAttributeMap;
 import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Properties;
 
@@ -95,8 +94,36 @@ import java.util.Properties;
  */
 public class LdapProviderConfiguration implements UserGroupProviderConfiguration {
 
-    private static Logger logger = LoggerFactory.getLogger(LdapProviderConfiguration.class);
+    private static final long serialVersionUID = 8082529526561969689L;
+    
+    private static Exception getRootCause(Exception e) {
+        Throwable cause = null;
+        if (e instanceof NestedCheckedException) {
+            cause = ((NestedCheckedException) e).getMostSpecificCause();
+        } else if (e instanceof NestedRuntimeException) {
+            cause = ((NestedRuntimeException) e).getMostSpecificCause();
+        } else {
+            Throwable t = e;
+            while (t.getCause() != null) {
+                t = t.getCause();
+            }
+            cause = t;
+        }
+        return (cause instanceof Exception) ? (Exception) cause : new RuntimeException(cause);
+    }
 
+    private static String getValue(Properties properties, String... keys) {
+        String value = null;
+        for (String k : keys) {
+            value = properties.getProperty(k);
+            if (value != null) {
+                break;
+            }
+        }
+        
+        return value;
+    }
+    
     private String userGroupProviderClass;
     private ExternalUserGroupService externalUserGroupService;
     private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
@@ -248,20 +275,13 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
 
-    private boolean testConnection(Dictionary properties) {
-        for (String prefix : Arrays.asList("", "user.", "group.")) {
-            String url = (String) properties.get(prefix + "url");
-            String bindDn = (String) properties.get(prefix + "public.bind.dn");
-            String bindPassword = (String) properties.get(prefix + "public.bind.password");
-
-            if (testConnection(url, bindDn, bindPassword)) {
-                return true;
-            }
-        }
-        return false;
+    private boolean testConnection(Properties p) throws Exception {
+        return testConnection(getValue(p, "url", "user.url", "group.url"),
+                getValue(p, "public.bind.dn", "user.public.bind.dn", "group.public.bind.dn"),
+                getValue(p, "public.bind.password", "user.public.bind.password", "group.public.bind.password"));
     }
 
-    private boolean testConnection(String url, String bindDn, String bindPassword) {
+    private boolean testConnection(String url, String bindDn, String bindPassword) throws Exception {
         if (StringUtils.isBlank(url)) {
             return false;
         }
@@ -277,7 +297,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             lcs.afterPropertiesSet();
             lcs.getReadOnlyContext();
         } catch (Exception e) {
-            return false;
+            throw getRootCause(e);
         }
         return true;
     }
