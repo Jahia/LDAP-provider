@@ -66,11 +66,16 @@
 <fieldset class="box-1">
     <label>
         <div class="row-fluid">
+			<a href="<c:url value='http://www.jahia.com/documentation-and-downloads/developers-techwiki/users-and-groups/ldap-connector'/>" target="_blank"><img src="<c:url value='/icons/help.png'/>" alt="?" height="16" width="16"/></a>
+        </div>
+    </label>
+    <label>
+        <div class="row-fluid">
             <div class="span4">
                 <fmt:message bundle="${bundle}" key="ldap.provider.name"/>
             </div>
             <div class="span8">
-                <input type="text" name="configName" value="${configName}" />
+                <input type="text" name="configName" value="${not empty configName ? configName : 'ldap'}" />
             </div>
         </div>
     </label>
