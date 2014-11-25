@@ -43,6 +43,8 @@
         <property name="defaultProperties">
             <list>
                 <value>url</value>
+                <value>public.bind.dn</value>
+                <value>public.bind.password</value>
                 <value>uid.search.name</value>
                 <value>search.name</value>
             </list>
