@@ -75,7 +75,7 @@
                 <fmt:message bundle="${bundle}" key="ldap.provider.name"/>
             </div>
             <div class="span8">
-                <input type="text" name="configName" value="${not empty configName ? configName : 'ldap'}" />
+                <input type="text" name="configName" value="${configName}" />
             </div>
         </div>
     </label>
