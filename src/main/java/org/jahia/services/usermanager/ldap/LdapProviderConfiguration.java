@@ -81,12 +81,11 @@ import org.osgi.service.cm.ConfigurationAdmin;
 import org.springframework.core.NestedCheckedException;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.ldap.core.support.LdapContextSource;
-import org.springframework.webflow.core.collection.MutableAttributeMap;
-import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Dictionary;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -145,9 +144,9 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
     @Override
-    public String create(ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
-        String[] propKeys = parameters.getArray("propKey");
-        String[] propValues = parameters.getArray("propValue");
+    public String create(Map<String, Object> parameters, Map<String, Object> flashScope) throws Exception {
+        String[] propKeys = (String[]) parameters.get("propKey");
+        String[] propValues = (String[]) parameters.get("propValue");
         if (propKeys == null || propValues == null) {
             throw new Exception("No property has been set");
         }
@@ -159,7 +158,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             }
         }
         flashScope.put("ldapProperties", properties);
-        String configName = parameters.get("configName");
+        String configName = (String) parameters.get("configName");
         flashScope.put("configName", configName);
         if (!testConnection(properties)) {
             throw new Exception("Connection to the LDAP server impossible");
@@ -203,9 +202,9 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
     @Override
-    public void edit(String providerKey, ParameterMap parameters, MutableAttributeMap flashScope) throws Exception {
-        String[] propKeys = parameters.getArray("propKey");
-        String[] propValues = parameters.getArray("propValue");
+    public void edit(String providerKey, Map<String, Object> parameters, Map<String, Object> flashScope) throws Exception {
+        String[] propKeys = (String[]) parameters.get("propKey");
+        String[] propValues = (String[]) parameters.get("propValue");
         if (propKeys == null || propValues == null) {
             throw new Exception("No property has been set");
         }
@@ -252,7 +251,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     }
 
     @Override
-    public void delete(String providerKey, MutableAttributeMap flashScope) throws Exception {
+    public void delete(String providerKey, Map<String, Object> flashScope) throws Exception {
         String configName;
         if (providerKey.equals("ldap")) {
             configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
