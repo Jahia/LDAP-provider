@@ -86,19 +86,21 @@ import org.osgi.service.cm.ConfigurationAdmin;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import java.util.*;
 
 /**
- * Class to get properties of a specified LDAP configuration
- * or some default properties
+ * Class to get properties of a specified LDAP configuration or some default properties.
  */
 public class GetLdapConfigurationAction extends Action {
 
     private ConfigurationAdmin configurationAdmin;
+    
     private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
 
     private List<String> defaultProperties;
 
+    @Override
     public ActionResult doExecute(HttpServletRequest req, RenderContext renderContext, Resource resource,
                                   JCRSessionWrapper session, Map<String, List<String>> parameters, URLResolver urlResolver) throws Exception {
         String providerKey = req.getParameter("providerKey");

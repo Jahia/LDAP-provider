@@ -106,8 +106,9 @@ import java.util.*;
 import static org.springframework.ldap.query.LdapQueryBuilder.query;
 
 /**
- * Created by david on 16/09/14.
  * Implementation of UserGroupProvider for Spring LDAP
+ * 
+ * @author david
  */
 public class LDAPUserGroupProvider implements UserGroupProvider {
     protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
@@ -1080,8 +1081,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     /**
-     * defines the LdapTemplate for this provider
-     * @param ldapTemplate
+     * Defines the LdapTemplate for this provider.
+     * 
+     * @param ldapTemplate the LDAP template instance
      */
     public void setLdapTemplate(LdapTemplate ldapTemplate) {
         this.ldapTemplate = ldapTemplate;

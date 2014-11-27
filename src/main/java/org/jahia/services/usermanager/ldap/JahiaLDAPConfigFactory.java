@@ -89,6 +89,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     private Map<String, String> pidsByProviderKey = new HashMap<String, String>();
 
     public void start() {
+        // do nothing
     }
 
     public void stop() {
@@ -99,6 +100,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     }
 
 
+    @Override
     public void updated(String pid, Dictionary<String, ?> dictionary) throws ConfigurationException {
         JahiaLDAPConfig ldapConfig;
         if (ldapConfigs.containsKey(pid)) {
@@ -111,6 +113,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
         ldapConfig.setContext(context, dictionary);
     }
 
+    @Override
     public void deleted(String pid) {
         JahiaLDAPConfig ldapConfig = ldapConfigs.get(pid);
         pidsByProviderKey.remove(ldapConfig.getProviderKey());

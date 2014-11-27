@@ -82,6 +82,8 @@ import java.util.Set;
  * @author kevan
  */
 public abstract class AbstractConfig {
+    private static final int DEFAULT_SEARCH_COUNT_LIMIT = 100;
+    
     private String url;
     private String publicBindDn;
     private String publicBindPassword;
@@ -112,7 +114,7 @@ public abstract class AbstractConfig {
     private Long ldapConnectPoolTimeBetweenEvictionRunsMillis;
     private String ldapConnectPoolWhenExhaustedAction;
 
-    private long searchCountlimit = 100;
+    private long searchCountlimit = DEFAULT_SEARCH_COUNT_LIMIT;
     private String searchObjectclass;
     private boolean searchAttributeInDn = false;
     private Set<String> searchWildcardsAttributes = Sets.newHashSet();

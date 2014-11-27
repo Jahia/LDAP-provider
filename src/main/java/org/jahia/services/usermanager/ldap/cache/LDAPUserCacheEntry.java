@@ -76,6 +76,8 @@ import org.jahia.services.usermanager.JahiaUser;
 import java.io.Serializable;
 
 /**
+ * Represents and entry in the LDAP user cache.
+ * 
  * @author kevan
  */
 public class LDAPUserCacheEntry extends LDAPAbstractCacheEntry implements Serializable{

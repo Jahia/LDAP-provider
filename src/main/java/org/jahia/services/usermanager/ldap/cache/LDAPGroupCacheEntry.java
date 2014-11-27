@@ -78,6 +78,8 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
+ * Represents an entry in the LDAP grouo cache.
+ * 
  * @author kevan
  */
 public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Serializable{

@@ -79,6 +79,8 @@ import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
 
 /**
+ * Helper class for LDAP provider related caches.
+ * 
  * @author kevan
  */
 public class LDAPCacheManager {

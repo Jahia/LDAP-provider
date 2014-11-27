@@ -109,14 +109,19 @@ public class JahiaLDAPConfig {
     private String providerKey;
     private LDAPUserGroupProvider ldapUserGroupProvider;
 
+    /**
+     * Initializes an instance of this class.
+     * 
+     * @param dictionary configuration parameters
+     */
     public JahiaLDAPConfig(Dictionary<String, ?> dictionary) {
         providerKey = computeProviderKey(dictionary);
     }
 
     /**
      * defines or update the context of the provider
-     * @param context
-     * @param dictionary
+     * @param context the Spring application context object
+     * @param dictionary configuration parameters
      */
     public void setContext(ApplicationContext context, Dictionary<String, ?> dictionary) {
         Properties userLdapProperties = new Properties();
