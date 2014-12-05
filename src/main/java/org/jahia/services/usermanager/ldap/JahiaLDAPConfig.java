@@ -76,6 +76,7 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool.impl.GenericKeyedObjectPool;
+import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 import org.jahia.services.usermanager.ldap.config.AbstractConfig;
 import org.jahia.services.usermanager.ldap.config.GroupConfig;
 import org.jahia.services.usermanager.ldap.config.UserConfig;
@@ -227,7 +228,7 @@ public class JahiaLDAPConfig {
                     ldapUserGroupProvider.setDistinctBase(!userConfig.getUidSearchName().startsWith(groupConfig.getSearchName()) &&
                             !groupConfig.getSearchName().startsWith(userConfig.getUidSearchName()));
                 }
-                ldapUserGroupProvider.setLdapTemplate(ldap);
+                ldapUserGroupProvider.setLdapTemplateWrapper(new LdapTemplateWrapper(ldap));
                 ldapUserGroupProvider.setContextSource(lcs);
                 if (doRegister) {
                     ldapUserGroupProvider.register();
