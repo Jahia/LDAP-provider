@@ -117,6 +117,7 @@ public abstract class AbstractConfig {
     private long searchCountlimit = DEFAULT_SEARCH_COUNT_LIMIT;
     private String searchObjectclass;
     private boolean searchAttributeInDn = false;
+    private boolean canGroupContainSubGroups = false;
     private Set<String> searchWildcardsAttributes = Sets.newHashSet();
     private Map<String, String> attributesMapper = Maps.newHashMap();
 
@@ -360,6 +361,14 @@ public abstract class AbstractConfig {
 
     public void setSearchAttributeInDn(boolean searchAttributeInDn) {
         this.searchAttributeInDn = searchAttributeInDn;
+    }
+
+    public boolean isCanGroupContainSubGroups() {
+        return canGroupContainSubGroups;
+    }
+
+    public void setCanGroupContainSubGroups(boolean canGroupContainSubGroups) {
+        this.canGroupContainSubGroups = canGroupContainSubGroups;
     }
 
     public String getTargetSite() {
