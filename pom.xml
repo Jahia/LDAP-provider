@@ -90,6 +90,13 @@
         <developerConnection>scm:git:git@github.com:Jahia/LDAP-provider.git</developerConnection>
         <url>scm:git:git@github.com:Jahia/LDAP-provider.git</url>
     </scm>
+
+    <properties>
+        <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=!META-INF/**</embed-dependency>
+        <jahia-module-type>system</jahia-module-type>
+        <jahia-depends>default,external-provider-users-groups</jahia-depends>
+    </properties>
+
     <repositories>
         <repository>
             <releases>
@@ -163,17 +170,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Jahia-Module-Type>system</Jahia-Module-Type>
-                        <Jahia-Depends>default,external-provider-users-groups</Jahia-Depends>
-                    </instructions>
-                </configuration>
             </plugin>
         </plugins>
     </build>
