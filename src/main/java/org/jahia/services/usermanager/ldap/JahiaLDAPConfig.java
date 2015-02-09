@@ -73,6 +73,7 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool.impl.GenericKeyedObjectPool;
@@ -215,10 +216,8 @@ public class JahiaLDAPConfig {
                 ldap.setIgnorePartialResultException(true);
                 ldap.setIgnoreNameNotFoundException(true);
                 
-                boolean doRegister = false;
                 if (ldapUserGroupProvider == null) {
                     ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
-                    doRegister = true;
                 }
 
                 ldapUserGroupProvider.setKey(providerKey);
@@ -230,9 +229,9 @@ public class JahiaLDAPConfig {
                 }
                 ldapUserGroupProvider.setLdapTemplateWrapper(new LdapTemplateWrapper(ldap));
                 ldapUserGroupProvider.setContextSource(lcs);
-                if (doRegister) {
-                    ldapUserGroupProvider.register();
-                }
+
+                ldapUserGroupProvider.unregister();
+                ldapUserGroupProvider.register();
             } else {
                 unregister();
             }
@@ -255,6 +254,7 @@ public class JahiaLDAPConfig {
         ldapUserGroupProvider = null;
     }
 
+    @SuppressWarnings("unchecked")
     private String computeProviderKey(Dictionary<String, ?> dictionary) {
         String provideKey = (String) dictionary.get(LDAP_PROVIDER_KEY_PROP);
         if (provideKey != null) {
@@ -272,11 +272,7 @@ public class JahiaLDAPConfig {
             confId = StringUtils.removeEnd(StringUtils.substringAfter(filename,
                     factoryPid + "-"), ".cfg");
         }
-        if (StringUtils.isBlank(confId) || "config".equals(confId)) {
-            return "ldap";
-        } else {
-            return "ldap." + confId;
-        }
+        return (StringUtils.isBlank(confId) || "config".equals(confId))  ? "ldap" : ("ldap." + confId);
     }
 
     private String transformPropKeyToBeanAttr(String key){

@@ -71,23 +71,36 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedServiceFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import java.io.IOException;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 
 public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware {
 
+    private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigFactory.class);
+    
+    private ConfigurationAdmin configurationAdmin;
+
     private ApplicationContext context;
 
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
     private Map<String, String> pidsByProviderKey = new HashMap<String, String>();
 
+    public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
+        this.configurationAdmin = configurationAdmin;
+    }
+    
     public void start() {
         // do nothing
     }
@@ -108,17 +121,35 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
         } else {
             ldapConfig = new JahiaLDAPConfig(dictionary);
             ldapConfigs.put(pid, ldapConfig);
-            pidsByProviderKey.put(ldapConfig.getProviderKey(), pid);
+            deleteConfig(pidsByProviderKey.put(ldapConfig.getProviderKey(), pid));
         }
         ldapConfig.setContext(context, dictionary);
     }
 
+    private void deleteConfig(String pid) {
+        if (pid == null) {
+            return;
+        }
+        try {
+            Configuration cfg = configurationAdmin.getConfiguration(pid);
+            if (cfg != null) {
+                cfg.delete();
+            }
+        } catch (IOException e) {
+            logger.error("Unable to delete LDAP configuration for pid " + pid, e);
+        }
+    }
+
     @Override
     public void deleted(String pid) {
-        JahiaLDAPConfig ldapConfig = ldapConfigs.get(pid);
-        pidsByProviderKey.remove(ldapConfig.getProviderKey());
-        ldapConfig.unregister();
-        ldapConfigs.remove(pid);
+        JahiaLDAPConfig ldapConfig = ldapConfigs.remove(pid);
+        String existingPid = ldapConfig != null ? pidsByProviderKey.get(ldapConfig.getProviderKey()) : null;
+        if (existingPid != null && existingPid.equals(pid)) {
+            pidsByProviderKey.remove(ldapConfig.getProviderKey());
+            if (ldapConfig != null) {
+                ldapConfig.unregister();
+            }
+        }
     }
 
     public String getName() {

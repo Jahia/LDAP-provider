@@ -73,6 +73,7 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.collect.Lists;
 import com.sun.jndi.ldap.LdapURL;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.*;
@@ -104,6 +105,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.*;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+
 import java.util.*;
 
 import static org.springframework.ldap.query.LdapQueryBuilder.query;
@@ -1185,7 +1187,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     /**
-     * register the provider
+     * Registers the provider.
      */
     public void register() {
         externalUserGroupService.register(key, userConfig.getTargetSite(), this);

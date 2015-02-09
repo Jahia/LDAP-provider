@@ -13,7 +13,9 @@
         <property name="configurationAdmin" ref="configurationAdmin"/>
     </bean>
 
-    <bean id="JahiaLDAPConfigFactory" class="org.jahia.services.usermanager.ldap.JahiaLDAPConfigFactory"  init-method="start" destroy-method="stop" />
+    <bean id="JahiaLDAPConfigFactory" class="org.jahia.services.usermanager.ldap.JahiaLDAPConfigFactory"  init-method="start" destroy-method="stop">
+        <property name="configurationAdmin" ref="configurationAdmin"/>
+    </bean>    
 
     <bean id="JahiaLDAPConfigRegistry" class="org.jahia.modules.osgi.JahiaModuleConfigRegistry"
           init-method="start" destroy-method="stop">

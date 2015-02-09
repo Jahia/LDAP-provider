@@ -235,14 +235,15 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             } finally {
                 IOUtils.closeQuietly(out);
             }
+        } else {
+            String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+            if (pid == null) {
+                throw new Exception("Cannot find LDAP provider " + providerKey);
+            }
+            Configuration configuration = configurationAdmin.getConfiguration(pid);
+            properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
+            configuration.update((Dictionary) properties);
         }
-        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-        if (pid == null) {
-            throw new Exception("Cannot find LDAP provider " + providerKey);
-        }
-        Configuration configuration = configurationAdmin.getConfiguration(pid);
-        properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
-        configuration.update((Dictionary) properties);
     }
 
     @Override

@@ -71,33 +71,70 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Unbind configuration at module start/stop
  */
 public class JahiaLDAPConfigManager {
+
+    private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigManager.class);
+
     private ConfigurationAdmin configurationAdmin;
 
     public void start() {
-        unbindConfiguration();
+        unbindConfiguration(true);
     }
 
     public void stop() {
-        unbindConfiguration();
+        unbindConfiguration(false);
     }
 
-    private void unbindConfiguration() {
+    private void unbindConfiguration(boolean verify) {
         try {
-            Configuration[] configurations = configurationAdmin.listConfigurations("(service.factoryPid=org.jahia.services.usermanager.ldap)");
+            Configuration[] configurations = configurationAdmin
+                    .listConfigurations("(service.factoryPid=org.jahia.services.usermanager.ldap)");
             if (configurations != null) {
                 for (Configuration configuration : configurations) {
                     configuration.setBundleLocation(null);
+                    if (verify) {
+                        verify(configuration);
+                    }
                 }
             }
         } catch (Exception e) {
-    // do nothing
+            // do nothing
+        }
+    }
+
+    private void verify(Configuration configuration) {
+        String fileLocation = (String) configuration.getProperties().get("felix.fileinstall.filename");
+        Long timestamp = (Long) configuration.getProperties().get("felix.fileinstall.source.timestamp");
+        if (fileLocation != null && fileLocation.startsWith("file:")) {
+            try {
+                File source = new File(new URI(fileLocation));
+                if (!source.exists() || timestamp == null || source.lastModified() > timestamp) {
+                    // the configuration file was either deleted or is outdated -> delete the persisted configuration
+                    try {
+                        configuration.delete();
+                        logger.info("Deleting persisted LDAP configuration " + configuration.getPid() + " (location: "
+                                + fileLocation + ") as the correspondign file was either deleted or is outdated.");
+                    } catch (IOException e) {
+                        logger.error("Unable to delete persisted LDAP condifguration " + configuration.getPid()
+                                + " (location: " + fileLocation + ")", e);
+                    }
+                }
+            } catch (URISyntaxException e1) {
+                logger.error(e1.getMessage(), e1);
+            }
         }
     }
 
