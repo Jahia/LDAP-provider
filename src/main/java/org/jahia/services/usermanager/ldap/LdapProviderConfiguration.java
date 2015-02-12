@@ -75,6 +75,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.UserGroupProviderConfiguration;
+import org.jahia.services.content.JCRContentUtils;
 import org.jahia.settings.SettingsBean;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -159,6 +160,9 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         }
         flashScope.put("ldapProperties", properties);
         String configName = (String) parameters.get("configName");
+        if (configName != null) {
+            configName = JCRContentUtils.generateNodeName(configName);
+        }
         flashScope.put("configName", configName);
         if (!testConnection(properties)) {
             throw new Exception("Connection to the LDAP server impossible");
