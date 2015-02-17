@@ -118,10 +118,10 @@ public class JahiaLDAPConfigManager {
     private void verify(Configuration configuration) {
         String fileLocation = (String) configuration.getProperties().get("felix.fileinstall.filename");
         Long timestamp = (Long) configuration.getProperties().get("felix.fileinstall.source.timestamp");
-        if (fileLocation != null && fileLocation.startsWith("file:")) {
+        if (fileLocation != null && fileLocation.startsWith("file:") && timestamp != null) {
             try {
                 File source = new File(new URI(fileLocation));
-                if (!source.exists() || timestamp == null || source.lastModified() > timestamp) {
+                if (!source.exists() || source.lastModified() > timestamp) {
                     // the configuration file was either deleted or is outdated -> delete the persisted configuration
                     try {
                         configuration.delete();
