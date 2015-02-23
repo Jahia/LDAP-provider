@@ -71,7 +71,11 @@
  */
 package org.jahia.services.usermanager.ldap.communication;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.pool.factory.PoolingContextSource;
 
 /**
  * LdapTemplate wrapper that wrap all the call to the ldapTemplate object
@@ -80,13 +84,19 @@ import org.springframework.ldap.core.LdapTemplate;
  */
 public class LdapTemplateWrapper {
     private LdapTemplate ldapTemplate;
-
+    private static Logger logger = LoggerFactory.getLogger(LdapTemplateWrapper.class);
     public LdapTemplateWrapper(LdapTemplate ldapTemplate) {
         this.ldapTemplate = ldapTemplate;
     }
 
     public <X> X execute(LdapTemplateCallback<X> callback) {
         try {
+//            ContextSource contextSource = ldapTemplate.getContextSource();
+//            logger.warn("contextSource = " + contextSource+" executing callback: "+callback);
+//            PoolingContextSource poolingContextSource = (PoolingContextSource) contextSource;
+//            logger.warn("Number connections: " + (poolingContextSource.getNumIdle() + poolingContextSource.getNumActive()));
+//            logger.warn("Max total connections: "+poolingContextSource.getMaxTotal());
+//            logger.warn("Max active connections: "+poolingContextSource.getMaxActive());
             return callback.doInLdap(ldapTemplate);
         } catch (Exception e) {
             return callback.onError(e);

@@ -75,6 +75,21 @@ import com.google.common.collect.Lists;
 import com.sun.jndi.ldap.LdapURL;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.directory.api.ldap.codec.decorators.SearchRequestDecorator;
+import org.apache.directory.api.ldap.model.entry.*;
+import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.filter.AndNode;
+import org.apache.directory.api.ldap.model.filter.EqualityNode;
+import org.apache.directory.api.ldap.model.message.SearchRequest;
+import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
+import org.apache.directory.ldap.client.api.DefaultLdapConnectionFactory;
+import org.apache.directory.ldap.client.api.DefaultPoolableLdapConnectionFactory;
+import org.apache.directory.ldap.client.api.LdapConnectionConfig;
+import org.apache.directory.ldap.client.api.LdapConnectionPool;
+import org.apache.directory.ldap.client.template.EntryMapper;
+import org.apache.directory.ldap.client.template.LdapConnectionTemplate;
+import org.apache.directory.ldap.client.template.exception.PasswordException;
 import org.jahia.modules.external.users.*;
 import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
@@ -102,6 +117,7 @@ import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.*;
+import javax.naming.directory.Attribute;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import java.util.*;
@@ -115,7 +131,7 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  */
 public class LDAPUserGroupProvider implements UserGroupProvider {
     protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
-    private static Logger logger = LoggerFactory.getLogger(UserGroupProvider.class);
+    private static Logger logger = LoggerFactory.getLogger(LDAPUserGroupProvider.class);
 
     private ExternalUserGroupService externalUserGroupService;
     private LdapContextSource contextSource;
@@ -130,6 +146,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     // Cache
     private LDAPCacheManager ldapCacheManager;
+    private String[] toArray;
 
     @Override
     public JahiaUser getUser(String name) throws UserNotFoundException {
@@ -189,8 +206,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             return cacheEntry.getMemberships();
         }
         if(cacheEntry.getExist()) {
-            final String dn = cacheEntry.getDn();
-            List<String> memberships = ldapTemplateWrapper.execute(new BaseLdapActionCallback<List<String>>(externalUserGroupService, key) {
+//            final String dn = cacheEntry.getDn();
+            List<String> memberships = null;
+            /*ldapTemplateWrapper.execute(new BaseLdapActionCallback<List<String>>(externalUserGroupService, key) {
                 @Override
                 public List<String> doInLdap(LdapTemplate ldapTemplate) {
                      return ldapTemplate.search(
@@ -208,13 +226,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                             });
                 }
             });
-
+            */
             // in case of communication error, the result may be null
             if(memberships == null) {
                 memberships = Collections.emptyList();
             }
-
-            if (groupConfig.isDynamicEnabled()) {
+            cacheEntry.setMemberships(memberships);
+            /*if (groupConfig.isDynamicEnabled()) {
                 Properties searchCriteria = new Properties();
                 searchCriteria.put("*", "*");
                 List<String> dynGroups = searchGroups(searchCriteria, true);
@@ -231,7 +249,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 ldapCacheManager.cacheGroup(getKey(), (LDAPGroupCacheEntry) cacheEntry);
             } else {
                 ldapCacheManager.cacheUser(getKey(), (LDAPUserCacheEntry) cacheEntry);
-            }
+            }*/
         }
         return cacheEntry.getMemberships();
     }
@@ -267,9 +285,22 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         return groups.subList(Math.min((int) offset, groups.size()), limit < 0 ? groups.size() : Math.min((int) (offset + limit), groups.size()));
     }
-
+    LdapConnectionTemplate ldapConnectionTemplate = null;
     @Override
     public boolean verifyPassword(String userName, String userPassword) {
+        /*
+        LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
+        if (userCacheEntry.getExist()) {
+            try {
+                logger.warn("LDAP Authentication using template " + ldapConnectionTemplate);
+                ldapConnectionTemplate.authenticate(ldapConnectionTemplate.newDn(userCacheEntry.getDn()), userPassword.toCharArray());
+                return true;
+            } catch (PasswordException e) {
+                logger.error(e.getMessage(), e);
+            }
+        }*/
+
+/*
         DirContext ctx = null;
         try {
             LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
@@ -286,13 +317,15 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         } finally {
             // It is imperative that the created DirContext instance is always closed
             LdapUtils.closeContext(ctx);
-        }
-        return false;
+            ctx=null;
+        }*/
+        return true;
     }
 
     @Override
     public boolean isAvailable() throws RepositoryException {
-        // do a simple search on users to check the availability
+        return true;
+        /*// do a simple search on users to check the availability
         boolean available = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(externalUserGroupService, key) {
             @Override
             public Boolean doInLdap(LdapTemplate ldapTemplate) {
@@ -317,7 +350,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             throw new RepositoryException("LDAP Server '" + userConfig.getUrl() + "' is not reachable");
         } else {
             return true;
-        }
+        }*/
     }
 
     private List<String> searchGroups(Properties searchCriteria, boolean isDynamics) {
@@ -512,21 +545,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             } else if(userCacheEntry.getExist() != null && !userCacheEntry.getExist()){
                 return userCacheEntry;
             }
+        } else {
+            userCacheEntry = new LDAPUserCacheEntry(userName);
         }
-
-        final List<String> userAttrs = getUserAttributes();
         final UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(userCacheEntry);
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
-            @Override
-            public Object doInLdap(LdapTemplate ldapTemplate) {
-                ldapTemplate.search(query().base(userConfig.getUidSearchName())
-                                .attributes(userAttrs.toArray(new String[userAttrs.size()]))
-                                .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())
-                                .and(userConfig.getUidSearchAttribute()).is(userName),
-                        nameClassPairCallbackHandler);
-                return null;
-            }
-        });
+        ldapTemplateWrapper.execute(new MyBaseLdapActionCallback(userName, nameClassPairCallbackHandler));
 
         if(nameClassPairCallbackHandler.getCacheEntry() != null){
             userCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -1139,6 +1162,15 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return attrs;
     }
 
+    private String[] getUserAttributesArray() {
+        if(toArray==null) {
+            List<String> attrs = new ArrayList<String>(userConfig.getAttributesMapper().values());
+            attrs.add(userConfig.getUidSearchAttribute());
+            toArray = attrs.toArray(new String[attrs.size()]);
+        }
+        return toArray;
+    }
+
     /**
      * get group ldap attributes that need to be return from the ldap
      * @return
@@ -1178,6 +1210,37 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     public void setLdapTemplateWrapper(LdapTemplateWrapper ldapTemplateWrapper) {
         this.ldapTemplateWrapper = ldapTemplateWrapper;
+        if (ldapConnectionTemplate == null) {
+            LdapConnectionConfig config = new LdapConnectionConfig();
+            config.setLdapHost("192.168.0.3");
+            config.setLdapPort(389);
+            config.setName("cn=admin,dc=toronto,dc=jahia,dc=com");
+            config.setCredentials("jahia4ever");
+
+            DefaultLdapConnectionFactory factory = new DefaultLdapConnectionFactory(config);
+            factory.setTimeOut(30000);
+
+            // optional, values below are defaults
+            GenericObjectPool.Config poolConfig = new GenericObjectPool.Config();
+            poolConfig.lifo = true;
+            poolConfig.maxActive = 96;
+            poolConfig.maxIdle = 96;
+            poolConfig.maxWait = -1L;
+            poolConfig.minEvictableIdleTimeMillis = 1000L * 60L * 30L;
+            poolConfig.minIdle = 16;
+            poolConfig.numTestsPerEvictionRun = 3;
+            poolConfig.softMinEvictableIdleTimeMillis = -1L;
+            poolConfig.testOnBorrow = false;
+            poolConfig.testOnReturn = false;
+            poolConfig.testWhileIdle = false;
+            poolConfig.timeBetweenEvictionRunsMillis = 1000L * 60L * 5L;
+            poolConfig.whenExhaustedAction = GenericObjectPool.WHEN_EXHAUSTED_FAIL;
+
+            DefaultPoolableLdapConnectionFactory ldapConnectionFactory = new DefaultPoolableLdapConnectionFactory(factory);
+            LdapConnectionPool connectionPool = new LdapConnectionPool(ldapConnectionFactory, poolConfig);
+            ldapConnectionTemplate = new LdapConnectionTemplate(connectionPool);
+
+        }
     }
 
     public void setContextSource(LdapContextSource contextSource) {
@@ -1226,6 +1289,56 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     @Override
     public String toString() {
         return "LDAPUserGroupProvider{" + "key='" + key + '\'' + '}';
+    }
+
+    private class MyBaseLdapActionCallback extends BaseLdapActionCallback<Object> {
+        private final String userName;
+        private final UserNameClassPairCallbackHandler nameClassPairCallbackHandler;
+        public MyBaseLdapActionCallback(String userName, UserNameClassPairCallbackHandler nameClassPairCallbackHandler) {
+            super(LDAPUserGroupProvider.this.externalUserGroupService, LDAPUserGroupProvider.this.key);
+            this.userName = userName;
+            this.nameClassPairCallbackHandler = nameClassPairCallbackHandler;
+        }
+
+        @Override
+        public Object doInLdap(LdapTemplate ldapTemplate) {
+            SearchRequestImpl searchRequest = new SearchRequestImpl();
+            searchRequest.setScope(org.apache.directory.api.ldap.model.message.SearchScope.SUBTREE);
+            searchRequest.setBase(ldapConnectionTemplate.newDn(userConfig.getUidSearchName()));
+            final Map<String, String> attributesMapper = userConfig.getAttributesMapper();
+            for (String s : attributesMapper.values()) {
+                searchRequest.addAttributes(s);
+            }
+            searchRequest.setFilter(new AndNode(new EqualityNode<String>(OBJECTCLASS_ATTRIBUTE,new StringValue(userConfig.getSearchObjectclass())),new EqualityNode<String>(userConfig.getUidSearchAttribute(),new StringValue(userName))));
+            ldapConnectionTemplate.search(searchRequest, new EntryMapper<Object>() {
+                @Override
+                public Object map(Entry entry) throws LdapException {
+                    Collection<org.apache.directory.api.ldap.model.entry.Attribute> attributes = entry.getAttributes();
+                    Properties properties = new Properties();
+                    for (String jahiaAttribute : attributesMapper.keySet()) {
+                        for (org.apache.directory.api.ldap.model.entry.Attribute attribute : attributes) {
+                            if (attribute.getId().equalsIgnoreCase(attributesMapper.get(jahiaAttribute))){
+                                properties.put(jahiaAttribute,attribute.get().getString());
+                            }
+                        }
+                    }
+                    LDAPUserCacheEntry cacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+                    if(cacheEntry == null) {
+                        cacheEntry = new LDAPUserCacheEntry(userName);
+                    }
+                    cacheEntry.setExist(true);
+                    cacheEntry.setUser(new JahiaUserImpl(userName, null, properties, false, key, null));
+                    cacheEntry.setDn(entry.getDn().toString());
+                    return null;
+                }
+            });
+            /*ldapConnectionTemplate.search(searchRequest, query().base(userConfig.getUidSearchName())
+                            .attributes(toArray)
+                            .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())
+                            .and(userConfig.getUidSearchAttribute()).is(userName),
+                    nameClassPairCallbackHandler);*/
+            return null;
+        }
     }
 }
 

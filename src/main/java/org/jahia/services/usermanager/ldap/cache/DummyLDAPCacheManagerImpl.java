@@ -32,6 +32,9 @@
  */
 package org.jahia.services.usermanager.ldap.cache;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Created by IntelliJ IDEA.
  *
@@ -39,16 +42,36 @@ package org.jahia.services.usermanager.ldap.cache;
  * @since : JAHIA 6.1
  * Created : 03/02/15
  */
-public interface LDAPCacheManager {
-    LDAPUserCacheEntry getUserCacheEntryByName(String providerKey, String username);
+public class DummyLDAPCacheManagerImpl implements LDAPCacheManager {
+    private static Logger logger = LoggerFactory.getLogger(DummyLDAPCacheManagerImpl.class);
 
-    LDAPUserCacheEntry getUserCacheEntryByDn(String providerKey, String dn);
+    @Override
+    public LDAPUserCacheEntry getUserCacheEntryByName(String providerKey, String username) {
+        return null;
+    }
 
-    void cacheUser(String providerKey, LDAPUserCacheEntry ldapUserCacheEntry);
+    @Override
+    public LDAPUserCacheEntry getUserCacheEntryByDn(String providerKey, String dn) {
+        return null;
+    }
 
-    LDAPGroupCacheEntry getGroupCacheEntryName(String providerKey, String groupname);
+    @Override
+    public void cacheUser(String providerKey, LDAPUserCacheEntry ldapUserCacheEntry) {
 
-    LDAPGroupCacheEntry getGroupCacheEntryByDn(String providerKey, String dn);
+    }
 
-    void cacheGroup(String providerKey, LDAPGroupCacheEntry ldapGroupCacheEntry);
+    @Override
+    public LDAPGroupCacheEntry getGroupCacheEntryName(String providerKey, String groupname) {
+        return null;
+    }
+
+    @Override
+    public LDAPGroupCacheEntry getGroupCacheEntryByDn(String providerKey, String dn) {
+        return null;
+    }
+
+    @Override
+    public void cacheGroup(String providerKey, LDAPGroupCacheEntry ldapGroupCacheEntry) {
+
+    }
 }
