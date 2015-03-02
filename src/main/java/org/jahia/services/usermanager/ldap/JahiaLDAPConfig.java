@@ -172,6 +172,7 @@ public class JahiaLDAPConfig {
                 Map<String, Object> publicEnv = new Hashtable<String, Object>(1);
                 if(POOL_LDAP.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
                     lcs.setPooled(true);
+                    publicEnv.put("com.sun.jndi.ldap.connect.pool.authentication","none simple");
                     if (userConfig.getLdapConnectPoolTimeout() != null && Long.valueOf(userConfig.getLdapConnectTimeout()) > 0) { publicEnv.put("com.sun.jndi.ldap.connect.pool.timeout", userConfig.getLdapConnectPoolTimeout()); }
                     if (userConfig.getLdapConnectPoolDebug() != null) { publicEnv.put("com.sun.jndi.ldap.connect.pool.debug", userConfig.getLdapConnectPoolDebug()); }
                     if (userConfig.getLdapConnectPoolInitSize() != null) { publicEnv.put("com.sun.jndi.ldap.connect.pool.initsize", userConfig.getLdapConnectPoolInitSize()); }

@@ -71,12 +71,18 @@
  */
 package org.jahia.services.usermanager.ldap.cache;
 
+import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.config.Configuration;
+import net.sf.ehcache.config.PinningConfiguration;
 import org.jahia.services.cache.CacheHelper;
 import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
+
+import java.util.Map;
 
 /**
  * Helper class for LDAP provider related caches.
@@ -95,23 +101,36 @@ public class LDAPCacheManager {
         final CacheManager cacheManager = cacheProvider.getCacheManager();
         userCache = cacheManager.getCache(LDAP_USER_CACHE);
         if (userCache == null) {
-            cacheManager.addCache(LDAP_USER_CACHE);
-            userCache = cacheManager.getCache(LDAP_USER_CACHE);
+            userCache = createLDAPCache(cacheManager, LDAP_USER_CACHE);
         } else {
             userCache.removeAll();
         }
         groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
         if (groupCache == null) {
-            cacheManager.addCache(LDAP_GROUP_CACHE);
-            groupCache = cacheManager.getCache(LDAP_GROUP_CACHE);
+            groupCache = createLDAPCache(cacheManager, LDAP_GROUP_CACHE);
         } else  {
             groupCache.removeAll();
         }
     }
 
+    private Ehcache createLDAPCache(CacheManager cacheManager, String cacheName) {
+        CacheConfiguration cacheConfiguration = new CacheConfiguration();
+        cacheConfiguration.setName(cacheName);
+        cacheConfiguration.setTimeToIdleSeconds(3600);
+        cacheConfiguration.setEternal(false);
+        // Create a new cache with the configuration
+        Ehcache cache = new Cache(cacheConfiguration);
+        cache.setName(cacheName);
+        // Cache name has been set now we can initialize it by putting it in the manager.
+        // Only Cache manager is initializing caches.
+        return cacheManager.addCacheIfAbsent(cache);
+    }
+
     void stop(){
         // flush
+        if(userCache!=null)
         userCache.removeAll();
+        if(groupCache!=null)
         groupCache.removeAll();
     }
 
