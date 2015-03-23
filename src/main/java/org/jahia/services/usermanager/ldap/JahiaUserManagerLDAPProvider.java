@@ -90,6 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.naming.*;
+import javax.naming.ServiceUnavailableException;
 import javax.naming.directory.*;
 
 import java.util.*;
@@ -503,11 +504,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      */
     public DirContext getPublicContext() throws NamingException {
         DirContext publicCtx = null;
-        try {
-            publicCtx = connectToPublicDir();
-        } catch (NamingException ne) {
-            logger.warn("JNDI warning", ne);
-        }
+        publicCtx = connectToPublicDir();
         return publicCtx;
     }
 
@@ -592,10 +589,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             logger.warn("Reconnection required", cpe);
         } catch (javax.naming.ServiceUnavailableException sue) {
             logger.warn("Reconnection required", sue);
+            throw sue;
         } catch (javax.naming.TimeLimitExceededException tlee) {
             logger.warn("Reconnection required", tlee);
         } catch (javax.naming.CommunicationException ce) {
             logger.warn("Reconnection required", ce);
+            throw ce;
         } catch (SizeLimitExceededException e) {
             logger.warn(
                     "User search generated more than configured maximum search limit, limiting to " +
@@ -740,7 +739,15 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                 return null;
             }
 
-            user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
+            try {
+                user = lookupUserInLDAP(removeKeyPrefix(userKey), searchAttributeName);
+            } catch (ServiceUnavailableException e) {
+                logger.warn("Service unavailable detected while trying to load user " + userKey + ". Returning null and not caching in non existant user cache", e);
+                return null;
+            } catch (CommunicationException e) {
+                logger.warn("Communications exception detected while trying to load user " + userKey + ". Returning null and not caching in non existant user cache", e);
+                return null;
+            }
 
             if (user != null) {
                 cachePut(cacheKey, user);
@@ -763,7 +770,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
      * This method is only called by lookupUser (String userKey, String searchAttributeName)
      * which was only called by JahiaGroupManagerLDAPProvider.getGroupMembers()
      */
-    private JahiaLDAPUser lookupUserInLDAP(String userKey, String searchAttributeName) {
+    private JahiaLDAPUser lookupUserInLDAP(String userKey, String searchAttributeName) throws ServiceUnavailableException, CommunicationException {
         JahiaLDAPUser user = null;
 
         DirContext ctx = null;
@@ -781,6 +788,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                         " first results...");
             }
             user = null;
+        } catch (ServiceUnavailableException sue) {
+            // we re-throw so that we are not caught by the more general NamingException clause
+            throw sue;
+        } catch (CommunicationException ce) {
+            // we re-throw so that we are not caught by the more general NamingException clause
+            throw ce;
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             user = null;
@@ -1092,7 +1105,16 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             if (nonExistantUserCache.get(cacheKey) != null) {
                 return null;
             }
-            user = lookupUserInLDAP(removeKeyPrefix(userKey));
+
+            try {
+                user = lookupUserInLDAP(removeKeyPrefix(userKey));
+            } catch (ServiceUnavailableException e) {
+                logger.warn("Service unavailable detected while trying to load user " + userKey + ". Returning null and not caching in non existant user cache", e);
+                return null;
+            } catch (CommunicationException e) {
+                logger.warn("Communications exception detected while trying to load user " + userKey + ". Returning null and not caching in non existant user cache", e);
+                return null;
+            }
 
             if (user != null) {
                 cachePut(cacheKey, user);
@@ -1106,7 +1128,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
         return user;
     }
 
-    private JahiaLDAPUser lookupUserInLDAP(String userKey) {
+    private JahiaLDAPUser lookupUserInLDAP(String userKey) throws ServiceUnavailableException, CommunicationException {
         JahiaLDAPUser user = null;
 
         DirContext ctx = null;
@@ -1124,6 +1146,12 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
                         " first results...");
             }
             user = null;
+        } catch (ServiceUnavailableException sue) {
+            // we re-throw so that we are not caught by the more general NamingException clause
+            throw sue;
+        } catch (CommunicationException ce) {
+            // we re-throw so that we are not caught by the more general NamingException clause
+            throw ce;
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
             user = null;
