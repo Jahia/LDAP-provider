@@ -77,6 +77,7 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool.impl.GenericKeyedObjectPool;
+import org.jahia.modules.external.users.Member;
 import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 import org.jahia.services.usermanager.ldap.config.AbstractConfig;
 import org.jahia.services.usermanager.ldap.config.GroupConfig;
@@ -233,6 +234,17 @@ public class JahiaLDAPConfig {
 
                 ldapUserGroupProvider.unregister();
                 ldapUserGroupProvider.register();
+                if (groupConfig.isPreload()) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            List<String> l = ldapUserGroupProvider.searchGroups(new Properties(), 0, -1);
+                            for (String s : l) {
+                                List<Member> m = ldapUserGroupProvider.getGroupMembers(s);
+                            }
+                        }
+                    }, "LDAP Preload").start();
+                }
             } else {
                 unregister();
             }
