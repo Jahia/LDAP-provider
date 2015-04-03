@@ -149,7 +149,9 @@ public class LDAPCacheManager {
     public void cacheUser(String providerKey, LDAPUserCacheEntry ldapUserCacheEntry) {
         ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapUserCacheEntry, "ldap");
         userCache.put(new Element(getCacheNameKey(providerKey, ldapUserCacheEntry.getName()), cacheEntry));
-        userCache.put(new Element(getCacheDnKey(providerKey, ldapUserCacheEntry.getDn()), cacheEntry));
+        if (ldapUserCacheEntry.getDn() != null) {
+            userCache.put(new Element(getCacheDnKey(providerKey, ldapUserCacheEntry.getDn()), cacheEntry));
+        }
     }
 
     public LDAPGroupCacheEntry getGroupCacheEntryName(String providerKey, String groupname) {
@@ -163,7 +165,9 @@ public class LDAPCacheManager {
     public void cacheGroup(String providerKey, LDAPGroupCacheEntry ldapGroupCacheEntry) {
         ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapGroupCacheEntry, "ldap");
         groupCache.put(new Element(getCacheNameKey(providerKey, ldapGroupCacheEntry.getName()), cacheEntry));
-        groupCache.put(new Element(getCacheDnKey(providerKey, ldapGroupCacheEntry.getDn()), cacheEntry));
+        if (ldapGroupCacheEntry.getDn() != null) {
+            groupCache.put(new Element(getCacheDnKey(providerKey, ldapGroupCacheEntry.getDn()), cacheEntry));
+        }
     }
 
     private String getCacheNameKey(String providerKey, String objectName) {
