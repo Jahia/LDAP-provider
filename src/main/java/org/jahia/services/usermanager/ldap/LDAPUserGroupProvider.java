@@ -245,7 +245,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> searchUsers(final Properties searchCriteria, long offset, long limit) {
-        if (searchCriteria.containsKey("username") && searchCriteria.size() == 1) {
+        if (searchCriteria.containsKey("username") && searchCriteria.size() == 1 && !searchCriteria.getProperty("username").contains("*")) {
             try {
                 JahiaUser user = getUser((String) searchCriteria.get("username"));
                 return Arrays.asList(user.getUsername());
@@ -274,7 +274,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public List<String> searchGroups(Properties searchCriteria, long offset, long limit) {
-        if (searchCriteria.containsKey("groupname") && searchCriteria.size() == 1) {
+        if (searchCriteria.containsKey("groupname") && searchCriteria.size() == 1 && !searchCriteria.getProperty("groupname").contains("*")) {
             try {
                 JahiaGroup group = getGroup((String) searchCriteria.get("groupname"));
                 return Arrays.asList(group.getGroupname());
