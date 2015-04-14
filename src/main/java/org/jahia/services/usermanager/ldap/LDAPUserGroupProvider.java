@@ -757,9 +757,13 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         @Override
         public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
-            SearchResult searchResult = (SearchResult) nameClassPair;
-            cacheEntry = attributesToUserCacheEntry(searchResult.getAttributes(), cacheEntry);
-            cacheEntry.setDn(searchResult.getNameInNamespace());
+            if (nameClassPair instanceof SearchResult) {
+                SearchResult searchResult = (SearchResult) nameClassPair;
+                cacheEntry = attributesToUserCacheEntry(searchResult.getAttributes(), cacheEntry);
+                cacheEntry.setDn(searchResult.getNameInNamespace());
+            } else {
+                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+            }
         }
     }
 
@@ -781,13 +785,17 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         @Override
         public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
-            SearchResult searchResult = (SearchResult) nameClassPair;
-            cacheEntry = attributesToGroupCacheEntry(searchResult.getAttributes(), cacheEntry);
-            cacheEntry.setDynamic(isDynamic);
-            if (isDynamic && searchResult.getAttributes().get(groupConfig.getDynamicMembersAttribute()) != null) {
-                cacheEntry.setDynamicMembersURL(searchResult.getAttributes().get(groupConfig.getDynamicMembersAttribute()).get().toString());
+            if (nameClassPair instanceof SearchResult) {
+                SearchResult searchResult = (SearchResult) nameClassPair;
+                cacheEntry = attributesToGroupCacheEntry(searchResult.getAttributes(), cacheEntry);
+                cacheEntry.setDynamic(isDynamic);
+                if (isDynamic && searchResult.getAttributes().get(groupConfig.getDynamicMembersAttribute()) != null) {
+                    cacheEntry.setDynamicMembersURL(searchResult.getAttributes().get(groupConfig.getDynamicMembersAttribute()).get().toString());
+                }
+                cacheEntry.setDn(searchResult.getNameInNamespace());
+            } else {
+                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
             }
-            cacheEntry.setDn(searchResult.getNameInNamespace());
         }
     }
 
@@ -803,13 +811,17 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         @Override
         public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
-            SearchResult searchResult = (SearchResult) nameClassPair;
-            LDAPUserCacheEntry cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-            UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(cacheEntry);
-            nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-            LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
-            ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
-            names.add(ldapUserCacheEntry.getName());
+            if (nameClassPair instanceof SearchResult) {
+                SearchResult searchResult = (SearchResult) nameClassPair;
+                LDAPUserCacheEntry cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(cacheEntry);
+                nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+                LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+                ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
+                names.add(ldapUserCacheEntry.getName());
+            } else {
+                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+            }
         }
     }
 
@@ -830,13 +842,17 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         @Override
         public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
-            SearchResult searchResult = (SearchResult) nameClassPair;
-            LDAPGroupCacheEntry cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-            GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(cacheEntry, isDynamic);
-            nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-            LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
-            ldapCacheManager.cacheGroup(getKey(), ldapGroupCacheEntry);
-            names.add(ldapGroupCacheEntry.getName());
+            if (nameClassPair instanceof SearchResult) {
+                SearchResult searchResult = (SearchResult) nameClassPair;
+                LDAPGroupCacheEntry cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(cacheEntry, isDynamic);
+                nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+                LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+                ldapCacheManager.cacheGroup(getKey(), ldapGroupCacheEntry);
+                names.add(ldapGroupCacheEntry.getName());
+            } else {
+                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+            }
         }
     }
 
@@ -852,79 +868,83 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         @Override
         public void handleNameClassPair(NameClassPair nameClassPair) throws NamingException {
-            SearchResult searchResult = (SearchResult) nameClassPair;
+            if (nameClassPair instanceof SearchResult) {
+                SearchResult searchResult = (SearchResult) nameClassPair;
 
-            // try to know if we deal with a group or a user
-            Boolean isUser = guessUserOrGroupFromDN(searchResult.getNameInNamespace());
+                // try to know if we deal with a group or a user
+                Boolean isUser = guessUserOrGroupFromDN(searchResult.getNameInNamespace());
 
-            // try to retrieve the object from the cache
-            LDAPAbstractCacheEntry cacheEntry;
-            if (isUser != null) {
-                if (isUser) {
+                // try to retrieve the object from the cache
+                LDAPAbstractCacheEntry cacheEntry;
+                if (isUser != null) {
+                    if (isUser) {
+                        cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                    } else {
+                        cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                    }
+                } else {
+                    // look in all cache
                     cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-                } else {
-                    cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                    if (cacheEntry == null) {
+                        cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
+                        isUser = cacheEntry != null ? false : null;
+                    } else {
+                        isUser = true;
+                    }
                 }
-            } else {
-                // look in all cache
-                cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-                if (cacheEntry == null) {
-                    cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-                    isUser = cacheEntry != null ? false : null;
-                } else {
+                if (cacheEntry != null) {
+                    if (isUser) {
+                        logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " retrieved from cache and resolved as a user");
+                        members.add(new Member(cacheEntry.getName(), Member.MemberType.USER));
+                    } else {
+                        logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " retrieved from cache and resolved as a group");
+                        members.add(new Member(cacheEntry.getName(), Member.MemberType.GROUP));
+                    }
+                }
+
+                // try the objectclass
+                Boolean isDynamic = false;
+                searchResult.getAttributes().get(OBJECTCLASS_ATTRIBUTE).getAll();
+                List<String> objectclasses = new ArrayList<String>();
+                LdapUtils.collectAttributeValues(searchResult.getAttributes(), OBJECTCLASS_ATTRIBUTE, objectclasses, String.class);
+                if (objectclasses.contains(userConfig.getSearchObjectclass())) {
                     isUser = true;
+                } else if (objectclasses.contains(groupConfig.getSearchObjectclass())) {
+                    isUser = false;
+                } else if (groupConfig.isDynamicEnabled() && objectclasses.contains(groupConfig.getDynamicSearchObjectclass())) {
+                    isUser = false;
+                    isDynamic = true;
                 }
-            }
-            if (cacheEntry != null) {
-                if (isUser) {
-                    logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " retrieved from cache and resolved as a user");
-                    members.add(new Member(cacheEntry.getName(), Member.MemberType.USER));
-                } else {
-                    logger.debug("Dynamic member: " + searchResult.getNameInNamespace() + " retrieved from cache and resolved as a group");
-                    members.add(new Member(cacheEntry.getName(), Member.MemberType.GROUP));
+                if (isUser != null) {
+                    if (isUser) {
+                        handleUserNameClassPair(nameClassPair, searchResult);
+                    } else {
+                        handleGroupNameClassPair(nameClassPair, searchResult, isDynamic);
+                    }
+                    return;
                 }
-            }
 
-            // try the objectclass
-            Boolean isDynamic = false;
-            searchResult.getAttributes().get(OBJECTCLASS_ATTRIBUTE).getAll();
-            List<String> objectclasses = new ArrayList<String>();
-            LdapUtils.collectAttributeValues(searchResult.getAttributes(), OBJECTCLASS_ATTRIBUTE, objectclasses, String.class);
-            if (objectclasses.contains(userConfig.getSearchObjectclass())) {
-                isUser = true;
-            } else if (objectclasses.contains(groupConfig.getSearchObjectclass())) {
-                isUser = false;
-            } else if (groupConfig.isDynamicEnabled() && objectclasses.contains(groupConfig.getDynamicSearchObjectclass())) {
-                isUser = false;
-                isDynamic = true;
-            }
-            if (isUser != null) {
-                if (isUser) {
+                // try to guess the type on attributes present in the searchresult
+                List<String> searchResultsAttr = new ArrayList<String>();
+                NamingEnumeration<String> attrs = searchResult.getAttributes().getIDs();
+                while (attrs.hasMore()) {
+                    searchResultsAttr.add(attrs.next());
+                }
+                List<String> commonUserAttrs = getCommonAttributesSize(searchResultsAttr, getUserAttributes());
+                List<String> commonGroupAttrs = getCommonAttributesSize(searchResultsAttr, getGroupAttributes(isDynamic));
+                if (commonUserAttrs.size() > 0 && commonUserAttrs.contains(userConfig.getUidSearchAttribute()) && commonUserAttrs.size() > commonGroupAttrs.size()) {
                     handleUserNameClassPair(nameClassPair, searchResult);
-                } else {
-                    handleGroupNameClassPair(nameClassPair, searchResult, isDynamic);
+                    return;
+                } else if (commonGroupAttrs.size() > 0 && commonGroupAttrs.contains(groupConfig.getSearchAttribute())) {
+                    handleGroupNameClassPair(nameClassPair, searchResult, false);
+                    return;
                 }
-                return;
-            }
 
-            // try to guess the type on attributes present in the searchresult
-            List<String> searchResultsAttr = new ArrayList<String>();
-            NamingEnumeration<String> attrs = searchResult.getAttributes().getIDs();
-            while (attrs.hasMore()) {
-                searchResultsAttr.add(attrs.next());
+                // type not resolved
+                logger.warn("Dynamic member: " + searchResult.getNameInNamespace() + " not resolved as a user or a group");
+            } else {
+                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
             }
-            List<String> commonUserAttrs = getCommonAttributesSize(searchResultsAttr, getUserAttributes());
-            List<String> commonGroupAttrs = getCommonAttributesSize(searchResultsAttr, getGroupAttributes(isDynamic));
-            if (commonUserAttrs.size() > 0 && commonUserAttrs.contains(userConfig.getUidSearchAttribute()) && commonUserAttrs.size() > commonGroupAttrs.size()) {
-                handleUserNameClassPair(nameClassPair, searchResult);
-                return;
-            } else if (commonGroupAttrs.size() > 0 && commonGroupAttrs.contains(groupConfig.getSearchAttribute())) {
-                handleGroupNameClassPair(nameClassPair, searchResult, false);
-                return;
-            }
-
-            // type not resolved
-            logger.warn("Dynamic member: " + searchResult.getNameInNamespace() + " not resolved as a user or a group");
         }
 
         private void handleGroupNameClassPair(NameClassPair nameClassPair, SearchResult searchResult, Boolean isDynamic) throws NamingException {
