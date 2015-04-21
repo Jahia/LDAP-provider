@@ -132,6 +132,10 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     // Cache
     private LDAPCacheManager ldapCacheManager;
+    
+    private ContainerCriteria searchGroupCriteria;
+    
+    private ContainerCriteria searchGroupDynamicCriteria;
 
     @Override
     public JahiaUser getUser(String name) throws UserNotFoundException {
@@ -354,8 +358,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     }
 
     private List<String> searchGroups(final Properties searchCriteria, boolean isDynamics) {
-        List<String> groups = new LinkedList<String>();
-        final ContainerCriteria query = buildGroupQuery(searchCriteria, isDynamics);
+        final ContainerCriteria query = getGroupQuery(searchCriteria, isDynamics);
         final GroupsNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new GroupsNameClassPairCallbackHandler(isDynamics);
         long l = System.currentTimeMillis();
         ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
@@ -366,8 +369,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
         });
         logger.debug("Search groups for {} in {} ms", searchCriteria, System.currentTimeMillis() - l);
-        groups.addAll(searchNameClassPairCallbackHandler.getNames());
-        return groups;
+        return searchNameClassPairCallbackHandler.getNames();
     }
 
     /**
@@ -832,7 +834,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      * Callback handler for groups, retrieve the list of groupnames
      */
     private class GroupsNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
-        private List<String> names = new ArrayList<String>();
+        private List<String> names = new LinkedList<>();
         private boolean isDynamic;
 
         public List<String> getNames() {
@@ -1070,6 +1072,28 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return query;
     }
 
+    private ContainerCriteria getGroupQuery(Properties searchCriteria, boolean isDynamic) {
+        ContainerCriteria query = null;
+        if (searchCriteria.isEmpty()) {
+            // we once build and reuse the queries in case of empty search criteria
+            if (isDynamic) {
+                if (searchGroupDynamicCriteria == null) {
+                    searchGroupDynamicCriteria = buildGroupQuery(searchCriteria, isDynamic);
+                }
+                query = searchGroupDynamicCriteria;
+            } else {
+                if (searchGroupCriteria == null) {
+                    searchGroupCriteria = buildGroupQuery(searchCriteria, isDynamic);
+                }
+                query = searchGroupCriteria;
+            }
+        } else {
+            query = buildGroupQuery(searchCriteria, isDynamic);
+        }
+        
+        return query;
+    }
+    
     /**
      * Build a group query based on search criteria
      *
