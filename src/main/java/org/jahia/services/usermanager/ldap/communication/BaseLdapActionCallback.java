@@ -73,6 +73,8 @@ package org.jahia.services.usermanager.ldap.communication;
 
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.services.content.decorator.JCRMountPointNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.CommunicationException;
 import org.springframework.ldap.core.LdapTemplate;
 
@@ -86,6 +88,7 @@ import javax.naming.NamingException;
  * @author kevan
  */
 public abstract class BaseLdapActionCallback<T> implements LdapTemplateCallback<T> {
+    private static Logger logger = LoggerFactory.getLogger(BaseLdapActionCallback.class);
     ExternalUserGroupService externalUserGroupService;
     String key;
 
@@ -100,6 +103,7 @@ public abstract class BaseLdapActionCallback<T> implements LdapTemplateCallback<
     @Override
     public T onError(Exception e)  {
         final Throwable cause = e.getCause();
+        logger.error("An error occurred while communicating with the LDAP server", e);
         if (cause instanceof CommunicationException || cause instanceof NamingException) {
             externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.waiting);
         }
