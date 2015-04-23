@@ -76,14 +76,14 @@ import org.jahia.services.content.decorator.JCRMountPointNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.CommunicationException;
+import org.springframework.ldap.InsufficientResourcesException;
+import org.springframework.ldap.ServiceUnavailableException;
 import org.springframework.ldap.core.LdapTemplate;
 
-import javax.naming.NamingException;
-
 /**
- * Base ldap template action callback that handle the unmount of the ldap provider in case of communication issue with the ldap server
- * using the onError function
- * fill free to use it, implementing at least the doInLdap to wrap the call to the ldapTemplate object.
+ * Base LDAP template action callback that unmounts the LDAP provider in case of communication issue with the LDAP server
+ * using the onError method.
+ * Feel free to use it, implementing at least the doInLdap to wrap the call to the ldapTemplate object.
  *
  * @author kevan
  */
@@ -104,7 +104,7 @@ public abstract class BaseLdapActionCallback<T> implements LdapTemplateCallback<
     public T onError(Exception e)  {
         final Throwable cause = e.getCause();
         logger.error("An error occurred while communicating with the LDAP server", e);
-        if (cause instanceof CommunicationException || cause instanceof NamingException) {
+        if (cause instanceof CommunicationException || cause instanceof ServiceUnavailableException || cause instanceof InsufficientResourcesException) {
             externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.waiting);
         }
 
