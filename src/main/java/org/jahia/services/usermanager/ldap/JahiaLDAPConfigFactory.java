@@ -71,6 +71,7 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import org.jahia.services.cache.CacheHelper;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.cm.ConfigurationException;
@@ -100,7 +101,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
         this.configurationAdmin = configurationAdmin;
     }
-    
+
     public void start() {
         // do nothing
     }
@@ -124,6 +125,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
             deleteConfig(pidsByProviderKey.put(ldapConfig.getProviderKey(), pid));
         }
         ldapConfig.setContext(context, dictionary);
+        flushRelatedCaches();
     }
 
     private void deleteConfig(String pid) {
@@ -147,6 +149,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
         if (existingPid != null && existingPid.equals(pid)) {
             pidsByProviderKey.remove(ldapConfig.getProviderKey());
             ldapConfig.unregister();
+            flushRelatedCaches();
         }
     }
 
@@ -161,5 +164,12 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
 
     public String getConfigPID(String providerKey) {
         return pidsByProviderKey.get(providerKey);
+    }
+
+    private void flushRelatedCaches() {
+        CacheHelper.flushEhcacheByName("org.jahia.services.usermanager.JahiaUserManagerService.userPathByUserNameCache", true);
+        CacheHelper.flushEhcacheByName("org.jahia.services.usermanager.JahiaGroupManagerService.groupPathByGroupNameCache", true);
+        CacheHelper.flushEhcacheByName("LDAPUsersCache", true);
+        CacheHelper.flushEhcacheByName("LDAPGroupsCache", true);
     }
 }
