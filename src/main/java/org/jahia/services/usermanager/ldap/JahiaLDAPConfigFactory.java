@@ -146,9 +146,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
         String existingPid = ldapConfig != null ? pidsByProviderKey.get(ldapConfig.getProviderKey()) : null;
         if (existingPid != null && existingPid.equals(pid)) {
             pidsByProviderKey.remove(ldapConfig.getProviderKey());
-            if (ldapConfig != null) {
-                ldapConfig.unregister();
-            }
+            ldapConfig.unregister();
         }
     }
 
@@ -162,9 +160,6 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     }
 
     public String getConfigPID(String providerKey) {
-        if (pidsByProviderKey.containsKey(providerKey)) {
-            return pidsByProviderKey.get(providerKey);
-        }
-        return null;
+        return pidsByProviderKey.get(providerKey);
     }
 }

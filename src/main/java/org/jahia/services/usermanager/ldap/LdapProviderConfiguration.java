@@ -159,22 +159,31 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             }
         }
         flashScope.put("ldapProperties", properties);
+
+        // config name
         String configName = (String) parameters.get("configName");
-        if (configName != null) {
-            configName = JCRContentUtils.generateNodeName(configName);
+        if(StringUtils.isBlank(configName)) {
+            // if we didn't provide a not-blank config name, generate one
+            configName = "ldap" + System.currentTimeMillis();
         }
+        // normalize the name
+        configName = JCRContentUtils.generateNodeName(configName);
         flashScope.put("configName", configName);
+
+        // provider key
+        String providerKey = "ldap." + configName;
+        configName = jahiaLDAPConfigFactory.getName() + "-" + configName + ".cfg";
+
+        // check that we don't already have a provider with that key
+        String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
+        if (pid != null) {
+            throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
+        }
+
         if (!testConnection(properties)) {
             throw new Exception("Connection to the LDAP server impossible");
         }
-        String providerKey;
-        if (StringUtils.isBlank(configName)) {
-            providerKey = "ldap";
-            configName = jahiaLDAPConfigFactory.getName() + "-config.cfg";
-        } else {
-            providerKey = "ldap." + configName;
-            configName = jahiaLDAPConfigFactory.getName() + "-" + configName + ".cfg";
-        }
+
         File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath());
         if (file.exists()) {
             FileOutputStream out = new FileOutputStream(new File(file, configName));
@@ -184,10 +193,6 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
                 IOUtils.closeQuietly(out);
             }
         } else {
-            String pid = jahiaLDAPConfigFactory.getConfigPID(providerKey);
-            if (pid != null) {
-                throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
-            }
             Configuration configuration = configurationAdmin.createFactoryConfiguration(jahiaLDAPConfigFactory.getName());
             properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
             configuration.update((Dictionary) properties);
