@@ -44,6 +44,7 @@
         <property name="configurationAdmin" ref="configurationAdmin"/>
         <property name="defaultProperties">
             <list>
+                <value>target.site</value>
                 <value>url</value>
                 <value>public.bind.dn</value>
                 <value>public.bind.password</value>
