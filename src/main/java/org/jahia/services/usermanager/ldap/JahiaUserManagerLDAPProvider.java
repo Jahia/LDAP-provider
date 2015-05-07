@@ -640,6 +640,7 @@ public class JahiaUserManagerLDAPProvider extends JahiaUserManagerProvider {
             logger.debug("Invalidating connection to public LDAP context...");
             dn = null;
         } catch (NamingException ne) {
+            logger.warn("Login failed for user " + userKey + ", active debug log level for more informations");
             if (logger.isDebugEnabled()) {
                 logger.debug("Login refused, server message : " + ne.getMessage());
             }
