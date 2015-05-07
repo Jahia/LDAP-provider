@@ -302,6 +302,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public boolean verifyPassword(String userName, String userPassword) {
+        logger.debug("Verify password for {}", userName);
         DirContext ctx = null;
         try {
             LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
@@ -311,13 +312,14 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
                 // Take care here - if a base was specified on the ContextSource
                 // that needs to be removed from the user DN for the lookup to succeed.
                 ctx.lookup(userCacheEntry.getDn());
-                logger.debug("Verify password for {} in {} ms", userName, System.currentTimeMillis() - l);
+                logger.debug("Password verified for {} in {} ms", userName, System.currentTimeMillis() - l);
 
                 return true;
             }
-        } catch (Exception e) {
+        } catch (NamingException | org.springframework.ldap.NamingException e) {
             // Context creation failed - authentication did not succeed
-            //logger.error("Login failed", e);
+            logger.warn("Login failed for user " + userName + ", active debug log level for more informations");
+            logger.debug("Login failed", e);
         } finally {
             // It is imperative that the created DirContext instance is always closed
             LdapUtils.closeContext(ctx);
