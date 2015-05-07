@@ -89,8 +89,8 @@ import org.springframework.ldap.core.LdapTemplate;
  */
 public abstract class BaseLdapActionCallback<T> implements LdapTemplateCallback<T> {
     private static Logger logger = LoggerFactory.getLogger(BaseLdapActionCallback.class);
-    ExternalUserGroupService externalUserGroupService;
-    String key;
+    private final ExternalUserGroupService externalUserGroupService;
+    private final String key;
 
     protected BaseLdapActionCallback(ExternalUserGroupService externalUserGroupService, String key) {
         this.externalUserGroupService = externalUserGroupService;
@@ -103,9 +103,11 @@ public abstract class BaseLdapActionCallback<T> implements LdapTemplateCallback<
     @Override
     public T onError(Exception e)  {
         final Throwable cause = e.getCause();
-        logger.error("An error occurred while communicating with the LDAP server", e);
+        logger.error("An error occurred while communicating with the LDAP server " + key, e);
         if (cause instanceof CommunicationException || cause instanceof ServiceUnavailableException || cause instanceof InsufficientResourcesException) {
-            externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.waiting);
+            externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.waiting, cause.getMessage());
+        } else {
+            externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.error, e.getMessage());
         }
 
         return null;

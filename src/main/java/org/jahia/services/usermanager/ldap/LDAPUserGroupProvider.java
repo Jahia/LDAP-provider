@@ -73,7 +73,6 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.collect.Lists;
 import com.sun.jndi.ldap.LdapURL;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.*;
@@ -89,7 +88,9 @@ import org.jahia.services.usermanager.ldap.config.GroupConfig;
 import org.jahia.services.usermanager.ldap.config.UserConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ldap.core.*;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.core.NameClassPairCallbackHandler;
 import org.springframework.ldap.core.support.DefaultIncrementalAttributesMapper;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.ldap.query.ConditionCriteria;
@@ -102,10 +103,12 @@ import javax.naming.InvalidNameException;
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.*;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
-
 import java.util.*;
 
 import static org.springframework.ldap.query.LdapQueryBuilder.query;
@@ -331,6 +334,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public boolean isAvailable() throws RepositoryException {
         // do a simple search on users to check the availability
         long l = System.currentTimeMillis();
+        final Exception[] exception = new Exception[1];
         boolean available = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(externalUserGroupService, key) {
             @Override
             public Boolean doInLdap(LdapTemplate ldapTemplate) {
@@ -346,6 +350,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             @Override
             public Boolean onError(Exception e) {
                 super.onError(e);
+                exception[0] = e;
                 return false;
             }
         });
@@ -353,7 +358,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
         if (!available) {
             // throw an exception instead of return false to display a custom message with the ldap server url.
-            throw new RepositoryException("LDAP Server '" + userConfig.getUrl() + "' is not reachable");
+            throw new RepositoryException("LDAP Server '" + userConfig.getUrl() + "' is not reachable", exception[0]);
         } else {
             return true;
         }

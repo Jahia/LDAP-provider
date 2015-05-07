@@ -73,11 +73,9 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool.impl.GenericKeyedObjectPool;
-import org.jahia.modules.external.users.Member;
 import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 import org.jahia.services.usermanager.ldap.config.AbstractConfig;
 import org.jahia.services.usermanager.ldap.config.GroupConfig;
@@ -133,11 +131,14 @@ public class JahiaLDAPConfig {
         GroupConfig groupConfig = new GroupConfig();
         Enumeration<String> keys = dictionary.keys();
 
+        String fileName = null;
         while (keys.hasMoreElements()) {
             String key = keys.nextElement();
             if (Constants.SERVICE_PID.equals(key) ||
-                    ConfigurationAdmin.SERVICE_FACTORYPID.equals(key) ||
-                    "felix.fileinstall.filename".equals(key)) {
+                    ConfigurationAdmin.SERVICE_FACTORYPID.equals(key)) {
+                continue;
+            } else if ("felix.fileinstall.filename".equals(key)) {
+                fileName = (String) dictionary.get(key);
                 continue;
             }
             Object value = dictionary.get(key);
@@ -159,101 +160,137 @@ public class JahiaLDAPConfig {
             userConfig.handleDefaults();
             groupConfig.handleDefaults();
 
-            // instantiate ldap context
-            if (userConfig.isMinimalSettingsOk()) {
-                LdapContextSource lcs = new LdapContextSource();
-                lcs.setUrl(userConfig.getUrl());
-                if (StringUtils.isNotEmpty(userConfig.getPublicBindDn())) {
-                    lcs.setUserDn(userConfig.getPublicBindDn());
-                }
-                if (StringUtils.isNotEmpty(userConfig.getPublicBindPassword())) {
-                    lcs.setPassword(userConfig.getPublicBindPassword());
-                }
 
-                Map<String, Object> publicEnv = new Hashtable<String, Object>(1);
-                if(POOL_LDAP.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
-                    lcs.setPooled(true);
-                    publicEnv.put("com.sun.jndi.ldap.connect.pool.authentication","none simple");
-                    if (userConfig.getLdapConnectPoolTimeout() != null && Long.valueOf(userConfig.getLdapConnectTimeout()) > 0) { publicEnv.put("com.sun.jndi.ldap.connect.pool.timeout", userConfig.getLdapConnectPoolTimeout()); }
-                    if (userConfig.getLdapConnectPoolDebug() != null) { publicEnv.put("com.sun.jndi.ldap.connect.pool.debug", userConfig.getLdapConnectPoolDebug()); }
-                    if (userConfig.getLdapConnectPoolInitSize() != null) { publicEnv.put("com.sun.jndi.ldap.connect.pool.initsize", userConfig.getLdapConnectPoolInitSize()); }
-                    if (userConfig.getLdapConnectPoolMaxSize() != null) { publicEnv.put("com.sun.jndi.ldap.connect.pool.maxsize", userConfig.getLdapConnectPoolMaxSize()); }
-                    if (userConfig.getLdapConnectPoolPrefSize() != null) { publicEnv.put("com.sun.jndi.ldap.connect.pool.prefsize", userConfig.getLdapConnectPoolPrefSize()); }
-                }
-                if (userConfig.getLdapReadTimeout() != null) { publicEnv.put("com.sun.jndi.ldap.read.timeout", userConfig.getLdapReadTimeout()); }
-                if (userConfig.getLdapConnectTimeout() != null) { publicEnv.put("com.sun.jndi.ldap.connect.timeout", userConfig.getLdapConnectTimeout()); }
-                lcs.setBaseEnvironmentProperties(publicEnv);
-
-                lcs.setReferral(groupConfig.getRefferal());
-                lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
-                lcs.afterPropertiesSet();
-
-
-                LdapTemplate ldap;
-
-                if (POOL_APACHE_COMMONS.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
-                    PoolingContextSource poolingContextSource = new PoolingContextSource();
-                    poolingContextSource.setContextSource(lcs);
-                    if (userConfig.getLdapConnectPoolMaxActive() != null) { poolingContextSource.setMaxActive(userConfig.getLdapConnectPoolMaxActive()); }
-                    if (userConfig.getLdapConnectPoolMaxIdle() != null) { poolingContextSource.setMaxIdle(userConfig.getLdapConnectPoolMaxIdle()); }
-                    if (userConfig.getLdapConnectPoolMaxTotal() != null) { poolingContextSource.setMaxTotal(userConfig.getLdapConnectPoolMaxTotal()); }
-                    if (userConfig.getLdapConnectPoolMaxWait() != null) { poolingContextSource.setMaxWait(userConfig.getLdapConnectPoolMaxWait()); }
-                    if (userConfig.getLdapConnectPoolMinEvictableIdleTimeMillis() != null) { poolingContextSource.setMinEvictableIdleTimeMillis(userConfig.getLdapConnectPoolMinEvictableIdleTimeMillis()); }
-                    if (userConfig.getLdapConnectPoolMinIdle() != null) { poolingContextSource.setMinIdle(userConfig.getLdapConnectPoolMinIdle()); }
-                    if (userConfig.getLdapConnectPoolNumTestsPerEvictionRun() != null) { poolingContextSource.setNumTestsPerEvictionRun(userConfig.getLdapConnectPoolNumTestsPerEvictionRun()); }
-                    if (userConfig.getLdapConnectPoolTestOnBorrow() != null) { poolingContextSource.setTestOnBorrow(userConfig.getLdapConnectPoolTestOnBorrow()); }
-                    if (userConfig.getLdapConnectPoolTestOnReturn() != null) { poolingContextSource.setTestOnReturn(userConfig.getLdapConnectPoolTestOnReturn()); }
-                    if (userConfig.getLdapConnectPoolTestWhileIdle() != null) { poolingContextSource.setTestWhileIdle(userConfig.getLdapConnectPoolTestWhileIdle()); }
-                    if (userConfig.getLdapConnectPoolTimeBetweenEvictionRunsMillis() != null) { poolingContextSource.setTimeBetweenEvictionRunsMillis(userConfig.getLdapConnectPoolTimeBetweenEvictionRunsMillis()); }
-                    if (WHEN_EXHAUSTED_BLOCK.equalsIgnoreCase(userConfig.getLdapConnectPoolWhenExhaustedAction())) { poolingContextSource.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_BLOCK); }
-                    else if (WHEN_EXHAUSTED_FAIL.equalsIgnoreCase(userConfig.getLdapConnectPoolWhenExhaustedAction())) { poolingContextSource.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_FAIL); }
-                    else if (WHEN_EXHAUSTED_GROW.equalsIgnoreCase(userConfig.getLdapConnectPoolWhenExhaustedAction())) { poolingContextSource.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_GROW); }
-
-                    ldap = new LdapTemplate(poolingContextSource);
-                } else {
-                    ldap = new LdapTemplate(lcs);
-                }
-
-                // AD workaround to ignore Exceptions
-                ldap.setIgnorePartialResultException(true);
-                ldap.setIgnoreNameNotFoundException(true);
-                
-                if (ldapUserGroupProvider == null) {
-                    ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
-                } else {
-                    ldapUserGroupProvider.flushGroupQuery();
-                }
-
-                ldapUserGroupProvider.setKey(providerKey);
-                ldapUserGroupProvider.setUserConfig(userConfig);
-                ldapUserGroupProvider.setGroupConfig(groupConfig);
-                if(StringUtils.isNotEmpty(userConfig.getUidSearchName()) && StringUtils.isNotEmpty(groupConfig.getSearchName())){
-                    ldapUserGroupProvider.setDistinctBase(!userConfig.getUidSearchName().startsWith(groupConfig.getSearchName()) &&
-                            !groupConfig.getSearchName().startsWith(userConfig.getUidSearchName()));
-                }
-                ldapUserGroupProvider.setLdapTemplateWrapper(new LdapTemplateWrapper(ldap));
-                ldapUserGroupProvider.setContextSource(lcs);
-
-                ldapUserGroupProvider.unregister();
-                ldapUserGroupProvider.register();
-                if (groupConfig.isPreload()) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            List<String> l = ldapUserGroupProvider.searchGroups(new Properties(), 0, -1);
-                            for (String s : l) {
-                                List<Member> m = ldapUserGroupProvider.getGroupMembers(s);
-                            }
-                        }
-                    }, "LDAP Preload").start();
-                }
-            } else {
-                unregister();
+            LdapContextSource lcs = new LdapContextSource();
+            lcs.setUrl(userConfig.getUrl());
+            if (StringUtils.isNotBlank(userConfig.getPublicBindDn())) {
+                lcs.setUserDn(userConfig.getPublicBindDn());
             }
-        } catch (IllegalAccessException e) {
-            logger.error("Config LDAP invalid, pls read the documentation on LDAP configuration", e);
-        } catch (InvocationTargetException e) {
-            logger.error("Config LDAP invalid, pls read the documentation on LDAP configuration", e);
+            if (StringUtils.isNotEmpty(userConfig.getPublicBindPassword())) {
+                lcs.setPassword(userConfig.getPublicBindPassword());
+            }
+
+            Map<String, Object> publicEnv = new HashMap<>();
+            if (POOL_LDAP.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
+                lcs.setPooled(true);
+                publicEnv.put("com.sun.jndi.ldap.connect.pool.authentication", "none simple");
+                if (userConfig.getLdapConnectPoolTimeout() != null && Long.valueOf(userConfig.getLdapConnectTimeout()) > 0) {
+                    publicEnv.put("com.sun.jndi.ldap.connect.pool.timeout", userConfig.getLdapConnectPoolTimeout());
+                }
+                if (userConfig.getLdapConnectPoolDebug() != null) {
+                    publicEnv.put("com.sun.jndi.ldap.connect.pool.debug", userConfig.getLdapConnectPoolDebug());
+                }
+                if (userConfig.getLdapConnectPoolInitSize() != null) {
+                    publicEnv.put("com.sun.jndi.ldap.connect.pool.initsize", userConfig.getLdapConnectPoolInitSize());
+                }
+                if (userConfig.getLdapConnectPoolMaxSize() != null) {
+                    publicEnv.put("com.sun.jndi.ldap.connect.pool.maxsize", userConfig.getLdapConnectPoolMaxSize());
+                }
+                if (userConfig.getLdapConnectPoolPrefSize() != null) {
+                    publicEnv.put("com.sun.jndi.ldap.connect.pool.prefsize", userConfig.getLdapConnectPoolPrefSize());
+                }
+            }
+            if (userConfig.getLdapReadTimeout() != null) {
+                publicEnv.put("com.sun.jndi.ldap.read.timeout", userConfig.getLdapReadTimeout());
+            }
+            if (userConfig.getLdapConnectTimeout() != null) {
+                publicEnv.put("com.sun.jndi.ldap.connect.timeout", userConfig.getLdapConnectTimeout());
+            }
+            lcs.setBaseEnvironmentProperties(publicEnv);
+
+            lcs.setReferral(groupConfig.getRefferal());
+            lcs.setDirObjectFactory(DefaultDirObjectFactory.class);
+            lcs.afterPropertiesSet();
+
+
+            LdapTemplate ldap;
+
+            if (POOL_APACHE_COMMONS.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
+                PoolingContextSource poolingContextSource = new PoolingContextSource();
+                poolingContextSource.setContextSource(lcs);
+                if (userConfig.getLdapConnectPoolMaxActive() != null) {
+                    poolingContextSource.setMaxActive(userConfig.getLdapConnectPoolMaxActive());
+                }
+                if (userConfig.getLdapConnectPoolMaxIdle() != null) {
+                    poolingContextSource.setMaxIdle(userConfig.getLdapConnectPoolMaxIdle());
+                }
+                if (userConfig.getLdapConnectPoolMaxTotal() != null) {
+                    poolingContextSource.setMaxTotal(userConfig.getLdapConnectPoolMaxTotal());
+                }
+                if (userConfig.getLdapConnectPoolMaxWait() != null) {
+                    poolingContextSource.setMaxWait(userConfig.getLdapConnectPoolMaxWait());
+                }
+                if (userConfig.getLdapConnectPoolMinEvictableIdleTimeMillis() != null) {
+                    poolingContextSource.setMinEvictableIdleTimeMillis(userConfig.getLdapConnectPoolMinEvictableIdleTimeMillis());
+                }
+                if (userConfig.getLdapConnectPoolMinIdle() != null) {
+                    poolingContextSource.setMinIdle(userConfig.getLdapConnectPoolMinIdle());
+                }
+                if (userConfig.getLdapConnectPoolNumTestsPerEvictionRun() != null) {
+                    poolingContextSource.setNumTestsPerEvictionRun(userConfig.getLdapConnectPoolNumTestsPerEvictionRun());
+                }
+                if (userConfig.getLdapConnectPoolTestOnBorrow() != null) {
+                    poolingContextSource.setTestOnBorrow(userConfig.getLdapConnectPoolTestOnBorrow());
+                }
+                if (userConfig.getLdapConnectPoolTestOnReturn() != null) {
+                    poolingContextSource.setTestOnReturn(userConfig.getLdapConnectPoolTestOnReturn());
+                }
+                if (userConfig.getLdapConnectPoolTestWhileIdle() != null) {
+                    poolingContextSource.setTestWhileIdle(userConfig.getLdapConnectPoolTestWhileIdle());
+                }
+                if (userConfig.getLdapConnectPoolTimeBetweenEvictionRunsMillis() != null) {
+                    poolingContextSource.setTimeBetweenEvictionRunsMillis(userConfig.getLdapConnectPoolTimeBetweenEvictionRunsMillis());
+                }
+                if (WHEN_EXHAUSTED_BLOCK.equalsIgnoreCase(userConfig.getLdapConnectPoolWhenExhaustedAction())) {
+                    poolingContextSource.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_BLOCK);
+                } else if (WHEN_EXHAUSTED_FAIL.equalsIgnoreCase(userConfig.getLdapConnectPoolWhenExhaustedAction())) {
+                    poolingContextSource.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_FAIL);
+                } else if (WHEN_EXHAUSTED_GROW.equalsIgnoreCase(userConfig.getLdapConnectPoolWhenExhaustedAction())) {
+                    poolingContextSource.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_GROW);
+                }
+
+                ldap = new LdapTemplate(poolingContextSource);
+            } else {
+                ldap = new LdapTemplate(lcs);
+            }
+
+
+            // AD workaround to ignore Exceptions
+            ldap.setIgnorePartialResultException(true);
+            ldap.setIgnoreNameNotFoundException(true);
+            if (ldapUserGroupProvider == null) {
+                ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
+            } else {
+                ldapUserGroupProvider.flushGroupQuery();
+            }
+
+            ldapUserGroupProvider.setKey(providerKey);
+            ldapUserGroupProvider.setUserConfig(userConfig);
+            ldapUserGroupProvider.setGroupConfig(groupConfig);
+            if (StringUtils.isNotEmpty(userConfig.getUidSearchName()) && StringUtils.isNotEmpty(groupConfig.getSearchName())) {
+                ldapUserGroupProvider.setDistinctBase(!userConfig.getUidSearchName().startsWith(groupConfig.getSearchName()) &&
+                        !groupConfig.getSearchName().startsWith(userConfig.getUidSearchName()));
+            }
+            ldapUserGroupProvider.setLdapTemplateWrapper(new LdapTemplateWrapper(ldap));
+            ldapUserGroupProvider.setContextSource(lcs);
+
+            ldapUserGroupProvider.unregister();
+            ldapUserGroupProvider.register();
+
+
+            if (userConfig.isMinimalSettingsOk() && groupConfig.isPreload()) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<String> l = ldapUserGroupProvider.searchGroups(new Properties(), 0, -1);
+                        for (String s : l) {
+                            ldapUserGroupProvider.getGroupMembers(s);
+                        }
+                    }
+                }, "LDAP Preload").start();
+            }
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            logger.error("Invalid LDAP configuration:" + fileName + ", please refer to the LDAP configuration documentation", e);
         }
     }
 
