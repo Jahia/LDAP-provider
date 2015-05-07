@@ -20,7 +20,12 @@
     LocalizationContext ctx = new LocalizationContext(rb);
     pageContext.setAttribute("bundle", ctx);
 %>
-
+<jcr:jqom statement="select * from [jnt:virtualsite] as site where ischildnode(site,'/sites') and localname(site) <> 'systemsite'" var="sites"/>
+<datalist id="sites">
+    <c:forEach items="${sites.nodes}" var="site">
+        <option value="${site.name}"/>
+    </c:forEach>
+</datalist>
 <template:addResources type="javascript" resources="jquery.min.js,jquery.form.min.js"/>
 <template:addResources>
     <script type="text/javascript">
@@ -46,7 +51,7 @@
                         $("<label><div class=\"row-fluid\"><div class=\"span4\">" + key +
                         "<input type=\"hidden\" name=\"propKey\" value=\"" + key +
                         "\" /></div><div class=\"span7\"><input type=\"text\" name=\"propValue\" value=\"" +
-                        value + "\" class=\"span12\"/></div>" +
+                        value + "\" " + (key == 'target.site' ? "list=\"sites\"" : "class=\"span12\"") + "/></div>" +
                         "<div class=\"span1\"><a class=\"btn\" onclick=\"$(this).parent().parent().remove()\"><i class=\"icon icon-minus\"></i></a></div>" +
                         "</div></label>").insertBefore($("#addField${currentNode.identifier}"));
                     });
@@ -60,6 +65,11 @@
 </template:addResources>
 
 <fieldset class="box-1">
+    <label>
+        <div class="row-fluid">
+            <a href="<c:url value='http://www.jahia.com/documentation-and-downloads/developers-techwiki/users-and-groups/ldap-connector'/>" target="_blank"><img src="<c:url value='/icons/help.png'/>" alt="?" height="16" width="16"/></a>
+        </div>
+    </label>
     <c:forEach var="previousProp" items="${ldapProperties}">
         <label>
             <div class="row-fluid">
@@ -68,7 +78,7 @@
                     <input type="hidden" name="propKey" value="${previousProp.key}" class="span12"/>
                 </div>
                 <div class="span7">
-                    <input type="text" name="propValue" value="${previousProp.value}" class="span12"/>
+                    <input type="text" name="propValue" value="${previousProp.value}" ${previousProp.key eq 'target.site'? 'list="sites"' : 'class="span12"'}/>
                 </div>
                 <div class="span1">
                     <a class="btn" onclick="$(this).parent().parent().remove()"><i class="icon icon-minus"></i></a>
