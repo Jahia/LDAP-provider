@@ -1095,6 +1095,11 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         
         return query;
     }
+
+    public void flushGroupQuery() {
+        searchGroupCriteria = null;
+        searchGroupDynamicCriteria = null;
+    }
     
     /**
      * Build a group query based on search criteria

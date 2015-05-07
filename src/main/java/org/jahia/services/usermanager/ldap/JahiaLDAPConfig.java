@@ -220,6 +220,8 @@ public class JahiaLDAPConfig {
                 
                 if (ldapUserGroupProvider == null) {
                     ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
+                } else {
+                    ldapUserGroupProvider.flushGroupQuery();
                 }
 
                 ldapUserGroupProvider.setKey(providerKey);
