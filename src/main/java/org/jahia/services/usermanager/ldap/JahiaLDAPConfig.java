@@ -113,7 +113,7 @@ public class JahiaLDAPConfig {
                     "felix.fileinstall.filename".equals(key)) {
                 continue;
             }
-            String value = (String) dictionary.get(key);
+            String value = dictionary.get(key).toString();
             if (key.startsWith("user.")) {
                 userLdapProperties.put(key.substring(5), value);
             } else if (key.startsWith("group.")) {
