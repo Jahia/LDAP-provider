@@ -141,23 +141,12 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     @Override
     public String getCreateJSP() {
-        return "/modules/ldap/userGroupProviderCreate.jsp";
+        return "/modules/ldap/userGroupProviderEdit.jsp";
     }
 
     @Override
     public String create(Map<String, Object> parameters, Map<String, Object> flashScope) throws Exception {
-        String[] propKeys = (String[]) parameters.get("propKey");
-        String[] propValues = (String[]) parameters.get("propValue");
-        if (propKeys == null || propValues == null) {
-            throw new Exception("No property has been set");
-        }
-        Properties properties = new Properties();
-        for (int i = 0; i < propKeys.length; i++) {
-            String propValue = propValues[i];
-            if (StringUtils.isNotBlank(propValue)) {
-                properties.put(propKeys[i], propValue);
-            }
-        }
+        Properties properties = getProperties(parameters);
         flashScope.put("ldapProperties", properties);
 
         // config name
@@ -212,18 +201,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     @Override
     public void edit(String providerKey, Map<String, Object> parameters, Map<String, Object> flashScope) throws Exception {
-        String[] propKeys = (String[]) parameters.get("propKey");
-        String[] propValues = (String[]) parameters.get("propValue");
-        if (propKeys == null || propValues == null) {
-            throw new Exception("No property has been set");
-        }
-        Properties properties = new Properties();
-        for (int i = 0; i < propKeys.length; i++) {
-            String propValue = propValues[i];
-            if (StringUtils.isNotBlank(propValue)) {
-                properties.put(propKeys[i], propValue);
-            }
-        }
+        Properties properties = getProperties(parameters);
         flashScope.put("ldapProperties", properties);
         if (!testConnection(properties)) {
             throw new Exception("Connection to the LDAP server impossible");
@@ -253,6 +231,39 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             properties.put(JahiaLDAPConfig.LDAP_PROVIDER_KEY_PROP, providerKey);
             configuration.update((Dictionary) properties);
         }
+    }
+
+    private Properties getProperties(Map<String, Object> parameters) throws Exception {
+        String[] propKeys;
+        String[] propValues;
+        if (parameters.get("propKey") instanceof String) {
+            propKeys = new String[] { (String) parameters.get("propKey") };
+            propValues = new String[] { (String) parameters.get("propValue") };
+        } else {
+            propKeys = (String[]) parameters.get("propKey");
+            propValues = (String[]) parameters.get("propValue");
+        }
+        Properties properties = new Properties();
+        if (propKeys != null) {
+            for (int i = 0; i < propKeys.length; i++) {
+                String propValue = propValues[i];
+                if (StringUtils.isNotBlank(propValue)) {
+                    properties.put(propKeys[i], propValue);
+                }
+            }
+        }
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            if (entry.getKey().startsWith("propValue.")) {
+                String key = StringUtils.substringAfter(entry.getKey(), "propValue.");
+                if (StringUtils.isNotBlank((String) entry.getValue())) {
+                    properties.put(key, entry.getValue());
+                }
+            }
+        }
+        if (parameters.isEmpty()) {
+            throw new Exception("No property has been set");
+        }
+        return properties;
     }
 
     @Override
