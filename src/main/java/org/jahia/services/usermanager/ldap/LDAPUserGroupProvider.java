@@ -990,7 +990,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      */
     private LDAPUserCacheEntry attributesToUserCacheEntry(Attributes attrs, LDAPUserCacheEntry userCacheEntry) throws NamingException {
         String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
-        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), false, key, null);
+        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), key, null);
         if (userCacheEntry == null) {
             userCacheEntry = new LDAPUserCacheEntry(userId);
         }
