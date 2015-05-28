@@ -306,7 +306,6 @@ public class JahiaLDAPConfig {
         ldapUserGroupProvider = null;
     }
 
-    @SuppressWarnings("unchecked")
     private String computeProviderKey(Dictionary<String, ?> dictionary) {
         String provideKey = (String) dictionary.get(LDAP_PROVIDER_KEY_PROP);
         if (provideKey != null) {
