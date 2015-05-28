@@ -73,6 +73,7 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.collect.Lists;
 import com.sun.jndi.ldap.LdapURL;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.users.*;
@@ -109,6 +110,7 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+
 import java.util.*;
 
 import static org.springframework.ldap.query.LdapQueryBuilder.query;
@@ -118,14 +120,12 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  *
  * @author david
  */
-public class LDAPUserGroupProvider implements UserGroupProvider {
+public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
     private static Logger logger = LoggerFactory.getLogger(LDAPUserGroupProvider.class);
 
-    private ExternalUserGroupService externalUserGroupService;
     private LdapContextSource contextSource;
     private LdapTemplateWrapper ldapTemplateWrapper;
-    private String key;
 
     // Configs
     private UserConfig userConfig;
@@ -144,7 +144,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public JahiaUser getUser(String name) throws UserNotFoundException {
         LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(name, true);
         if (!userCacheEntry.getExist()) {
-            throw new UserNotFoundException("unable to find user " + name + " on provider " + key);
+            throw new UserNotFoundException("unable to find user " + name + " on provider " + getKey());
         } else {
             return userCacheEntry.getUser();
         }
@@ -154,7 +154,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     public JahiaGroup getGroup(String name) throws GroupNotFoundException {
         LDAPGroupCacheEntry groupCacheEntry = getGroupCacheEntry(name, true);
         if (!groupCacheEntry.getExist()) {
-            throw new GroupNotFoundException("unable to find group " + name + " on provider " + key);
+            throw new GroupNotFoundException("unable to find group " + name + " on provider " + getKey());
         } else {
             return groupCacheEntry.getGroup();
         }
@@ -203,7 +203,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         if (cacheEntry.getExist()) {
             final String dn = cacheEntry.getDn();
             long l = System.currentTimeMillis();
-            List<String> memberships = ldapTemplateWrapper.execute(new BaseLdapActionCallback<List<String>>(externalUserGroupService, key) {
+            List<String> memberships = ldapTemplateWrapper.execute(new BaseLdapActionCallback<List<String>>(getExternalUserGroupService(), getKey()) {
                 @Override
                 public List<String> doInLdap(LdapTemplate ldapTemplate) {
                     return ldapTemplate.search(
@@ -269,7 +269,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         }
         final UsersNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new UsersNameClassPairCallbackHandler();
         long currentTimeMillis = System.currentTimeMillis();
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query, searchNameClassPairCallbackHandler);
@@ -335,7 +335,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         // do a simple search on users to check the availability
         long l = System.currentTimeMillis();
         final Exception[] exception = new Exception[1];
-        boolean available = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(externalUserGroupService, key) {
+        boolean available = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(getExternalUserGroupService(), getKey()) {
             @Override
             public Boolean doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(buildUserQuery(new Properties()), new NameClassPairCallbackHandler() {
@@ -368,7 +368,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         final ContainerCriteria query = getGroupQuery(searchCriteria, isDynamics);
         final GroupsNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new GroupsNameClassPairCallbackHandler(isDynamics);
         long l = System.currentTimeMillis();
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query, searchNameClassPairCallbackHandler);
@@ -407,7 +407,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
             }
 
             long l = System.currentTimeMillis();
-            ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+            ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
                 @Override
                 public Object doInLdap(LdapTemplate ldapTemplate) {
                     ldapTemplate.search(query()
@@ -437,7 +437,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
     private List<Member> loadMembersFromDN(final String groupDN) {
         long l = System.currentTimeMillis();
 
-        NamingEnumeration<?> members = ldapTemplateWrapper.execute(new BaseLdapActionCallback<NamingEnumeration<?>>(externalUserGroupService, key) {
+        NamingEnumeration<?> members = ldapTemplateWrapper.execute(new BaseLdapActionCallback<NamingEnumeration<?>>(getExternalUserGroupService(), getKey()) {
             @Override
             public NamingEnumeration<?> doInLdap(LdapTemplate ldapTemplate) {
                 // use AD range search if a range is specify in the conf
@@ -569,7 +569,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         final List<String> userAttrs = getUserAttributes();
         final UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(userCacheEntry);
         long l = System.currentTimeMillis();
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query().base(userConfig.getUidSearchName())
@@ -643,7 +643,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         final List<String> groupAttrs = getGroupAttributes(isDynamic);
         final GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         long l = System.currentTimeMillis();
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query().base(groupConfig.getSearchName())
@@ -678,7 +678,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         final List<String> groupAttrs = getGroupAttributes(isDynamic);
         final GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         long l = System.currentTimeMillis();
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query().base(dn)
@@ -712,7 +712,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         final List<String> userAttrs = getUserAttributes();
         final UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(null);
         long l = System.currentTimeMillis();
-        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(externalUserGroupService, key) {
+        ldapTemplateWrapper.execute(new BaseLdapActionCallback<Object>(getExternalUserGroupService(), getKey()) {
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query().base(dn)
@@ -990,7 +990,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
      */
     private LDAPUserCacheEntry attributesToUserCacheEntry(Attributes attrs, LDAPUserCacheEntry userCacheEntry) throws NamingException {
         String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
-        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), key, null);
+        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), getKey(), null);
         if (userCacheEntry == null) {
             userCacheEntry = new LDAPUserCacheEntry(userId);
         }
@@ -1286,18 +1286,6 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         return commons;
     }
 
-    public void setKey(String key) {
-        this.key = key;
-    }
-
-    public String getKey() {
-        return key;
-    }
-
-    public void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
-        this.externalUserGroupService = externalUserGroupService;
-    }
-
     public void setLdapTemplateWrapper(LdapTemplateWrapper ldapTemplateWrapper) {
         this.ldapTemplateWrapper = ldapTemplateWrapper;
     }
@@ -1306,18 +1294,9 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         this.contextSource = contextSource;
     }
 
-    /**
-     * Registers the provider.
-     */
-    public void register() {
-        externalUserGroupService.register(key, userConfig.getTargetSite(), this);
-    }
-
-    /**
-     * unregister the provider
-     */
-    public void unregister() {
-        externalUserGroupService.unregister(key);
+    @Override
+    protected String getSiteKey() {
+        return userConfig.getTargetSite();
     }
 
     public void setLdapCacheManager(LDAPCacheManager ldapCacheManager) {
@@ -1336,10 +1315,6 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
         this.distinctBase = distinctBase;
     }
 
-    public ExternalUserGroupService getExternalUserGroupService() {
-        return externalUserGroupService;
-    }
-
     @Override
     public boolean supportsGroups() {
         return groupConfig.isMinimalSettingsOk();
@@ -1347,7 +1322,7 @@ public class LDAPUserGroupProvider implements UserGroupProvider {
 
     @Override
     public String toString() {
-        return "LDAPUserGroupProvider{" + "key='" + key + '\'' + '}';
+        return "LDAPUserGroupProvider{" + "getKey()='" + getKey() + '\'' + '}';
     }
 }
 
