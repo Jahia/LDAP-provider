@@ -89,7 +89,8 @@
         <connection>scm:git:git@github.com:Jahia/LDAP-provider.git</connection>
         <developerConnection>scm:git:git@github.com:Jahia/LDAP-provider.git</developerConnection>
         <url>scm:git:git@github.com:Jahia/LDAP-provider.git</url>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
 
     <properties>
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
