@@ -41,6 +41,7 @@
 package org.jahia.services.usermanager;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -161,6 +162,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
     private Map<String, String> defaultLdapProperties = null;
 
     private Map<String, String> mappedProperties = null;
+    private String[] ldapAttributes = null;
 
     private List<String> searchWildCardAttributeList = null;
 
@@ -424,7 +426,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            SearchResult sr = getPublicGroup(ctx, groupKey);
+            SearchResult sr = getPublicGroup(ctx, groupKey, true);
             members = getGroupMembers(sr, dynamic);
         } catch (NamingException ne) {
             logger.warn("JNDI warning", ne);
@@ -459,7 +461,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            for (SearchResult sr : getGroups(ctx, null)) {
+            for (SearchResult sr : getGroups(ctx, null, false)) {
                 JahiaGroup curGroup = ldapToJahiaGroup(sr);
                 if (curGroup != null) {
                     result.add(curGroup.getGroupKey());
@@ -494,7 +496,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            for (SearchResult sr : getGroups(ctx, null)) {
+            for (SearchResult sr : getGroups(ctx, null, false)) {
                 JahiaGroup curGroup = ldapToJahiaGroup(sr);
                 if (curGroup != null) {
                     result.add(curGroup.getGroupname());
@@ -521,11 +523,12 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      * @param ctx     the current context in which to search for the group
      * @param searchFilters a set of name=value string that contain RFC 2254 format
      *                filters in the value, or null if we want to look in the full repository
+     * @param includeMembers
      * @return a list of SearchResult objects
      *         that contains the LDAP group entries that correspond to the filter
      * @throws NamingException
      */
-    private List<SearchResult> getGroups(DirContext ctx, Properties searchFilters)
+    private List<SearchResult> getGroups(DirContext ctx, Properties searchFilters, boolean includeMembers)
             throws NamingException {
         if (ctx == null) {
             throw new NamingException("Context is null !");
@@ -592,6 +595,9 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         // Search for objects that have those matching attributes
         SearchControls searchCtl = new SearchControls();
         searchCtl.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        if (!includeMembers && !StringUtils.defaultString(ldapProperties.get(PRELOAD_GROUP_MEMBERS), "true").equalsIgnoreCase("true")) {
+            searchCtl.setReturningAttributes(ldapAttributes);
+        }        
         int countLimit = Integer.parseInt(ldapProperties.get(SEARCH_COUNT_LIMIT_PROP));
         searchCtl.setCountLimit(countLimit);
         return getGroups(ctx, searchCtl, filterString);
@@ -1287,7 +1293,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            for (SearchResult sr : getGroups(ctx, searchcriteria)) {
+            for (SearchResult sr : getGroups(ctx, searchcriteria, false)) {
                 JahiaLDAPGroup group = ldapToJahiaGroup(sr);
                 if (group != null) {
                     result.add(group);
@@ -1366,7 +1372,7 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
         DirContext ctx = null;
         try {
             ctx = getPublicContext();
-            SearchResult sr = getPublicGroup(ctx, groupKey);
+            SearchResult sr = getPublicGroup(ctx, groupKey, false);
             if (sr == null) {
                 return null;
             }
@@ -1392,17 +1398,18 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
      *
      * @param ctx the current context in which to search for the group
      * @param cn  the unique identifier for the group
+     * @param includeMembers
      * @return a SearchResult object, which is the *first* result matching the
      *         cn
      * @throws NamingException
      */
-    private SearchResult getPublicGroup(DirContext ctx, String cn)
+    private SearchResult getPublicGroup(DirContext ctx, String cn, boolean includeMembers)
             throws NamingException {
         Properties filters = new Properties();
 
         filters.setProperty(ldapProperties.get(SEARCH_ATTRIBUTE_PROP),
                 cn);
-        List<SearchResult> answer = getGroups(ctx, filters);
+        List<SearchResult> answer = getGroups(ctx, filters, includeMembers);
         SearchResult sr = null;
         if (!answer.isEmpty()) {
             // we only take the first value if there are multiple answers, which
@@ -1452,6 +1459,10 @@ public class JahiaGroupManagerLDAPProvider extends JahiaGroupManagerProvider {
                         ".attribute.map"), entry.getValue());
             }
         }
+        Set<String> ldapAttributesList = new HashSet<String>();
+        ldapAttributesList.addAll(Arrays.asList("objectClass", "objectclass", ldapProperties.get(SEARCH_ATTRIBUTE_PROP), ldapProperties.get(SEARCH_NAME_PROP)));
+        ldapAttributesList.addAll(mappedProperties.values());
+        ldapAttributes = ldapAttributesList.toArray(new String[ldapAttributesList.size()]);        
 
         super.afterPropertiesSet();
     }
