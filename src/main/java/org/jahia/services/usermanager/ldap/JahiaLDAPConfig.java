@@ -97,22 +97,21 @@ import java.util.*;
  * Helper class to configure LDAP user and group providers via OSGi Config Admin service.
  */
 public class JahiaLDAPConfig {
+
     public static final String POOL_APACHE_COMMONS = "apache-commons";
     public static final String POOL_LDAP = "ldap";
     public static final String WHEN_EXHAUSTED_BLOCK = "block";
     public static final String WHEN_EXHAUSTED_FAIL = "fail";
     public static final String WHEN_EXHAUSTED_GROW = "grow";
-
     public static final String LDAP_PROVIDER_KEY_PROP = "ldap.provider.key";
-
-
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfig.class);
+
     private String providerKey;
     private LDAPUserGroupProvider ldapUserGroupProvider;
 
     /**
      * Initializes an instance of this class.
-     * 
+     *
      * @param dictionary configuration parameters
      */
     public JahiaLDAPConfig(Dictionary<String, ?> dictionary) {
@@ -258,10 +257,12 @@ public class JahiaLDAPConfig {
             // AD workaround to ignore Exceptions
             ldap.setIgnorePartialResultException(true);
             ldap.setIgnoreNameNotFoundException(true);
+
             if (ldapUserGroupProvider == null) {
                 ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
             } else {
-                ldapUserGroupProvider.flushGroupQuery();
+                // Deactivate the provider before reconfiguring it.
+                ldapUserGroupProvider.unregister();
             }
 
             ldapUserGroupProvider.setKey(providerKey);
@@ -274,9 +275,8 @@ public class JahiaLDAPConfig {
             ldapUserGroupProvider.setLdapTemplateWrapper(new LdapTemplateWrapper(ldap));
             ldapUserGroupProvider.setContextSource(lcs);
 
-            ldapUserGroupProvider.unregister();
+            // Activate (again).
             ldapUserGroupProvider.register();
-
 
             if (userConfig.isMinimalSettingsOk() && groupConfig.isPreload()) {
                 new Thread(new Runnable() {
