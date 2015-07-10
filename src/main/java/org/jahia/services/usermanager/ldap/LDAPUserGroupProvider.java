@@ -240,8 +240,12 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             }
         });
         if (logger.isDebugEnabled()) {
-            logger.debug("Query getMembership for {} / {} dn={} in {} ms", new Object[] { member.getName(),
-                    groupConfig.getSearchAttribute(), dn, System.currentTimeMillis() - startTime });
+            logger.debug("Query getMembership for {} / {} dn={} in {} ms", new Object[] {
+                member.getName(),
+                groupConfig.getSearchAttribute(),
+                dn,
+                System.currentTimeMillis() - startTime
+            });
         }
 
         // in case of communication error, the result may be null
@@ -297,10 +301,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Search users for {} in {} ms", searchCriteria, System.currentTimeMillis() - startTime);
-
-        }
+        logger.debug("Search users for {} in {} ms", searchCriteria, System.currentTimeMillis() - startTime);
 
         List<String> names = searchNameClassPairCallbackHandler.getNames();
         return names.subList(Math.min((int) offset, names.size()), limit < 0 ? names.size() : Math.min((int) (offset + limit), names.size()));
@@ -330,9 +331,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     @Override
     public boolean verifyPassword(String userName, String userPassword) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Verify password for {}", userName);
-        }
+        logger.debug("Verify password for {}", userName);
         DirContext ctx = null;
         try {
             LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
@@ -385,9 +384,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return false;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Is available in {} ms", System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Is available in {} ms", System.currentTimeMillis() - startTime);
 
         if (!available) {
             // throw an exception instead of return false to display a custom message with the ldap server url.
@@ -410,9 +407,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Search groups for {} in {} ms", searchCriteria, System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Search groups for {} in {} ms", searchCriteria, System.currentTimeMillis() - startTime);
+
         return searchNameClassPairCallbackHandler.getNames();
     }
 
@@ -459,9 +455,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     return null;
                 }
             });
-            if (logger.isDebugEnabled()) {
-                logger.debug("Load members from url {} in ms", url, System.currentTimeMillis() - startTime);
-            }
+            logger.debug("Load members from url {} in ms", url, System.currentTimeMillis() - startTime);
 
             return nameClassPairCallbackHandler.getMembers();
         } catch (NamingException e) {
@@ -509,9 +503,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Load group members {} in {} ms", groupDN, System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Load group members {} in {} ms", groupDN, System.currentTimeMillis() - startTime);
 
         return loadMembers(members);
     }
@@ -627,9 +619,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Get user {} in {} ms", userName, System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Get user {} in {} ms", userName, System.currentTimeMillis() - startTime);
 
         if (nameClassPairCallbackHandler.getCacheEntry() != null) {
             userCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -706,9 +696,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Get group {} in {} ms", name, System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Get group {} in {} ms", name, System.currentTimeMillis() - startTime);
 
         if (nameClassPairCallbackHandler.getCacheEntry() != null) {
             LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -745,9 +733,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Get group from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Get group from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
 
         if (nameClassPairCallbackHandler.getCacheEntry() != null) {
             LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -783,9 +769,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        if (logger.isDebugEnabled()) {
-            logger.debug("Get user from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
-        }
+        logger.debug("Get user from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
 
         if (nameClassPairCallbackHandler.getCacheEntry() != null) {
             LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
