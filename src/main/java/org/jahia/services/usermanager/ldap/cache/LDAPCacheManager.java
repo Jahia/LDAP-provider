@@ -128,10 +128,12 @@ public class LDAPCacheManager {
 
     void stop(){
         // flush
-        if(userCache!=null)
-        userCache.removeAll();
-        if(groupCache!=null)
-        groupCache.removeAll();
+        if (userCache != null) {
+            userCache.removeAll();
+        }
+        if (groupCache != null) {
+            groupCache.removeAll();
+        }
     }
 
     public void setCacheProvider(EhCacheProvider cacheProvider) {
