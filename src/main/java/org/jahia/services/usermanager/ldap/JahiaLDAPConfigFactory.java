@@ -94,12 +94,12 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigFactory.class);
     
-    private ConfigurationAdmin configurationAdmin;
+    private transient ConfigurationAdmin configurationAdmin;
 
-    private ApplicationContext context;
+    private transient ApplicationContext context;
 
-    private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
-    private Map<String, String> pidsByProviderKey = new HashMap<String, String>();
+    private transient Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
+    private transient Map<String, String> pidsByProviderKey = new HashMap<String, String>();
 
     public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
         this.configurationAdmin = configurationAdmin;
