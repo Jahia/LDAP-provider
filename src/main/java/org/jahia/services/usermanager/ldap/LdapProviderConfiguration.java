@@ -127,7 +127,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     private String userGroupProviderClass;
     private ExternalUserGroupService externalUserGroupService;
     private JahiaLDAPConfigFactory jahiaLDAPConfigFactory;
-    private ConfigurationAdmin configurationAdmin;
+    private transient ConfigurationAdmin configurationAdmin;
 
     @Override
     public String getName() {

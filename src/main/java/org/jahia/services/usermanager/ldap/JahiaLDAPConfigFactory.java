@@ -83,11 +83,14 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware {
+public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigFactory.class);
     
