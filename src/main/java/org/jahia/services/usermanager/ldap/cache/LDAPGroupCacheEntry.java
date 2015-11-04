@@ -86,7 +86,7 @@ public class LDAPGroupCacheEntry extends LDAPAbstractCacheEntry implements Seria
     private static final long serialVersionUID = -3585067276227107907L;
 
     private JahiaGroup group;
-    private transient List<Member> members;
+    private List<Member> members;
     private boolean isDynamic = false;
     private String dynamicMembersURL;
 
