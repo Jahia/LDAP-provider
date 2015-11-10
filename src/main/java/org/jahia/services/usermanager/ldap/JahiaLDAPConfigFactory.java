@@ -83,23 +83,20 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware, Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware {
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigFactory.class);
     
-    private transient ConfigurationAdmin configurationAdmin;
+    private ConfigurationAdmin configurationAdmin;
 
-    private transient ApplicationContext context;
+    private ApplicationContext context;
 
-    private transient Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
-    private transient Map<String, String> pidsByProviderKey = new HashMap<String, String>();
+    private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
+    private Map<String, String> pidsByProviderKey = new HashMap<String, String>();
 
     public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
         this.configurationAdmin = configurationAdmin;
