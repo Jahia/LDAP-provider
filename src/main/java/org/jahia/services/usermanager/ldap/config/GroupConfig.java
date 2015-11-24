@@ -73,6 +73,11 @@ package org.jahia.services.usermanager.ldap.config;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.ldap.support.LdapEncoder;
+import org.springframework.ldap.support.LdapUtils;
+
+import javax.naming.directory.Attributes;
+import javax.naming.directory.BasicAttributes;
 
 /**
  * Group specific config provide by the ldap config file
@@ -134,7 +139,7 @@ public class GroupConfig extends AbstractConfig{
     }
 
     public void setSearchName(String searchName) {
-        this.searchName = searchName;
+        this.searchName = searchName.replaceAll("\\\\([^,.\"+;<>])","\\\\\\\\$1");
     }
 
     public String getSearchAttribute() {
