@@ -515,7 +515,12 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             while (members != null && members.hasMore()) {
                 final String memberNaming = (String) members.next();
                 // try to know if we deal with a group or a user
-                Boolean isUser = userConfig.isCanGroupContainSubGroups() ? guessUserOrGroupFromDN(memberNaming) : true;
+                Boolean isUser = null;
+                if (userConfig.isCanGroupContainSubGroups()) {
+                    isUser = guessUserOrGroupFromDN(memberNaming);
+                } else {
+                    isUser = true;
+                }
 
                 // try to retrieve the object from the cache
                 LDAPAbstractCacheEntry cacheEntry;
