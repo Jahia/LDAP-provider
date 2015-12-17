@@ -90,7 +90,7 @@ public class UserConfig extends AbstractConfig{
     }
 
     public void setUidSearchName(String uidSearchName) {
-        this.uidSearchName = uidSearchName.replaceAll("\\\\([^,.\"+;<>])","\\\\\\\\$1");
+        this.uidSearchName = uidSearchName;
     }
 
     public String getUidSearchAttribute() {

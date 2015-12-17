@@ -119,7 +119,7 @@ public class GroupConfig extends AbstractConfig{
     }
 
     public void setSearchName(String searchName) {
-        this.searchName = searchName.replaceAll("\\\\([^,.\"+;<>])","\\\\\\\\$1");
+        this.searchName = searchName;
     }
 
     public String getSearchAttribute() {
