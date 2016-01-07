@@ -445,6 +445,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     private List<Member> loadMembersFromDN(final String groupDN) {
 
         long startTime = System.currentTimeMillis();
+        final LdapName groupName = LdapUtils.newLdapName(groupDN);
+        
         NamingEnumeration<?> members = ldapTemplateWrapper.execute(new BaseLdapActionCallback<NamingEnumeration<?>>(getExternalUserGroupService(), getKey()) {
 
             @Override
@@ -455,7 +457,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
                     DefaultIncrementalAttributesMapper incrementalAttributesMapper = new DefaultIncrementalAttributesMapper(groupConfig.getAdRangeStep(), groupConfig.getMembersAttribute());
                     while (incrementalAttributesMapper.hasMore()) {
-                        ldapTemplate.lookup(groupDN, incrementalAttributesMapper.getAttributesForLookup(), incrementalAttributesMapper);
+                        ldapTemplate.lookup(groupName, incrementalAttributesMapper.getAttributesForLookup(), incrementalAttributesMapper);
                     }
                     Attributes attributes = incrementalAttributesMapper.getCollectedAttributes();
                     try {
@@ -464,7 +466,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                         logger.error("Error retrieving the LDAP members using range on group: " + groupDN, e);
                     }
                 } else {
-                    return ldapTemplate.lookup(groupDN, new String[]{groupConfig.getMembersAttribute()}, new AttributesMapper<NamingEnumeration<?>>() {
+                    return ldapTemplate.lookup(groupName, new String[]{groupConfig.getMembersAttribute()}, new AttributesMapper<NamingEnumeration<?>>() {
 
                         @Override
                         public NamingEnumeration<?> mapFromAttributes(Attributes attributes) throws NamingException {
