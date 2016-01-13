@@ -99,7 +99,7 @@
 <fieldset class="box-1">
     <label>
         <div class="row-fluid">
-            <a class="btn" href="<c:url value='http://www.jahia.com/documentation-and-downloads/developers-techwiki/users-and-groups/ldap-connector'/>" target="_blank"><fmt:message bundle="${bundle}" key="ldap.provider.documentation"/></a>
+            <a class="btn" href="<c:url value='https://www.jahia.com/get-started/for-developers/developers-techwiki/users-and-groups/ldap-connector-7-1'/>" target="_blank"><fmt:message bundle="${bundle}" key="ldap.provider.documentation"/></a>
         </div>
     </label>
     <c:if test="${empty providerKey}">
