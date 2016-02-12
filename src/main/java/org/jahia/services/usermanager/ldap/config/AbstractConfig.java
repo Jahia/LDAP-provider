@@ -67,6 +67,7 @@ public abstract class AbstractConfig {
     private String ldapConnectTimeout = "5000";
     private String ldapReadTimeout = "5000";
 
+    private String ldapConnectPoolAuthentication = "none simple";
     private String ldapConnectPoolTimeout;
     private String ldapConnectPoolDebug;
     private String ldapConnectPoolInitSize;
@@ -157,6 +158,14 @@ public abstract class AbstractConfig {
 
     public void setLdapReadTimeout(String ldapReadTimeout) {
         this.ldapReadTimeout = ldapReadTimeout;
+    }
+
+    public String getLdapConnectPoolAuthentication() {
+        return ldapConnectPoolAuthentication;
+    }
+
+    public void setLdapConnectPoolAuthentication(String ldapConnectPoolAuthentication) {
+        this.ldapConnectPoolAuthentication = ldapConnectPoolAuthentication;
     }
 
     public String getLdapConnectPoolTimeout() {
