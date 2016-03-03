@@ -797,7 +797,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             if (nameClassPair instanceof SearchResult) {
                 SearchResult searchResult = (SearchResult) nameClassPair;
                 cacheEntry = attributesToUserCacheEntry(searchResult.getAttributes(), cacheEntry);
-                cacheEntry.setDn(searchResult.getNameInNamespace());
+                if (cacheEntry != null) {
+                    cacheEntry.setDn(searchResult.getNameInNamespace());
+                }
             } else {
                 logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
             }
@@ -856,8 +858,10 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(cacheEntry);
                 nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
                 LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
-                ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
-                names.add(ldapUserCacheEntry.getName());
+                if (ldapUserCacheEntry != null) {
+                    ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
+                    names.add(ldapUserCacheEntry.getName());
+                }
             } else {
                 logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
             }
@@ -1009,9 +1013,11 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             UserNameClassPairCallbackHandler userNameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(null);
             userNameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
             LDAPUserCacheEntry userCacheEntry = userNameClassPairCallbackHandler.getCacheEntry();
-            ldapCacheManager.cacheUser(getKey(), userCacheEntry);
-            members.add(new Member(userCacheEntry.getName(), Member.MemberType.USER));
-            logger.debug("Dynamic member {} resolved as a user", searchResult.getNameInNamespace());
+            if (userCacheEntry != null) {
+                ldapCacheManager.cacheUser(getKey(), userCacheEntry);
+                members.add(new Member(userCacheEntry.getName(), Member.MemberType.USER));
+                logger.debug("Dynamic member {} resolved as a user", searchResult.getNameInNamespace());
+            }
         }
     }
 
@@ -1024,7 +1030,13 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @throws NamingException
      */
     private LDAPUserCacheEntry attributesToUserCacheEntry(Attributes attrs, LDAPUserCacheEntry userCacheEntry) throws NamingException {
-        String userId = (String) attrs.get(userConfig.getUidSearchAttribute()).get();
+        Attribute uidAttr = attrs.get(userConfig.getUidSearchAttribute());
+        if (uidAttr == null) {
+            logger.warn("LDAP user entry is missing the required {} attribute. Skipping user. Available attributes: {}",
+                    userConfig.getUidSearchAttribute(), attrs);
+            return null;
+        }
+        String userId = (String) uidAttr.get();
         JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), getKey(), null);
         if (userCacheEntry == null) {
             userCacheEntry = new LDAPUserCacheEntry(userId);
