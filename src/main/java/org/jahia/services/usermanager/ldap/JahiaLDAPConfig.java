@@ -248,7 +248,7 @@ public class JahiaLDAPConfig {
             }
             ldapUserGroupProvider.setLdapTemplateWrapper(new LdapTemplateWrapper(ldap));
             ldapUserGroupProvider.setContextSource(lcs);
-
+            ldapUserGroupProvider.setMaxLdapTimeoutCountBeforeDisconnect(userConfig.getMaxLdapTimeoutCountBeforeDisconnect());
             // Activate (again).
             ldapUserGroupProvider.register();
 

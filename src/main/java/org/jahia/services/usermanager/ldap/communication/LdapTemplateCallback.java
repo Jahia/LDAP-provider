@@ -58,6 +58,12 @@ public interface LdapTemplateCallback <T> {
     T doInLdap(LdapTemplate ldapTemplate);
 
     /**
+     * called in case of success
+     * @return
+     */
+    void onSuccess();
+
+    /**
      * Will be call in case of Exception in the doInLdap function
      * @param e the Exception that trigger the onError.
      * @return

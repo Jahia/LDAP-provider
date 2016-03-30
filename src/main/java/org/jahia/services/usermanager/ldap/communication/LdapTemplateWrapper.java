@@ -59,7 +59,9 @@ public class LdapTemplateWrapper {
 
     public <X> X execute(LdapTemplateCallback<X> callback) {
         try {
-            return callback.doInLdap(ldapTemplate);
+            X x = callback.doInLdap(ldapTemplate);
+            callback.onSuccess();
+            return x;
         } catch (Exception e) {
             return callback.onError(e);
         }

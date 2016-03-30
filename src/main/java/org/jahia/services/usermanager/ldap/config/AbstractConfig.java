@@ -55,7 +55,8 @@ import java.util.Set;
  */
 public abstract class AbstractConfig {
     private static final int DEFAULT_SEARCH_COUNT_LIMIT = 100;
-    
+    private static final int DEFAULT_MAX_TIMEOUT_COUNT = 3;
+
     private String url;
     private String publicBindDn;
     private String publicBindPassword;
@@ -86,6 +87,7 @@ public abstract class AbstractConfig {
     private Boolean ldapConnectPoolTestWhileIdle;
     private Long ldapConnectPoolTimeBetweenEvictionRunsMillis;
     private String ldapConnectPoolWhenExhaustedAction;
+    private int maxLdapTimeoutCountBeforeDisconnect = DEFAULT_MAX_TIMEOUT_COUNT;
 
     private long searchCountlimit = DEFAULT_SEARCH_COUNT_LIMIT;
     private String searchObjectclass;
@@ -302,6 +304,14 @@ public abstract class AbstractConfig {
 
     public void setLdapConnectPoolWhenExhaustedAction(String ldapConnectPoolWhenExhaustedAction) {
         this.ldapConnectPoolWhenExhaustedAction = ldapConnectPoolWhenExhaustedAction;
+    }
+
+    public int getMaxLdapTimeoutCountBeforeDisconnect() {
+        return maxLdapTimeoutCountBeforeDisconnect;
+    }
+
+    public void setMaxLdapTimeoutCountBeforeDisconnect(int maxLdapTimeoutCountBeforeDisconnect) {
+        this.maxLdapTimeoutCountBeforeDisconnect = maxLdapTimeoutCountBeforeDisconnect;
     }
 
     public long getSearchCountlimit() {
