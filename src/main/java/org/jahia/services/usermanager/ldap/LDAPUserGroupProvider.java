@@ -726,8 +726,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     private LDAPGroupCacheEntry getAndCacheGroupEntry(GroupNameClassPairCallbackHandler nameClassPairCallbackHandler, boolean cache) {
-        if (nameClassPairCallbackHandler.getCacheEntry() != null) {
-            LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+        LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+        if (ldapGroupCacheEntry != null) {
             if (cache) {
                 ldapCacheManager.cacheGroup(getKey(), ldapGroupCacheEntry);
             }
@@ -1428,12 +1428,12 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         public T onError(Exception e)  {
             final Throwable cause = e.getCause();
             logger.error("An error occurred while communicating with the LDAP server " + key, e);
-            if (timeoutCount.incrementAndGet() >= maxLdapTimeoutCountBeforeDisconnect) {
-                if (cause instanceof javax.naming.CommunicationException || cause instanceof javax.naming.NamingException || cause instanceof CommunicationException || cause instanceof ServiceUnavailableException || cause instanceof InsufficientResourcesException) {
+            if (cause instanceof javax.naming.CommunicationException || cause instanceof javax.naming.NamingException || cause instanceof CommunicationException || cause instanceof ServiceUnavailableException || cause instanceof InsufficientResourcesException) {
+                if (timeoutCount.incrementAndGet() >= maxLdapTimeoutCountBeforeDisconnect) {
                     externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.waiting, cause.getMessage());
-                } else {
-                    externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.error, e.getMessage());
                 }
+            } else {
+                externalUserGroupService.setMountStatus(key, JCRMountPointNode.MountStatus.error, e.getMessage());
             }
             return null;
         }
