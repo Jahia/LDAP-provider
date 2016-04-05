@@ -142,7 +142,7 @@ public class JahiaLDAPConfig {
             }
 
             Map<String, Object> publicEnv = new HashMap<>();
-            if (POOL_LDAP.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
+            if (POOL_LDAP.equalsIgnoreCase(userConfig.getLdapConnectPool()) || Boolean.valueOf(userConfig.getLdapConnectPool())) {
                 lcs.setPooled(true);
                 if (userConfig.getLdapConnectPoolAuthentication() != null) {
                     publicEnv.put("com.sun.jndi.ldap.connect.pool.authentication", userConfig.getLdapConnectPoolAuthentication());
