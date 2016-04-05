@@ -147,7 +147,7 @@ public class JahiaLDAPConfig {
                 if (userConfig.getLdapConnectPoolAuthentication() != null) {
                     publicEnv.put("com.sun.jndi.ldap.connect.pool.authentication", userConfig.getLdapConnectPoolAuthentication());
                 }
-                if (userConfig.getLdapConnectPoolTimeout() != null && Long.valueOf(userConfig.getLdapConnectTimeout()) > 0) {
+                if (userConfig.getLdapConnectPoolTimeout() != null && Long.valueOf(userConfig.getLdapConnectPoolTimeout()) > 0) {
                     publicEnv.put("com.sun.jndi.ldap.connect.pool.timeout", userConfig.getLdapConnectPoolTimeout());
                 }
                 if (userConfig.getLdapConnectPoolDebug() != null) {
@@ -162,6 +162,10 @@ public class JahiaLDAPConfig {
                 if (userConfig.getLdapConnectPoolPrefSize() != null) {
                     publicEnv.put("com.sun.jndi.ldap.connect.pool.prefsize", userConfig.getLdapConnectPoolPrefSize());
                 }
+
+                logger.info("Using built-in Java LDAP connection pooling with {} maximum active connections",
+                        userConfig.getLdapConnectPoolMaxSize() != null ? userConfig.getLdapConnectPoolMaxSize()
+                                : "unlimited");
             }
             if (userConfig.getLdapReadTimeout() != null) {
                 publicEnv.put("com.sun.jndi.ldap.read.timeout", userConfig.getLdapReadTimeout());
@@ -223,6 +227,10 @@ public class JahiaLDAPConfig {
                 }
 
                 ldap = new LdapTemplate(poolingContextSource);
+                
+                logger.info(
+                        "Using LDAP connection pooling based on Apache Commons Pool with {} maximum active connections",
+                        poolingContextSource.getMaxActive());
             } else {
                 ldap = new LdapTemplate(lcs);
             }

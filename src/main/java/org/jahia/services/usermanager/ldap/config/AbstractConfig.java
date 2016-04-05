@@ -75,7 +75,7 @@ public abstract class AbstractConfig {
     private String ldapConnectPoolMaxSize;
     private String ldapConnectPoolPrefSize;
 
-    private Integer ldapConnectPoolMaxActive;
+    private Integer ldapConnectPoolMaxActive = 50;
     private Integer ldapConnectPoolMaxIdle;
     private Integer ldapConnectPoolMaxTotal;
     private Integer ldapConnectPoolMaxWait;
