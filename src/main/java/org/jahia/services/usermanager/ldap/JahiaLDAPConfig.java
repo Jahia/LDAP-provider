@@ -64,6 +64,7 @@ import org.springframework.ldap.pool.factory.PoolingContextSource;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import org.springframework.ldap.pool.validation.DefaultDirContextValidator;
 
 /**
  * Helper class to configure LDAP user and group providers via OSGi Config Admin service.
@@ -185,6 +186,7 @@ public class JahiaLDAPConfig {
             if (POOL_APACHE_COMMONS.equalsIgnoreCase(userConfig.getLdapConnectPool())) {
                 PoolingContextSource poolingContextSource = new PoolingContextSource();
                 poolingContextSource.setContextSource(lcs);
+                poolingContextSource.setDirContextValidator(new DefaultDirContextValidator());
                 if (userConfig.getLdapConnectPoolMaxActive() != null) {
                     poolingContextSource.setMaxActive(userConfig.getLdapConnectPoolMaxActive());
                 }
