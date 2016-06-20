@@ -26,6 +26,7 @@
     <bean id="ldapCacheManager" class="org.jahia.services.usermanager.ldap.cache.LDAPCacheManager"
             init-method="start" destroy-method="stop">
         <property name="cacheProvider" ref="ehCacheProvider"/>
+        <property name="timeToIdleSeconds" value="#{jahiaProperties['jahia.ldap.cache.timeToIdleSeconds'] != null ? jahiaProperties['jahia.ldap.cache.timeToIdleSeconds'] : 3600}"/>
     </bean>
 
     <bean id="ldapUserGroupProvider" class="org.jahia.services.usermanager.ldap.LDAPUserGroupProvider" scope="prototype">
