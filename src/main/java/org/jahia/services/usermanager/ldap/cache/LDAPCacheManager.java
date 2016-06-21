@@ -58,7 +58,7 @@ import java.util.Map;
 
 /**
  * Helper class for LDAP provider related caches.
- * 
+ *
  * @author kevan
  */
 public class LDAPCacheManager {
@@ -68,7 +68,6 @@ public class LDAPCacheManager {
     private Ehcache groupCache;
     private Ehcache userCache;
     private EhCacheProvider cacheProvider;
-    private long timeToIdleSeconds;
 
     void start(){
         final CacheManager cacheManager = cacheProvider.getCacheManager();
@@ -89,7 +88,7 @@ public class LDAPCacheManager {
     private Ehcache createLDAPCache(CacheManager cacheManager, String cacheName) {
         CacheConfiguration cacheConfiguration = new CacheConfiguration();
         cacheConfiguration.setName(cacheName);
-        cacheConfiguration.setTimeToIdleSeconds(timeToIdleSeconds);
+        cacheConfiguration.setTimeToIdleSeconds(3600);
         cacheConfiguration.setEternal(false);
         // Create a new cache with the configuration
         Ehcache cache = new Cache(cacheConfiguration);
@@ -111,10 +110,6 @@ public class LDAPCacheManager {
 
     public void setCacheProvider(EhCacheProvider cacheProvider) {
         this.cacheProvider = cacheProvider;
-    }
-
-    public void setTimeToIdleSeconds(long timeToIdleSeconds) {
-        this.timeToIdleSeconds = timeToIdleSeconds;
     }
 
     public LDAPUserCacheEntry getUserCacheEntryByName(String providerKey, String username) {
