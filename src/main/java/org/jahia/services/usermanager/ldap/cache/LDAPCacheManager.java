@@ -48,13 +48,11 @@ import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
-import net.sf.ehcache.config.Configuration;
-import net.sf.ehcache.config.PinningConfiguration;
 import org.jahia.services.cache.CacheHelper;
 import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
-
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helper class for LDAP provider related caches.
@@ -64,6 +62,8 @@ import java.util.Map;
 public class LDAPCacheManager {
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
     public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
+
+    private static Logger logger = LoggerFactory.getLogger(LDAPCacheManager.class);
 
     private Ehcache groupCache;
     private Ehcache userCache;
@@ -121,6 +121,9 @@ public class LDAPCacheManager {
     }
 
     public void cacheUser(String providerKey, LDAPUserCacheEntry ldapUserCacheEntry) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Caching user: {}", ldapUserCacheEntry.getName());
+        }
         ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapUserCacheEntry, "ldap");
         userCache.put(new Element(getCacheNameKey(providerKey, ldapUserCacheEntry.getName()), cacheEntry));
         if (ldapUserCacheEntry.getDn() != null) {
@@ -137,6 +140,9 @@ public class LDAPCacheManager {
     }
 
     public void cacheGroup(String providerKey, LDAPGroupCacheEntry ldapGroupCacheEntry) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Caching group: {}", ldapGroupCacheEntry.getName());
+        }
         ModuleClassLoaderAwareCacheEntry cacheEntry = new ModuleClassLoaderAwareCacheEntry(ldapGroupCacheEntry, "ldap");
         groupCache.put(new Element(getCacheNameKey(providerKey, ldapGroupCacheEntry.getName()), cacheEntry));
         if (ldapGroupCacheEntry.getDn() != null) {

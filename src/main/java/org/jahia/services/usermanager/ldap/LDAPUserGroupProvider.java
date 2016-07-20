@@ -867,12 +867,16 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             if (nameClassPair instanceof SearchResult) {
                 SearchResult searchResult = (SearchResult) nameClassPair;
                 LDAPUserCacheEntry cacheEntry = ldapCacheManager.getUserCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-                UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(cacheEntry);
-                nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-                LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
-                if (ldapUserCacheEntry != null) {
-                    ldapCacheManager.cacheUser(getKey(), ldapUserCacheEntry);
-                    names.add(ldapUserCacheEntry.getName());
+                if (cacheEntry == null || cacheEntry.getExist() ==  null || !cacheEntry.getExist()) {
+                    UserNameClassPairCallbackHandler nameClassPairCallbackHandler = new UserNameClassPairCallbackHandler(cacheEntry);
+                    nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+                    cacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+                    if (cacheEntry != null) {
+                        ldapCacheManager.cacheUser(getKey(), cacheEntry);
+                    }
+                }
+                if (cacheEntry != null) {
+                    names.add(cacheEntry.getName());
                 }
             } else {
                 logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
@@ -901,11 +905,17 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             if (nameClassPair instanceof SearchResult) {
                 SearchResult searchResult = (SearchResult) nameClassPair;
                 LDAPGroupCacheEntry cacheEntry = ldapCacheManager.getGroupCacheEntryByDn(getKey(), searchResult.getNameInNamespace());
-                GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(cacheEntry, isDynamic);
-                nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
-                LDAPGroupCacheEntry ldapGroupCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
-                ldapCacheManager.cacheGroup(getKey(), ldapGroupCacheEntry);
-                names.add(ldapGroupCacheEntry.getName());
+                if (cacheEntry == null || cacheEntry.getExist() == null || !cacheEntry.getExist().booleanValue()) {
+                    GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(cacheEntry, isDynamic);
+                    nameClassPairCallbackHandler.handleNameClassPair(nameClassPair);
+                    cacheEntry = nameClassPairCallbackHandler.getCacheEntry();
+                    if (cacheEntry != null) {
+                        ldapCacheManager.cacheGroup(getKey(), cacheEntry);
+                    }
+                }
+                if (cacheEntry != null) {
+                    names.add(cacheEntry.getName());
+                }
             } else {
                 logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
             }
