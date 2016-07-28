@@ -127,7 +127,7 @@
                     </c:if>
                 </div>
                 <div class="span7">
-                    <input type="text" name="propValue.${property.key}" value="${property.value}" ${property.key eq 'target.site'? 'list="sites"' : 'class="span12"'}/>
+                    <input type="${fn:containsIgnoreCase(property.key, 'password')?'password':'text'}" name="propValue.${property.key}" value="${property.value}" ${property.key eq 'target.site'? 'list="sites"' : 'class="span12"'}/>
                 </div>
                 <c:if test="${not functions:contains(defaultProperties, property.key)}">
                     <div class="span1">
