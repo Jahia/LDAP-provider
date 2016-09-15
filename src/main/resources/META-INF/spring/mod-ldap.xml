@@ -33,12 +33,13 @@
         <property name="ldapCacheManager" ref="ldapCacheManager"/>
     </bean>
 
-    <bean class="org.jahia.services.usermanager.ldap.LdapProviderConfiguration" init-method="init">
-        <property name="userGroupProviderClass" value="org.jahia.services.usermanager.ldap.LDAPUserGroupProvider"/>
+    <bean id="ldapProviderConfiguration" class="org.jahia.services.usermanager.ldap.LdapProviderConfiguration">
         <property name="externalUserGroupService" ref="ExternalUserGroupService"/>
         <property name="jahiaLDAPConfigFactory" ref="JahiaLDAPConfigFactory"/>
         <property name="configurationAdmin" ref="configurationAdmin"/>
     </bean>
+    <osgi:service id="ldapProviderConfigurationService" interface="org.jahia.modules.external.users.UserGroupProviderConfiguration"
+                  ref="ldapProviderConfiguration"/>
 
     <util:list id="defaultProperties"  value-type="java.lang.String">
         <value>target.site</value>
