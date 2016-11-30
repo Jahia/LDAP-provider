@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.sun.jndi.ldap.LdapURL;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.jackrabbit.util.Text;
 import org.jahia.modules.external.users.*;
 import org.jahia.services.content.decorator.JCRMountPointNode;
 import org.jahia.services.usermanager.*;
@@ -198,7 +199,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
                             @Override
                             public String mapFromAttributes(Attributes attrs) throws NamingException {
-                                return attrs.get(groupConfig.getSearchAttribute()).get().toString();
+                                return encode(attrs.get(groupConfig.getSearchAttribute()).get().toString());
                             }
                         });
             }
@@ -304,7 +305,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ctx = contextSource.getContext(userCacheEntry.getDn(), userPassword);
                 // Take care here - if a base was specified on the ContextSource
                 // that needs to be removed from the user DN for the lookup to succeed.
-                ctx.lookup(userCacheEntry.getDn());
+                ctx.lookup(LdapUtils.newLdapName(userCacheEntry.getDn()));
                 logger.debug("Password verified for {} in {} ms", userName, System.currentTimeMillis() - startTime);
 
                 return true;
@@ -585,7 +586,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ldapTemplate.search(query().base(userConfig.getUidSearchName())
                                 .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                                 .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())
-                                .and(userConfig.getUidSearchAttribute()).is(userName),
+                                .and(userConfig.getUidSearchAttribute()).is(decode(userName)),
                         nameClassPairCallbackHandler);
                 return true;
             }
@@ -674,7 +675,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ldapTemplate.search(query().base(groupConfig.getSearchName())
                                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
-                                .and(groupConfig.getSearchAttribute()).is(name),
+                                .and(groupConfig.getSearchAttribute()).is(decode(name)),
                         nameClassPairCallbackHandler);
                 return true;
             }
@@ -1059,7 +1060,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             return null;
         }
         String userId = (String) uidAttr.get();
-        JahiaUser jahiaUser = new JahiaUserImpl(userId, null, attributesToJahiaProperties(attrs, true), getKey(), null);
+        JahiaUser jahiaUser = new JahiaUserImpl(encode(userId), null, attributesToJahiaProperties(attrs, true), getKey(), null);
         if (userCacheEntry == null) {
             userCacheEntry = new LDAPUserCacheEntry(userId);
         }
@@ -1078,7 +1079,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      */
     private LDAPGroupCacheEntry attributesToGroupCacheEntry(Attributes attrs, LDAPGroupCacheEntry groupCacheEntry) throws NamingException {
         String groupId = (String) attrs.get(groupConfig.getSearchAttribute()).get();
-        JahiaGroup jahiaGroup = new JahiaGroupImpl(groupId, null, null, attributesToJahiaProperties(attrs, false));
+        JahiaGroup jahiaGroup = new JahiaGroupImpl(encode(groupId), null, null, attributesToJahiaProperties(attrs, false));
 
         if (groupCacheEntry == null) {
             groupCacheEntry = new LDAPGroupCacheEntry(jahiaGroup.getName());
@@ -1449,4 +1450,11 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         }
     }
 
+    private String decode(String name) {
+        return Text.unescapeIllegalJcrChars(name);
+    }
+
+    private String encode(String value) throws NamingException {
+        return Text.escapeIllegalJcrChars(value); 
+    }
 }
