@@ -312,8 +312,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             }
         } catch (NamingException | org.springframework.ldap.NamingException e) {
             // Context creation failed - authentication did not succeed
-            logger.warn("Login failed for user " + userName + ", active debug log level for more informations");
-            logger.debug("Login failed", e);
+            logger.warn("Login failed for user " + userName + ": " + e.getMessage() + " (enable debug for full stacktrace)");
+            logger.debug(e.getMessage(), e);
         } finally {
             // It is imperative that the created DirContext instance is always closed
             LdapUtils.closeContext(ctx);
