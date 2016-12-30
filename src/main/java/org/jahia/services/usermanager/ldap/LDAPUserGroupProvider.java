@@ -98,8 +98,8 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  */
 public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
-    protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
     public static final int CONNECTION_ERROR_CACHE_TTL = 5;
+    protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
     private static Logger logger = LoggerFactory.getLogger(LDAPUserGroupProvider.class);
 
     private LdapContextSource contextSource;
@@ -116,7 +116,6 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     private ContainerCriteria searchGroupDynamicCriteria;
 
     private AtomicInteger timeoutCount = new AtomicInteger(0);
-
     private int maxLdapTimeoutCountBeforeDisconnect = 3;
 
     @Override
@@ -296,7 +295,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     @Override
     public boolean verifyPassword(String userName, String userPassword) {
-        logger.debug("Verify password for {}", userName);
+        logger.debug("Verifying password for {}...", userName);
         DirContext ctx = null;
         try {
             LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
@@ -307,7 +306,6 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 // that needs to be removed from the user DN for the lookup to succeed.
                 ctx.lookup(LdapUtils.newLdapName(userCacheEntry.getDn()));
                 logger.debug("Password verified for {} in {} ms", userName, System.currentTimeMillis() - startTime);
-
                 return true;
             }
         } catch (NamingException | org.springframework.ldap.NamingException e) {
@@ -315,7 +313,6 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             logger.warn("Login failed for user " + userName + ": " + e.getMessage() + " (enable debug for full stacktrace)");
             logger.debug(e.getMessage(), e);
         } finally {
-            // It is imperative that the created DirContext instance is always closed
             LdapUtils.closeContext(ctx);
         }
         return false;
@@ -439,7 +436,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
         long startTime = System.currentTimeMillis();
         final LdapName groupName = LdapUtils.newLdapName(groupDN);
-        
+
         NamingEnumeration<?> members = ldapTemplateWrapper.execute(new BaseLdapActionCallback<NamingEnumeration<?>>(getExternalUserGroupService(), getKey()) {
 
             @Override
@@ -479,7 +476,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
         List<Member> memberList = new ArrayList<Member>();
         try {
+
             while (members != null && members.hasMore()) {
+
                 final String memberNaming = (String) members.next();
                 // try to know if we deal with a group or a user
                 Boolean isUser = null;
@@ -670,6 +669,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         final Exception[] exceptions = new Exception[1];
 
         boolean validLdapCall = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(getExternalUserGroupService(), getKey()) {
+
             @Override
             public Boolean doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(query().base(groupConfig.getSearchName())
@@ -1455,6 +1455,6 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     private String encode(String value) throws NamingException {
-        return Text.escapeIllegalJcrChars(value); 
+        return Text.escapeIllegalJcrChars(value);
     }
 }
