@@ -45,8 +45,10 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.collect.Lists;
 import com.sun.jndi.ldap.LdapURL;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.reflect.FieldUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jahia.modules.external.users.*;
 import org.jahia.services.content.decorator.JCRMountPointNode;
@@ -86,6 +88,7 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -117,6 +120,43 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     private AtomicInteger timeoutCount = new AtomicInteger(0);
     private int maxLdapTimeoutCountBeforeDisconnect = 3;
+    
+    private ContainerCriteria groupSearchFilterCriteria;
+    private ContainerCriteria userSearchFilterCriteria;
+
+    /**
+     * If a pre-defined group search filter was configured, apply it on the provided query.
+     * 
+     * @param query the search query to apply the group filter on
+     * @param isSingleGroupLookup defines if this is a lookup of a single group (<code>true</code>) or a general search for multiple groups
+     *            (<code>false</code>)
+     * @return the adjusted query
+     */
+    private ContainerCriteria applyPredefinedGroupFilter(ContainerCriteria query, boolean isSingleGroupLookup) {
+        ContainerCriteria userFilter = getGroupSearchFilterCriteria();
+        if (userFilter != null && (!isSingleGroupLookup || groupConfig.isSearchFilterApplyOnMembers())) {
+            query.and(userFilter);
+        }
+        
+        return query;
+    }
+
+    /**
+     * If a pre-defined user search filter was configured, apply it on the provided query.
+     * 
+     * @param query the search query to apply the user filter on
+     * @param isSingleUserLookup defines if this is a lookup of a single user (<code>true</code>) or a general search for multiple users
+     *            (<code>false</code>)
+     * @return the adjusted query
+     */
+    private ContainerCriteria applyPredefinedUserFilter(ContainerCriteria query, boolean isSingleUserLookup) {
+        ContainerCriteria userFilter = getUserSearchFilterCriteria();
+        if (userFilter != null && (!isSingleUserLookup || userConfig.isSearchFilterApplyOnMembers())) {
+            query.and(userFilter);
+        }
+        
+        return query;
+    }
 
     @Override
     public JahiaUser getUser(String name) throws UserNotFoundException {
@@ -188,12 +228,12 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             @Override
             public List<String> doInLdap(LdapTemplate ldapTemplate) {
                 return ldapTemplate.search(
-                        query().base(groupConfig.getSearchName())
+                        applyPredefinedGroupFilter(query().base(groupConfig.getSearchName())
                                 .attributes(groupConfig.getSearchAttribute())
                                 .where(OBJECTCLASS_ATTRIBUTE)
                                 .is(groupConfig.getSearchObjectclass())
                                 .and(groupConfig.getMembersAttribute())
-                                .like(dn),
+                                .like(dn), true),
                         new AttributesMapper<String>() {
 
                             @Override
@@ -265,9 +305,13 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        logger.debug("Search users for {} in {} ms", searchCriteria, System.currentTimeMillis() - startTime);
-
         List<String> names = searchNameClassPairCallbackHandler.getNames();
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Search users for criteria {} using filter {} done in {} ms. Found {} entries.", new Object[] {
+                    searchCriteria, query.filter(), System.currentTimeMillis() - startTime, names.size() });
+        }
+
         return names.subList(Math.min((int) offset, names.size()), limit < 0 ? names.size() : Math.min((int) (offset + limit), names.size()));
     }
 
@@ -369,9 +413,15 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        logger.debug("Search groups for {} in {} ms", searchCriteria, System.currentTimeMillis() - startTime);
 
-        return searchNameClassPairCallbackHandler.getNames();
+        List<String> names = searchNameClassPairCallbackHandler.getNames();
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Search groups for criteria {} using filter {} done in {} ms. Found {} entries.", new Object[] {
+                    searchCriteria, query.filter(), System.currentTimeMillis() - startTime, names.size() });
+        }
+
+        return names;
     }
 
     /**
@@ -582,10 +632,10 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         boolean validLdapCall = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(getExternalUserGroupService(), getKey()) {
             @Override
             public Boolean doInLdap(LdapTemplate ldapTemplate) {
-                ldapTemplate.search(query().base(userConfig.getUidSearchName())
+                ldapTemplate.search(applyPredefinedUserFilter(query().base(userConfig.getUidSearchName())
                                 .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                                 .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())
-                                .and(userConfig.getUidSearchAttribute()).is(decode(userName)),
+                                .and(userConfig.getUidSearchAttribute()).is(decode(userName)), true),
                         nameClassPairCallbackHandler);
                 return true;
             }
@@ -596,7 +646,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return false;
             }
         });
-        logger.debug("Get user {} in {} ms", userName, System.currentTimeMillis() - startTime);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Get user {} in {} ms", userName, System.currentTimeMillis() - startTime);
+        }
 
         if (nameClassPairCallbackHandler.getCacheEntry() != null) {
             userCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -672,10 +724,10 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
             @Override
             public Boolean doInLdap(LdapTemplate ldapTemplate) {
-                ldapTemplate.search(query().base(groupConfig.getSearchName())
+                ldapTemplate.search(applyPredefinedGroupFilter(query().base(groupConfig.getSearchName())
                                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
-                                .and(groupConfig.getSearchAttribute()).is(decode(name)),
+                                .and(groupConfig.getSearchAttribute()).is(decode(name)), true),
                         nameClassPairCallbackHandler);
                 return true;
             }
@@ -713,15 +765,17 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
-                ldapTemplate.search(query().base(dn)
+                ldapTemplate.search(applyPredefinedGroupFilter(query().base(dn)
                                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                                 .searchScope(SearchScope.OBJECT)
-                                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass()),
+                                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass()), true),
                         nameClassPairCallbackHandler);
                 return null;
             }
         });
-        logger.debug("Get group from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Get group from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
+        }
 
         return getAndCacheGroupEntry(nameClassPairCallbackHandler, cache);
     }
@@ -753,10 +807,10 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
             @Override
             public Object doInLdap(LdapTemplate ldapTemplate) {
-                ldapTemplate.search(query().base(dn)
+                ldapTemplate.search(applyPredefinedUserFilter(query().base(dn)
                                 .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                                 .searchScope(SearchScope.OBJECT)
-                                .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass()),
+                                .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass()), true),
                         nameClassPairCallbackHandler);
                 return null;
             }
@@ -1133,6 +1187,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             return null;
         }
 
+        applyPredefinedUserFilter(query, false);
+
         // define and / or operator
         boolean orOp = isOrOperator(ldapfilters, searchCriteria);
 
@@ -1144,6 +1200,38 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         }
 
         return query;
+    }
+
+    private ContainerCriteria createContainerCriteria(String filter) {
+        try {
+            return (ContainerCriteria) FieldUtils.readField(query().filter(filter), "rootContainer", true);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private ContainerCriteria getGroupSearchFilterCriteria() {
+        if (groupSearchFilterCriteria == null) {
+            String filter = groupConfig.getSearchFilter();
+            if (filter != null) {
+                groupSearchFilterCriteria = createContainerCriteria(filter);
+                logger.info("Using pre-defined filter for group search: {}", filter);
+            }
+        }
+
+        return groupSearchFilterCriteria;
+    }
+
+    private ContainerCriteria getUserSearchFilterCriteria() {
+        if (userSearchFilterCriteria == null) {
+            String filter = userConfig.getSearchFilter();
+            if (filter != null) {
+                userSearchFilterCriteria = createContainerCriteria(filter);
+                logger.info("Using pre-defined filter for user search: {}", filter);
+            }
+        }
+
+        return userSearchFilterCriteria;
     }
 
     private ContainerCriteria getGroupQuery(Properties searchCriteria, boolean isDynamic) {
@@ -1182,6 +1270,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     private void flushGroupQuery() {
         searchGroupCriteria = null;
         searchGroupDynamicCriteria = null;
+        groupSearchFilterCriteria = null;
     }
 
     /**
@@ -1202,6 +1291,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
                 .countLimit((int) groupConfig.getSearchCountlimit())
                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass());
+
+        applyPredefinedGroupFilter(query, false);
 
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());
@@ -1386,6 +1477,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     public void setUserConfig(UserConfig userConfig) {
         this.userConfig = userConfig;
+        userSearchFilterCriteria = null;
     }
 
     // This only should be invoked during a period of provider inactivity, so that flushing group queries does not interfere with ongoing requests serving different threads simultaneously.
