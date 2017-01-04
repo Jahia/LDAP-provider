@@ -94,13 +94,6 @@ public abstract class AbstractConfig {
      * Fixed query filter that is used when searching for users/groups to filter out "unwanted" entries.
      */
     private String searchFilter;
-    /**
-     * If set to true the <code>searchFilter</code> is applied on members lookup. I.e. a user filter is applier when loading members of the
-     * group. This option is only relevant when the <code>searchFilter</code> is defined. <br>
-     * Note, please, this option has influence on the time of the lookup of a non-cached entry from LDAP server as it applies the filter for
-     * the query and sends it to the LDAP server.
-     */
-    private boolean searchFilterApplyOnMembers;
     private String searchObjectclass;
     private boolean searchAttributeInDn = false;
     private boolean canGroupContainSubGroups = false;
@@ -398,23 +391,5 @@ public abstract class AbstractConfig {
      */
     public void setSearchFilter(String searchFilter) {
         this.searchFilter = (searchFilter != null && searchFilter.length() > 0 ? searchFilter : null);
-    }
-
-    /**
-     * Returns the value of the {@link #searchFilterApplyOnMembers} flag.
-     * 
-     * @return the value of the {@link #searchFilterApplyOnMembers} flag
-     */
-    public boolean isSearchFilterApplyOnMembers() {
-        return searchFilterApplyOnMembers;
-    }
-
-    /**
-     * Sets the value of the {@link #searchFilterApplyOnMembers} flag.
-     * 
-     * @param searchFilterApplyOnMembers the value of the {@link #searchFilterApplyOnMembers} flag to be set
-     */
-    public void setSearchFilterApplyOnMembers(boolean searchFilterApplyOnMembers) {
-        this.searchFilterApplyOnMembers = searchFilterApplyOnMembers;
     }
 }

@@ -129,13 +129,11 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * If a pre-defined group search filter was configured, apply it on the provided query.
      * 
      * @param query the search query to apply the group filter on
-     * @param isSingleGroupLookup defines if this is a lookup of a single group (<code>true</code>) or a general search for multiple groups
-     *            (<code>false</code>)
      * @return the adjusted query
      */
-    private ContainerCriteria applyPredefinedGroupFilter(ContainerCriteria query, boolean isSingleGroupLookup) {
+    private ContainerCriteria applyPredefinedGroupFilter(ContainerCriteria query) {
         ContainerCriteria userFilter = getGroupSearchFilterCriteria();
-        if (userFilter != null && (!isSingleGroupLookup || groupConfig.isSearchFilterApplyOnMembers())) {
+        if (userFilter != null) {
             query.and(userFilter);
         }
         
@@ -146,13 +144,11 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * If a pre-defined user search filter was configured, apply it on the provided query.
      * 
      * @param query the search query to apply the user filter on
-     * @param isSingleUserLookup defines if this is a lookup of a single user (<code>true</code>) or a general search for multiple users
-     *            (<code>false</code>)
      * @return the adjusted query
      */
     private ContainerCriteria applyPredefinedUserFilter(ContainerCriteria query, boolean isSingleUserLookup) {
         ContainerCriteria userFilter = getUserSearchFilterCriteria();
-        if (userFilter != null && (!isSingleUserLookup || userConfig.isSearchFilterApplyOnMembers())) {
+        if (userFilter != null) {
             query.and(userFilter);
         }
         
@@ -234,7 +230,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                                 .where(OBJECTCLASS_ATTRIBUTE)
                                 .is(groupConfig.getSearchObjectclass())
                                 .and(groupConfig.getMembersAttribute())
-                                .like(dn), true),
+                                .like(dn)),
                         new AttributesMapper<String>() {
 
                             @Override
@@ -727,7 +723,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ldapTemplate.search(applyPredefinedGroupFilter(query().base(groupConfig.getSearchName())
                                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
-                                .and(groupConfig.getSearchAttribute()).is(decode(name)), true),
+                                .and(groupConfig.getSearchAttribute()).is(decode(name))),
                         nameClassPairCallbackHandler);
                 return true;
             }
@@ -743,7 +739,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         if (!validLdapCall) {
             throw exceptions[0];
         }
-        logger.debug("Get group {} in {} ms", name, System.currentTimeMillis() - startTime);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Get group {} in {} ms", name, System.currentTimeMillis() - startTime);
+        }
 
         return getAndCacheGroupEntry(nameClassPairCallbackHandler, cache);
     }
@@ -768,7 +766,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ldapTemplate.search(applyPredefinedGroupFilter(query().base(dn)
                                 .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                                 .searchScope(SearchScope.OBJECT)
-                                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass()), true),
+                                .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())),
                         nameClassPairCallbackHandler);
                 return null;
             }
@@ -815,7 +813,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 return null;
             }
         });
-        logger.debug("Get user from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Get user from dn {} in {} ms", dn, System.currentTimeMillis() - startTime);
+        }
 
         if (nameClassPairCallbackHandler.getCacheEntry() != null) {
             LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -1292,7 +1292,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 .countLimit((int) groupConfig.getSearchCountlimit())
                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass());
 
-        applyPredefinedGroupFilter(query, false);
+        applyPredefinedGroupFilter(query);
 
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());

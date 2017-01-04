@@ -141,6 +141,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
     private void flushRelatedCaches() {
         CacheHelper.flushEhcacheByName("org.jahia.services.usermanager.JahiaUserManagerService.userPathByUserNameCache", true);
         CacheHelper.flushEhcacheByName("org.jahia.services.usermanager.JahiaGroupManagerService.groupPathByGroupNameCache", true);
+        CacheHelper.flushEhcacheByName("org.jahia.services.usermanager.JahiaGroupManagerService.membershipCache", true);
         CacheHelper.flushEhcacheByName("LDAPUsersCache", true);
         CacheHelper.flushEhcacheByName("LDAPGroupsCache", true);
     }
