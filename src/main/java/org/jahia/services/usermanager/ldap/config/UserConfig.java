@@ -53,6 +53,7 @@ import org.apache.commons.lang.StringUtils;
 public class UserConfig extends AbstractConfig{
     private String uidSearchName;
     private String uidSearchAttribute = "cn";
+    private boolean shareable = false;
 
     public UserConfig() {
     }
@@ -91,5 +92,13 @@ public class UserConfig extends AbstractConfig{
 
     public void setUidSearchAttribute(String uidSearchAttribute) {
         this.uidSearchAttribute = uidSearchAttribute;
+    }
+    
+    public boolean isShareable() {
+        return shareable;
+    }
+
+    public void setShareable(boolean shareable) {
+        this.shareable = shareable;
     }
 }
