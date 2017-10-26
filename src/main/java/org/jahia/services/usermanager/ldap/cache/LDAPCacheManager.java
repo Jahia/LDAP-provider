@@ -111,6 +111,10 @@ public class LDAPCacheManager {
     public void setCacheProvider(EhCacheProvider cacheProvider) {
         this.cacheProvider = cacheProvider;
     }
+        
+    public void clearUserCacheEntryByName(String providerKey, String username) {
+        userCache.remove(getCacheNameKey(providerKey, username));
+    }
 
     public LDAPUserCacheEntry getUserCacheEntryByName(String providerKey, String username) {
         return (LDAPUserCacheEntry) CacheHelper.getObjectValue(userCache, getCacheNameKey(providerKey, username));
