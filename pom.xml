@@ -61,8 +61,8 @@
         <connection>scm:git:git@github.com:Jahia/LDAP-provider.git</connection>
         <developerConnection>scm:git:git@github.com:Jahia/LDAP-provider.git</developerConnection>
         <url>scm:git:git@github.com:Jahia/LDAP-provider.git</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
@@ -139,6 +139,16 @@
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Export-Package>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core</Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
             <plugin>
                 <artifactId>maven-site-plugin</artifactId>
                 <executions>
