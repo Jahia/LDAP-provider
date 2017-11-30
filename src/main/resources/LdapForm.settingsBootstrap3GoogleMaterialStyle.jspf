@@ -1,0 +1,72 @@
+<jcr:jqom statement="select * from [jnt:virtualsite] as site where ischildnode(site,'/sites') and localname(site) <> 'systemsite'"
+          var="sites"/>
+<datalist id="sites">
+    <c:forEach items="${sites.nodes}" var="site">
+        <option value="${site.name}"/>
+    </c:forEach>
+</datalist>
+<template:addResources type="javascript" resources="jquery.min.js,jquery.form.min.js"/>
+<template:addResources>
+    <script type="text/javascript">
+        function addField() {
+            $("<div class=\"form-group\">" +
+                "<div class=\"col-md-4\"><input class=\"form-control\" type=\"text\" name=\"propKey\" value=\"\" required class=\"col-md-12\"/></div>" +
+                "<div class=\"col-md-7\"><input class=\"form-control\" type=\"text\" name=\"propValue\" value=\"\" class=\"col-md-12\"/></div>" +
+                "<div class=\"col-md-1\"><a class=\"btn btn-default btn-sm btn-primary\" onclick=\"$(this).parent().parent().remove()\"><i class=\"material-icons\">chevron_left</i></a></div>" +
+                "</div>").insertBefore($("#addField${currentNode.identifier}"));
+        }
+    </script>
+</template:addResources>
+
+<fieldset title="local">
+    <div>
+        <div class="form-group">
+            <a class="btn btn-default btn-sm btn-primary"
+               href="<c:url value='https://www.jahia.com/get-started/for-developers/developers-techwiki/users-and-groups/ldap-connector-7-1'/>"
+               target="_blank"><fmt:message bundle="${bundle}" key="ldap.provider.documentation"/></a>
+        </div>
+        <c:if test="${empty providerKey}">
+            <div class="form-group">
+                <div class="col-md-4">
+                    <label class="control-label"><fmt:message bundle="${bundle}" key="ldap.provider.name"/></label>
+                </div>
+                <div class="col-md-8">
+                    <input class="form-control" type="text" name="configName" value="${configName}"/>
+                </div>
+            </div>
+        </c:if>
+
+        <c:forEach var="property" items="${ldapProperties}">
+            <div class="form-group">
+                <div class="col-md-4">
+                    <label class="control-label">
+                        <fmt:message bundle="${bundle}" key="ldap.provider.${property.key}" var="label"/>
+                        <c:if test="${fn:startsWith(label,'???')}">
+                            ${property.key}
+                        </c:if>
+                        <c:if test="${not fn:startsWith(label,'???')}">
+                            ${label} ( ${property.key} )
+                        </c:if>
+                    </label>
+                </div>
+                <div class="col-md-7">
+                    <input type="${fn:containsIgnoreCase(property.key, 'password')?'password':'text'}"
+                           name="propValue.${property.key}" class="form-control"
+                           value="${property.value}" ${property.key eq 'target.site'? 'list="sites"' : 'class="span12"'}/>
+                </div>
+                <c:if test="${not functions:contains(defaultProperties, property.key)}">
+                    <div class="col-md-1">
+                        <a class="btn btn-default btn-sm btn-primary" onclick="$(this).parent().parent().remove()"><i
+                                class="material-icons">chevron_left</i></a>
+                    </div>
+                </c:if>
+            </div>
+        </c:forEach>
+    </div>
+</fieldset>
+<fieldset>
+    <div class="form-group">
+        <a id="addField${currentNode.identifier}" class="btn btn-default btn-sm btn-primary"
+           onclick="addField()"><i class="material-icons">add</i></a>
+    </div>
+</fieldset>
