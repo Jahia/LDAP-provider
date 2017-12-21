@@ -49,7 +49,7 @@
     <parent>
         <groupId>org.jahia.modules</groupId>
         <artifactId>jahia-modules</artifactId>
-        <version>7.2.2.0-SNAPSHOT</version>
+        <version>7.2.0.0</version>
         <relativePath />
     </parent>
     <artifactId>ldap</artifactId>
