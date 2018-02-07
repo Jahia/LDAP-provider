@@ -278,6 +278,10 @@ public class JahiaLDAPConfig {
         }
     }
 
+    public LDAPUserGroupProvider getLdapUserGroupProvider() {
+        return ldapUserGroupProvider;
+    }    
+    
     public void unregister() {
         if (ldapUserGroupProvider != null) {
             unregisterUserProvider();

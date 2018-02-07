@@ -60,6 +60,7 @@ import java.io.FileOutputStream;
 import java.util.Dictionary;
 import java.util.Map;
 import java.util.Properties;
+import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 
 /**
  * Class to implement specific behaviour for configuration creation/edition/deletion in server settings
@@ -67,7 +68,7 @@ import java.util.Properties;
 public class LdapProviderConfiguration implements UserGroupProviderConfiguration {
 
     private static final long serialVersionUID = 8082529526561969689L;
-    
+
     private static Exception getRootCause(Exception e) {
         Throwable cause = null;
         if (e instanceof NestedCheckedException) {
@@ -92,7 +93,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
                 break;
             }
         }
-        
+
         return value;
     }
 
@@ -308,5 +309,9 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
 
     public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
         this.configurationAdmin = configurationAdmin;
+    }
+
+    public LdapTemplateWrapper getLdapTemplateWrapper(String providerKey) {
+        return jahiaLDAPConfigFactory.getLdapTemplateWrapper(providerKey);
     }
 }

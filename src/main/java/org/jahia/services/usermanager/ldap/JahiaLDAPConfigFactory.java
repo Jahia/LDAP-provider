@@ -58,11 +58,12 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
+import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 
 public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware {
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigFactory.class);
-    
+
     private ConfigurationAdmin configurationAdmin;
 
     private ApplicationContext context;
@@ -144,5 +145,14 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
         CacheHelper.flushEhcacheByName("org.jahia.services.usermanager.JahiaGroupManagerService.membershipCache", true);
         CacheHelper.flushEhcacheByName("LDAPUsersCache", true);
         CacheHelper.flushEhcacheByName("LDAPGroupsCache", true);
+    }
+
+    public LdapTemplateWrapper getLdapTemplateWrapper(String providerKey) {
+        for (JahiaLDAPConfig jahiaLDAPConfig : ldapConfigs.values()) {
+            if (jahiaLDAPConfig.getProviderKey().equals(providerKey)) {
+                return jahiaLDAPConfig.getLdapUserGroupProvider().getLdapTemplateWrapper();
+            }
+        }
+        return null;
     }
 }

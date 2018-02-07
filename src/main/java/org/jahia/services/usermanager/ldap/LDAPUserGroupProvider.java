@@ -1461,6 +1461,13 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     public void setLdapTemplateWrapper(LdapTemplateWrapper ldapTemplateWrapper) {
         this.ldapTemplateWrapper = ldapTemplateWrapper;
     }
+    
+    public LdapTemplateWrapper getLdapTemplateWrapper() {
+        if (userConfig.isShareable()) {
+            return ldapTemplateWrapper;
+        }
+        return null;
+    }
 
     public void setContextSource(LdapContextSource contextSource) {
         this.contextSource = contextSource;
