@@ -705,30 +705,41 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @param isDynamic
      * @return
      */
-    private LDAPGroupCacheEntry getGroupCacheEntryByName(final String name, final boolean cache, final boolean isDynamic) throws Exception {
+    private LDAPGroupCacheEntry getGroupCacheEntryByName(final String name, boolean cache, final boolean isDynamic) throws Exception {
 
         final List<String> groupAttrs = getGroupAttributes(isDynamic);
+        final GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         long startTime = System.currentTimeMillis();
+        final Exception[] exceptions = new Exception[1];
         
-        final LDAPGroupCacheEntry groupCacheEntry = ldapTemplateWrapper.execute(new BaseLdapActionCallback<LDAPGroupCacheEntry>(getExternalUserGroupService(), getKey()) {
+        boolean validLdapCall = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(getExternalUserGroupService(), getKey()) {
 
             @Override
-            public LDAPGroupCacheEntry doInLdap(LdapTemplate ldapTemplate) {
-                final GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
+            public Boolean doInLdap(LdapTemplate ldapTemplate) {
                 ldapTemplate.search(applyPredefinedGroupFilter(query().base(groupConfig.getSearchName())
                         .attributes(groupAttrs.toArray(new String[groupAttrs.size()]))
                         .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass())
                         .and(groupConfig.getSearchAttribute()).is(decode(name))),
                         nameClassPairCallbackHandler);
-                return getAndCacheGroupEntry(nameClassPairCallbackHandler, cache);
+                return true;
+            }
+
+            @Override
+            public Boolean onError(Exception e) {
+                exceptions[0] = e;
+                super.onError(e);
+                return false;
             }
         });
 
+        if (!validLdapCall) {
+            throw exceptions[0];
+        }
         if (logger.isDebugEnabled()) {
             logger.debug("Get group {} in {} ms", name, System.currentTimeMillis() - startTime);
         }
 
-        return groupCacheEntry;
+        return getAndCacheGroupEntry(nameClassPairCallbackHandler, cache);
     }
 
     /**
