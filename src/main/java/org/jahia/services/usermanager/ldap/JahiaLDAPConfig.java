@@ -48,15 +48,17 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool.impl.GenericKeyedObjectPool;
+import org.jahia.modules.external.users.ExternalUserGroupService;
+import org.jahia.services.usermanager.ldap.cache.LDAPCacheManager;
 import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 import org.jahia.services.usermanager.ldap.config.AbstractConfig;
 import org.jahia.services.usermanager.ldap.config.GroupConfig;
 import org.jahia.services.usermanager.ldap.config.UserConfig;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.DefaultDirObjectFactory;
 import org.springframework.ldap.core.support.LdapContextSource;
@@ -93,10 +95,13 @@ public class JahiaLDAPConfig {
 
     /**
      * defines or update the context of the provider
-     * @param context the Spring application context object
+     * @param externalUserGroupService ExternalUserGroupService core service
+     * @param ldapCacheManager cache manager for LDAP
+     * @param bundleContext current bundle context
      * @param dictionary configuration parameters
      */
-    public void setContext(ApplicationContext context, Dictionary<String, ?> dictionary) {
+    public void setContext(ExternalUserGroupService externalUserGroupService, LDAPCacheManager ldapCacheManager,
+                           BundleContext bundleContext, Dictionary<String, ?> dictionary) {
         Properties userLdapProperties = new Properties();
         Properties groupLdapProperties = new Properties();
         UserConfig userConfig = new UserConfig();
@@ -243,7 +248,10 @@ public class JahiaLDAPConfig {
             ldap.setIgnoreNameNotFoundException(true);
 
             if (ldapUserGroupProvider == null) {
-                ldapUserGroupProvider = (LDAPUserGroupProvider) context.getBean("ldapUserGroupProvider");
+                ldapUserGroupProvider = new LDAPUserGroupProvider();
+                ldapUserGroupProvider.setLdapCacheManager(ldapCacheManager);
+                ldapUserGroupProvider.setExternalUserGroupService(externalUserGroupService);
+                ldapUserGroupProvider.setBundleContext(bundleContext);
             } else {
                 // Deactivate the provider before reconfiguring it.
                 ldapUserGroupProvider.unregister();

@@ -11,6 +11,7 @@
 <%@ page import="org.jahia.services.usermanager.ldap.JahiaLDAPConfig" %>
 <%@ page import="org.jahia.services.usermanager.ldap.JahiaLDAPConfigFactory" %>
 <%@ page import="org.osgi.service.cm.ConfigurationAdmin" %>
+<%@ page import="org.jahia.osgi.BundleUtils" %>
 <%@ page language="java" contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="template" uri="http://www.jahia.org/tags/templateLib" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
@@ -23,6 +24,8 @@
 
 
 <%
+    List<String> defaultProperties = Arrays.asList("target.site", "url", "public.bind.dn", "public.bind.password", "user.uid.search.name", "group.search.name");
+
     Resource currentResource = (Resource) pageContext.findAttribute("currentResource");
     JahiaTemplatesPackage ldap = ServicesRegistry.getInstance().getJahiaTemplateManagerService().getTemplatePackageById("ldap");
     ResourceBundle rb = ResourceBundles.get(ldap, currentResource.getLocale());
@@ -31,11 +34,10 @@
     String providerKey = (String) pageContext.findAttribute("providerKey");
     Map<String, String> previousProperties = (Map<String, String>) pageContext.findAttribute("ldapProperties");
     System.out.println(previousProperties);
-    List<String> defaultProperties = (List<String>) ldap.getContext().getBean("defaultProperties");
     pageContext.setAttribute("defaultProperties", defaultProperties);
 
-    JahiaLDAPConfigFactory jahiaLDAPConfigFactory = (JahiaLDAPConfigFactory) ldap.getContext().getBean("JahiaLDAPConfigFactory");
-    ConfigurationAdmin configurationAdmin = (ConfigurationAdmin) ldap.getContext().getBean("configurationAdmin");
+    JahiaLDAPConfigFactory jahiaLDAPConfigFactory = BundleUtils.getOsgiService(JahiaLDAPConfigFactory.class, null);
+    ConfigurationAdmin configurationAdmin = BundleUtils.getOsgiService(ConfigurationAdmin.class, null);
 
     Dictionary<String, Object> properties = null;
     if (providerKey != null) {

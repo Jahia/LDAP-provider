@@ -43,16 +43,20 @@
  */
 package org.jahia.services.usermanager.ldap;
 
+import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.services.cache.CacheHelper;
+import org.jahia.services.usermanager.ldap.cache.LDAPCacheManager;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedServiceFactory;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 import java.io.IOException;
 import java.util.Dictionary;
@@ -60,25 +64,40 @@ import java.util.HashMap;
 import java.util.Map;
 import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 
-public class JahiaLDAPConfigFactory implements ManagedServiceFactory, ApplicationContextAware {
+@Component(service = {JahiaLDAPConfigFactory.class, ManagedServiceFactory.class}, property = "service.pid=org.jahia.services.usermanager.ldap", immediate = true)
+public class JahiaLDAPConfigFactory implements ManagedServiceFactory {
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigFactory.class);
 
     private ConfigurationAdmin configurationAdmin;
-
-    private ApplicationContext context;
+    private LDAPCacheManager ldapCacheManager;
+    private ExternalUserGroupService externalUserGroupService;
+    private BundleContext bundleContext;
 
     private Map<String, JahiaLDAPConfig> ldapConfigs = new HashMap<String, JahiaLDAPConfig>();
     private Map<String, String> pidsByProviderKey = new HashMap<String, String>();
 
+    @Reference(service = ConfigurationAdmin.class)
     public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
         this.configurationAdmin = configurationAdmin;
     }
 
-    public void start() {
-        // do nothing
+    @Reference(service = LDAPCacheManager.class)
+    public void setLdapCacheManager(LDAPCacheManager ldapCacheManager) {
+        this.ldapCacheManager = ldapCacheManager;
     }
 
+    @Reference(service = ExternalUserGroupService.class)
+    public void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
+        this.externalUserGroupService = externalUserGroupService;
+    }
+
+    @Activate
+    public void start(BundleContext context) {
+       this.bundleContext = context;
+    }
+
+    @Deactivate
     public void stop() {
         for (JahiaLDAPConfig config : ldapConfigs.values()) {
             config.unregister();
@@ -97,7 +116,7 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
             ldapConfigs.put(pid, ldapConfig);
             deleteConfig(pidsByProviderKey.put(ldapConfig.getProviderKey(), pid));
         }
-        ldapConfig.setContext(context, dictionary);
+        ldapConfig.setContext(externalUserGroupService, ldapCacheManager, bundleContext, dictionary);
         flushRelatedCaches();
     }
 
@@ -128,11 +147,6 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory, Applicatio
 
     public String getName() {
         return "org.jahia.services.usermanager.ldap";
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.context = applicationContext;
     }
 
     public String getConfigPID(String providerKey) {

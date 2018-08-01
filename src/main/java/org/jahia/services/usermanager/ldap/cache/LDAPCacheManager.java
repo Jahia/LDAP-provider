@@ -48,9 +48,13 @@ import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
+import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.cache.CacheHelper;
 import org.jahia.services.cache.ModuleClassLoaderAwareCacheEntry;
 import org.jahia.services.cache.ehcache.EhCacheProvider;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +63,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author kevan
  */
+@Component(service = {LDAPCacheManager.class}, immediate = true)
 public class LDAPCacheManager {
     public static final String LDAP_USER_CACHE = "LDAPUsersCache";
     public static final String LDAP_GROUP_CACHE = "LDAPGroupsCache";
@@ -67,9 +72,10 @@ public class LDAPCacheManager {
 
     private Ehcache groupCache;
     private Ehcache userCache;
-    private EhCacheProvider cacheProvider;
 
-    void start(){
+    @Activate
+    protected void start(){
+        EhCacheProvider cacheProvider = (EhCacheProvider) SpringContextSingleton.getInstance().getContext().getBean("ehCacheProvider");
         final CacheManager cacheManager = cacheProvider.getCacheManager();
         userCache = cacheManager.getCache(LDAP_USER_CACHE);
         if (userCache == null) {
@@ -85,6 +91,17 @@ public class LDAPCacheManager {
         }
     }
 
+    @Deactivate
+    protected void stop(){
+        // flush
+        if (userCache != null) {
+            userCache.removeAll();
+        }
+        if (groupCache != null) {
+            groupCache.removeAll();
+        }
+    }
+
     private Ehcache createLDAPCache(CacheManager cacheManager, String cacheName) {
         CacheConfiguration cacheConfiguration = new CacheConfiguration();
         cacheConfiguration.setName(cacheName);
@@ -96,20 +113,6 @@ public class LDAPCacheManager {
         // Cache name has been set now we can initialize it by putting it in the manager.
         // Only Cache manager is initializing caches.
         return cacheManager.addCacheIfAbsent(cache);
-    }
-
-    void stop(){
-        // flush
-        if (userCache != null) {
-            userCache.removeAll();
-        }
-        if (groupCache != null) {
-            groupCache.removeAll();
-        }
-    }
-
-    public void setCacheProvider(EhCacheProvider cacheProvider) {
-        this.cacheProvider = cacheProvider;
     }
         
     public void clearUserCacheEntryByName(String providerKey, String username) {

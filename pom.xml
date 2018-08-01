@@ -145,6 +145,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <_dsannotations>*</_dsannotations>
                         <Export-Package>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core</Export-Package>
                     </instructions>
                 </configuration>

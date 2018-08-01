@@ -51,6 +51,8 @@ import org.jahia.services.content.JCRContentUtils;
 import org.jahia.settings.SettingsBean;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.springframework.core.NestedCheckedException;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.ldap.core.support.LdapContextSource;
@@ -65,6 +67,7 @@ import org.jahia.services.usermanager.ldap.communication.LdapTemplateWrapper;
 /**
  * Class to implement specific behaviour for configuration creation/edition/deletion in server settings
  */
+@Component(service = {UserGroupProviderConfiguration.class}, immediate = true)
 public class LdapProviderConfiguration implements UserGroupProviderConfiguration {
 
     private static final long serialVersionUID = 8082529526561969689L;
@@ -299,14 +302,17 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         return true;
     }
 
+    @Reference(service = ExternalUserGroupService.class)
     public void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
         this.externalUserGroupService = externalUserGroupService;
     }
 
+    @Reference(service = JahiaLDAPConfigFactory.class)
     public void setJahiaLDAPConfigFactory(JahiaLDAPConfigFactory jahiaLDAPConfigFactory) {
         this.jahiaLDAPConfigFactory = jahiaLDAPConfigFactory;
     }
 
+    @Reference(service = ConfigurationAdmin.class)
     public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
         this.configurationAdmin = configurationAdmin;
     }

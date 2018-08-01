@@ -50,22 +50,28 @@ import java.net.URISyntaxException;
 
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Unbind configuration at module start/stop
  */
+@Component(service = {JahiaLDAPConfigManager.class}, immediate = true)
 public class JahiaLDAPConfigManager {
 
     private static Logger logger = LoggerFactory.getLogger(JahiaLDAPConfigManager.class);
 
     private ConfigurationAdmin configurationAdmin;
 
+    @Activate
     public void start() {
         unbindConfiguration(true);
     }
 
+    @Deactivate
     public void stop() {
         unbindConfiguration(false);
     }
