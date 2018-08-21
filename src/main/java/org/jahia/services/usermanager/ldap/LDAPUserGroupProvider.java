@@ -72,6 +72,7 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.NameClassPairCallbackHandler;
 import org.springframework.ldap.core.support.DefaultIncrementalAttributesMapper;
 import org.springframework.ldap.core.support.LdapContextSource;
+import org.springframework.ldap.filter.Filter;
 import org.springframework.ldap.query.ConditionCriteria;
 import org.springframework.ldap.query.ContainerCriteria;
 import org.springframework.ldap.query.SearchScope;
@@ -91,6 +92,9 @@ import javax.naming.ldap.Rdn;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import org.springframework.ldap.filter.AndFilter;
+import org.springframework.ldap.filter.HardcodedFilter;
 
 import static org.springframework.ldap.query.LdapQueryBuilder.query;
 
@@ -201,6 +205,38 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         }
     }
 
+    public List<Member> getDynamicGroupMembers(String userId, String groupName) {
+
+        final LDAPGroupCacheEntry groupCacheEntry = getGroupCacheEntry(groupName, false);
+        if (!groupCacheEntry.getExist()) {
+            return Collections.emptyList();
+        }
+        if (groupCacheEntry.getMembers() != null) {
+            return new ArrayList<>(groupCacheEntry.getMembers());
+        }
+
+        List<Member> members = null;
+        if (groupCacheEntry.isDynamic() && StringUtils.isNotEmpty(groupCacheEntry.getDynamicMembersURL())) {
+            try {
+                final String dynamicMembersURL = groupCacheEntry.getDynamicMembersURL();
+                final LdapURL ldapURL = new LdapURL(dynamicMembersURL);
+                final String ldapFilter = ldapURL.getFilter();
+                final Filter dynamicFilter = (new AndFilter())
+                        .and(new HardcodedFilter(ldapFilter))
+                        .and(new HardcodedFilter(String.format("(%s=%s)", userConfig.getUidSearchAttribute(), userId)));
+                final String url = dynamicMembersURL.replace(ldapFilter, dynamicFilter.toString());
+                members = loadMembersFromUrl(url);
+            } catch (NamingException ex) {
+                logger.error("Error trying to get dynamic members from url: " + groupCacheEntry.getDynamicMembersURL());
+            }
+        }
+        if (members != null && CollectionUtils.isNotEmpty(members)) {
+            return new ArrayList<>(members);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
     @Override
     public List<String> getMembership(final Member member) {
 
@@ -258,7 +294,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             searchCriteria.put("*", "*");
             List<String> dynGroups = searchGroups(searchCriteria, true);
             for (String dynGroup : dynGroups) {
-                List<Member> members = getGroupMembers(dynGroup);
+                final List<Member> members = getDynamicGroupMembers(member.getName(), dynGroup);
                 if (members.contains(member)) {
                     memberships.add(dynGroup);
                 }
@@ -711,7 +747,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         final GroupNameClassPairCallbackHandler nameClassPairCallbackHandler = new GroupNameClassPairCallbackHandler(null, isDynamic);
         long startTime = System.currentTimeMillis();
         final Exception[] exceptions = new Exception[1];
-        
+
         boolean validLdapCall = ldapTemplateWrapper.execute(new BaseLdapActionCallback<Boolean>(getExternalUserGroupService(), getKey()) {
 
             @Override
@@ -1250,7 +1286,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 // First do non-synchronized check to avoid locking any threads that invoke the method simultaneously.
                 if (searchGroupCriteria == null) {
                     // Then check-again-and-initialize-if-needed within the synchronized block to ensure check-and-initialization consistency.
-                    synchronized(this) {
+                    synchronized (this) {
                         if (searchGroupCriteria == null) {
                             searchGroupCriteria = buildGroupQuery(searchCriteria, isDynamic);
                         }
