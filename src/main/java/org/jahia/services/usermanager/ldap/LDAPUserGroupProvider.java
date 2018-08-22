@@ -205,36 +205,40 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         }
     }
 
-    public List<Member> getDynamicGroupMembers(String userId, String groupName) {
+    private boolean isDynamicGroupMembers(String userId, String groupName) {
 
         final LDAPGroupCacheEntry groupCacheEntry = getGroupCacheEntry(groupName, false);
         if (!groupCacheEntry.getExist()) {
-            return Collections.emptyList();
-        }
-        if (groupCacheEntry.getMembers() != null) {
-            return new ArrayList<>(groupCacheEntry.getMembers());
+            return false;
         }
 
-        List<Member> members = null;
-        if (groupCacheEntry.isDynamic() && StringUtils.isNotEmpty(groupCacheEntry.getDynamicMembersURL())) {
-            try {
-                final String dynamicMembersURL = groupCacheEntry.getDynamicMembersURL();
-                final LdapURL ldapURL = new LdapURL(dynamicMembersURL);
-                final String ldapFilter = ldapURL.getFilter();
-                final Filter dynamicFilter = (new AndFilter())
-                        .and(new HardcodedFilter(ldapFilter))
-                        .and(new HardcodedFilter(String.format("(%s=%s)", userConfig.getUidSearchAttribute(), userId)));
-                final String url = dynamicMembersURL.replace(ldapFilter, dynamicFilter.toString());
-                members = loadMembersFromUrl(url);
-            } catch (NamingException ex) {
-                logger.error("Error trying to get dynamic members from url: " + groupCacheEntry.getDynamicMembersURL());
+        final List<String> membersId = new ArrayList<>();
+        final List<Member> members = new ArrayList<>();
+        if (groupCacheEntry.getMembers() == null) {
+            if (groupCacheEntry.isDynamic() && StringUtils.isNotEmpty(groupCacheEntry.getDynamicMembersURL())) {
+                try {
+                    final String dynamicMembersURL = groupCacheEntry.getDynamicMembersURL();
+                    final LdapURL ldapURL = new LdapURL(dynamicMembersURL);
+                    final String ldapFilter = ldapURL.getFilter();
+                    final Filter dynamicFilter = (new AndFilter())
+                            .and(new HardcodedFilter(ldapFilter))
+                            .and(new HardcodedFilter(String.format("(%s=%s)", userConfig.getUidSearchAttribute(), userId)));
+                    final String url = dynamicMembersURL.replace(ldapFilter, dynamicFilter.toString());
+
+                    members.addAll(loadMembersFromUrl(url));
+                } catch (NamingException ex) {
+                    logger.error("Error trying to get dynamic members from url: " + groupCacheEntry.getDynamicMembersURL());
+                }
             }
-        }
-        if (members != null && CollectionUtils.isNotEmpty(members)) {
-            return new ArrayList<>(members);
         } else {
-            return Collections.emptyList();
+            members.addAll(groupCacheEntry.getMembers());
         }
+
+        for (Member member : members) {
+            membersId.add(member.getName());
+        }
+
+        return membersId.contains(userId);
     }
 
     @Override
@@ -294,8 +298,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             searchCriteria.put("*", "*");
             List<String> dynGroups = searchGroups(searchCriteria, true);
             for (String dynGroup : dynGroups) {
-                final List<Member> members = getDynamicGroupMembers(member.getName(), dynGroup);
-                if (members.contains(member)) {
+                if(isDynamicGroupMembers(member.getName(), dynGroup)) {
                     memberships.add(dynGroup);
                 }
             }
