@@ -28,7 +28,7 @@
         GNU General Public License for more details.
 
         You should have received a copy of the GNU General Public License
-        along with this program. If not, see <http://www.gnu.org/licenses/>.
+        along with this program. If not, see <http://www.gnu.org/licenses />.
 
 
         2/ JSEL - Commercial and Supported Versions of the program
@@ -53,7 +53,7 @@
         <relativePath />
     </parent>
     <artifactId>ldap</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.1.5</version>
     <packaging>bundle</packaging>
     <name>Jahia LDAP connector</name>
     <description>This is a custom module for running on a Jahia server that provides support for LDAP user and group providers.</description>
@@ -61,7 +61,7 @@
         <connection>scm:git:git@github.com:Jahia/LDAP-provider.git</connection>
         <developerConnection>scm:git:git@github.com:Jahia/LDAP-provider.git</developerConnection>
         <url>scm:git:git@github.com:Jahia/LDAP-provider.git</url>
-        <tag>HEAD</tag>
+        <tag>3_1_5</tag>
     </scm>
 
     <properties>
