@@ -59,6 +59,7 @@ import org.springframework.ldap.core.support.LdapContextSource;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.Paths;
 import java.util.Dictionary;
 import java.util.Map;
 import java.util.Properties;
@@ -153,7 +154,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             throw new Exception("Connection to the LDAP server impossible");
         }
 
-        File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath());
+        File file = Paths.get(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf", "etc").toFile();
         if (file.exists()) {
             FileOutputStream out = new FileOutputStream(new File(file, configName));
             try {
@@ -194,7 +195,8 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         } else {
             throw new Exception("Wrong LDAP provider key: " + providerKey);
         }
-        File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath(), configName);
+
+        File file = Paths.get(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf", "etc", configName).toFile();
         if (file.exists()) {
             FileOutputStream out = new FileOutputStream(file);
             try {
@@ -261,7 +263,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         } else {
             throw new Exception("Wrong LDAP provider key: " + providerKey);
         }
-        File file = new File(SettingsBean.getInstance().getJahiaModulesDiskPath(), configName);
+        File file = Paths.get(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf", "etc", configName).toFile();
         if (file.exists()) {
             file.delete();
         } else {
