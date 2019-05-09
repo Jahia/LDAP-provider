@@ -154,9 +154,9 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             throw new Exception("Connection to the LDAP server impossible");
         }
 
-        File file = Paths.get(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf", "etc").toFile();
-        if (file.exists()) {
-            FileOutputStream out = new FileOutputStream(new File(file, configName));
+        File folder = new File(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf/etc");
+        if (folder.exists()) {
+            FileOutputStream out = new FileOutputStream(new File(folder, configName));
             try {
                 properties.store(out, "");
             } finally {
@@ -196,7 +196,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             throw new Exception("Wrong LDAP provider key: " + providerKey);
         }
 
-        File file = Paths.get(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf", "etc", configName).toFile();
+        File file = getExistingConfigFile(configName);
         if (file.exists()) {
             FileOutputStream out = new FileOutputStream(file);
             try {
@@ -263,7 +263,7 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         } else {
             throw new Exception("Wrong LDAP provider key: " + providerKey);
         }
-        File file = Paths.get(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf", "etc", configName).toFile();
+        File file = getExistingConfigFile(configName);
         if (file.exists()) {
             file.delete();
         } else {
@@ -276,6 +276,13 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
         }
     }
 
+    private File getExistingConfigFile(String configName) {
+        File file = new File(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf/etc/" + configName);
+        if (!file.exists()) {
+            file = new File(SettingsBean.getInstance().getJahiaVarDiskPath(), "modules/" + configName);
+        }
+        return file;
+    }
 
     private boolean testConnection(Properties p) throws Exception {
         return testConnection(getValue(p, "url", "user.url", "group.url"),
