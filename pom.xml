@@ -61,7 +61,7 @@
         <connection>scm:git:git@github.com:Jahia/LDAP-provider.git</connection>
         <developerConnection>scm:git:git@github.com:Jahia/LDAP-provider.git</developerConnection>
         <url>scm:git:git@github.com:Jahia/LDAP-provider.git</url>
-        <tag>HEAD</tag>
+        <tag>3_1_x</tag>
     </scm>
 
     <properties>
