@@ -92,7 +92,6 @@ import javax.naming.ldap.Rdn;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import org.springframework.ldap.filter.AndFilter;
 import org.springframework.ldap.filter.HardcodedFilter;
 
@@ -108,6 +107,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     public static final int CONNECTION_ERROR_CACHE_TTL = 5;
     protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
     private static Logger logger = LoggerFactory.getLogger(LDAPUserGroupProvider.class);
+
+    private static final String PROP_USERNAME = "username";
+    private static final String PROP_GROUPNAME = "groupname";
 
     private LdapContextSource contextSource;
     private LdapTemplateWrapper ldapTemplateWrapper;
@@ -149,7 +151,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @param query the search query to apply the user filter on
      * @return the adjusted query
      */
-    private ContainerCriteria applyPredefinedUserFilter(ContainerCriteria query, boolean isSingleUserLookup) {
+    private ContainerCriteria applyPredefinedUserFilter(ContainerCriteria query) {
         ContainerCriteria userFilter = getUserSearchFilterCriteria();
         if (userFilter != null) {
             query.and(userFilter);
@@ -186,7 +188,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             return Collections.emptyList();
         }
         if (groupCacheEntry.getMembers() != null) {
-            return new ArrayList<Member>(groupCacheEntry.getMembers());
+            return new ArrayList<>(groupCacheEntry.getMembers());
         }
 
         List<Member> members = null;
@@ -199,7 +201,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         if (CollectionUtils.isNotEmpty(members)) {
             groupCacheEntry.setMembers(members);
             ldapCacheManager.cacheGroup(getKey(), groupCacheEntry);
-            return new ArrayList<Member>(groupCacheEntry.getMembers());
+            return new ArrayList<>(groupCacheEntry.getMembers());
         } else {
             return Collections.emptyList();
         }
@@ -227,7 +229,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
                     members.addAll(loadMembersFromUrl(url));
                 } catch (NamingException ex) {
-                    logger.error("Error trying to get dynamic members from url: " + groupCacheEntry.getDynamicMembersURL());
+                    logger.error("Error trying to get dynamic members from url: {}", groupCacheEntry.getDynamicMembersURL());
                 }
             }
         } else {
@@ -251,7 +253,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         }
         LDAPAbstractCacheEntry cacheEntry = isGroup ? getGroupCacheEntry(member.getName(), false) : getUserCacheEntry(member.getName(), false);
         if (cacheEntry.getMemberships() != null) {
-            return new ArrayList<String>(cacheEntry.getMemberships());
+            return new ArrayList<>(cacheEntry.getMemberships());
         }
         if (!cacheEntry.getExist()) {
             return null;
@@ -290,7 +292,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
         // in case of communication error, the result may be null
         if (memberships == null) {
-            memberships = new ArrayList<String>();
+            memberships = new ArrayList<>();
         }
 
         if (groupConfig.isDynamicEnabled()) {
@@ -311,15 +313,14 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             ldapCacheManager.cacheUser(getKey(), (LDAPUserCacheEntry) cacheEntry);
         }
 
-        return new ArrayList<String>(cacheEntry.getMemberships());
+        return new ArrayList<>(cacheEntry.getMemberships());
     }
 
     @Override
     public List<String> searchUsers(final Properties searchCriteria, long offset, long limit) {
-
-        if (searchCriteria.containsKey("username") && searchCriteria.size() == 1 && !searchCriteria.getProperty("username").contains("*")) {
+        if (searchCriteria.containsKey(PROP_USERNAME) && searchCriteria.size() == 1 && !searchCriteria.getProperty(PROP_USERNAME).contains("*")) {
             try {
-                JahiaUser user = getUser((String) searchCriteria.get("username"));
+                JahiaUser user = getUser((String) searchCriteria.get(PROP_USERNAME));
                 return Collections.singletonList(user.getUsername());
             } catch (UserNotFoundException e) {
                 return Collections.emptyList();
@@ -351,10 +352,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     @Override
     public List<String> searchGroups(Properties searchCriteria, long offset, long limit) {
-
-        if (searchCriteria.containsKey("groupname") && searchCriteria.size() == 1 && !searchCriteria.getProperty("groupname").contains("*")) {
+        if (searchCriteria.containsKey(PROP_GROUPNAME) && searchCriteria.size() == 1 && !searchCriteria.getProperty(PROP_GROUPNAME).contains("*")) {
             try {
-                JahiaGroup group = getGroup((String) searchCriteria.get("groupname"));
+                JahiaGroup group = getGroup((String) searchCriteria.get(PROP_GROUPNAME));
                 return Arrays.asList(group.getGroupname());
             } catch (GroupNotFoundException e) {
                 return Collections.emptyList();
@@ -388,7 +388,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             }
         } catch (NamingException | org.springframework.ldap.NamingException e) {
             // Context creation failed - authentication did not succeed
-            logger.warn("Login failed for user " + userName + ": " + e.getMessage() + " (enable debug for full stacktrace)");
+            logger.warn("Login failed for user {}: {} (enable debug for full stacktrace)", userName, e.getMessage());
             logger.debug(e.getMessage(), e);
         } finally {
             LdapUtils.closeContext(ctx);
@@ -467,7 +467,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         try {
 
             final LdapURL ldapURL = new LdapURL(url);
-            final Set<String> attrs = new HashSet<String>(getUserAttributes());
+            final Set<String> attrs = new HashSet<>(getUserAttributes());
             attrs.addAll(getGroupAttributes(true));
             if (groupConfig.isDynamicEnabled()) {
                 attrs.add(groupConfig.getDynamicSearchObjectclass());
@@ -498,11 +498,11 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     return nameClassPairCallbackHandler.getMembers();
                 }
             });
-            logger.debug("Load members from url {} in ms", url, System.currentTimeMillis() - startTime);
+            logger.debug("Load members from url {} in {} ms", url, System.currentTimeMillis() - startTime);
 
             return members;
         } catch (NamingException e) {
-            logger.error("Error trying to get dynamic members from url: " + url);
+            logger.error("Error trying to get dynamic members from url: {}", url);
         }
         return null;
     }
@@ -555,7 +555,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     private List<Member> loadMembers(NamingEnumeration<?> members) {
 
-        List<Member> memberList = new ArrayList<Member>();
+        List<Member> memberList = new ArrayList<>();
         try {
 
             while (members != null && members.hasMore()) {
@@ -666,7 +666,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ldapTemplate.search(applyPredefinedUserFilter(query().base(userConfig.getUidSearchName())
                         .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                         .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())
-                        .and(userConfig.getUidSearchAttribute()).is(decode(userName)), true),
+                        .and(userConfig.getUidSearchAttribute()).is(decode(userName))),
                         nameClassPairCallbackHandler);
                 return true;
             }
@@ -844,7 +844,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 ldapTemplate.search(applyPredefinedUserFilter(query().base(dn)
                         .attributes(userAttrs.toArray(new String[userAttrs.size()]))
                         .searchScope(SearchScope.OBJECT)
-                        .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass()), true),
+                        .where(OBJECTCLASS_ATTRIBUTE).is(userConfig.getSearchObjectclass())),
                         nameClassPairCallbackHandler);
                 if (nameClassPairCallbackHandler.getCacheEntry() != null) {
                     LDAPUserCacheEntry ldapUserCacheEntry = nameClassPairCallbackHandler.getCacheEntry();
@@ -904,7 +904,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     cacheEntry.setDn(searchResult.getNameInNamespace());
                 }
             } else {
-                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+                logger.error("Unexpected NameClassPair {} in {}", nameClassPair, getClass().getName());
             }
         }
     }
@@ -937,7 +937,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 }
                 cacheEntry.setDn(searchResult.getNameInNamespace());
             } else {
-                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+                logger.error("Unexpected NameClassPair {} in {}", nameClassPair, getClass().getName());
             }
         }
     }
@@ -947,7 +947,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      */
     private class UsersNameClassPairCallbackHandler implements NameClassPairCallbackHandler {
 
-        private List<String> names = new ArrayList<String>();
+        private List<String> names = new ArrayList<>();
 
         public List<String> getNames() {
             return names;
@@ -970,7 +970,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     names.add(cacheEntry.getName());
                 }
             } else {
-                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+                logger.error("Unexpected NameClassPair {} in {}", nameClassPair, getClass().getName());
             }
         }
     }
@@ -1008,7 +1008,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     names.add(cacheEntry.getName());
                 }
             } else {
-                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+                logger.error("Unexpected NameClassPair {} in {}", nameClassPair, getClass().getName());
             }
         }
     }
@@ -1069,7 +1069,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 // try the objectclass
                 Boolean isDynamic = false;
                 searchResult.getAttributes().get(OBJECTCLASS_ATTRIBUTE).getAll();
-                List<String> objectclasses = new ArrayList<String>();
+                List<String> objectclasses = new ArrayList<>();
                 LdapUtils.collectAttributeValues(searchResult.getAttributes(), OBJECTCLASS_ATTRIBUTE, objectclasses, String.class);
                 if (objectclasses.contains(userConfig.getSearchObjectclass())) {
                     isUser = true;
@@ -1089,7 +1089,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 }
 
                 // try to guess the type on attributes present in the searchresult
-                List<String> searchResultsAttr = new ArrayList<String>();
+                List<String> searchResultsAttr = new ArrayList<>();
                 NamingEnumeration<String> attrs = searchResult.getAttributes().getIDs();
                 while (attrs.hasMore()) {
                     searchResultsAttr.add(attrs.next());
@@ -1105,9 +1105,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 }
 
                 // type not resolved
-                logger.warn("Dynamic member: " + searchResult.getNameInNamespace() + " not resolved as a user or a group");
+                logger.warn("Dynamic member: {} not resolved as a user or a group", searchResult.getNameInNamespace());
             } else {
-                logger.error("Unexpected NameClassPair " + nameClassPair + " in " + getClass().getName());
+                logger.error("Unexpected NameClassPair {} in {}", nameClassPair, getClass().getName());
             }
         }
 
@@ -1196,7 +1196,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     props.put(propertyKey, ldapAttribute.get());
                 }
             } catch (NamingException e) {
-                logger.error("Error reading LDAP attribute:" + ldapAttribute.toString());
+                logger.error("Error reading LDAP attribute: {}", ldapAttribute);
             }
         }
         return props;
@@ -1223,7 +1223,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             return null;
         }
 
-        applyPredefinedUserFilter(query, false);
+        applyPredefinedUserFilter(query);
 
         // define and / or operator
         boolean orOp = isOrOperator(ldapfilters, searchCriteria);
@@ -1441,7 +1441,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @return
      */
     private List<String> getUserAttributes() {
-        List<String> attrs = new ArrayList<String>(userConfig.getAttributesMapper().values());
+        List<String> attrs = new ArrayList<>(userConfig.getAttributesMapper().values());
         attrs.add(userConfig.getUidSearchAttribute());
         return attrs;
     }
@@ -1452,7 +1452,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @return
      */
     private List<String> getGroupAttributes(boolean isDynamic) {
-        List<String> attrs = new ArrayList<String>(groupConfig.getAttributesMapper().values());
+        List<String> attrs = new ArrayList<>(groupConfig.getAttributesMapper().values());
         attrs.add(groupConfig.getSearchAttribute());
         if (isDynamic) {
             attrs.add(groupConfig.getDynamicMembersAttribute());
@@ -1468,7 +1468,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @return
      */
     private List<String> getCommonAttributes(List<String> first, List<String> second) {
-        List<String> commons = new ArrayList<String>(first);
+        List<String> commons = new ArrayList<>(first);
         commons.retainAll(second);
         return commons;
     }
@@ -1597,7 +1597,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         return Text.unescapeIllegalJcrChars(name);
     }
 
-    private String encode(String value) throws NamingException {
+    private String encode(String value) {
         return Text.escapeIllegalJcrChars(value);
     }
 }
