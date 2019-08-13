@@ -119,8 +119,8 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
 
     // Cache
     private LDAPCacheManager ldapCacheManager;
-    private ContainerCriteria searchGroupCriteria;
-    private ContainerCriteria searchGroupDynamicCriteria;
+    private volatile ContainerCriteria searchGroupCriteria;
+    private volatile ContainerCriteria searchGroupDynamicCriteria;
 
     private AtomicInteger timeoutCount = new AtomicInteger(0);
     private int maxLdapTimeoutCountBeforeDisconnect = 3;
@@ -1271,36 +1271,15 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     private ContainerCriteria getGroupQuery(Properties searchCriteria, boolean isDynamic) {
-        ContainerCriteria query = null;
-        if (searchCriteria.isEmpty()) {
-            // we once build and reuse the queries in case of empty search criteria
-            if (isDynamic) {
-                // First do non-synchronized check to avoid locking any threads that invoke the method simultaneously.
-                if (searchGroupDynamicCriteria == null) {
-                    // Then check-again-and-initialize-if-needed within the synchronized block to ensure check-and-initialization consistency.
-                    synchronized(this) {
-                        if (searchGroupDynamicCriteria == null) {
-                            searchGroupDynamicCriteria = buildGroupQuery(searchCriteria, isDynamic);
-                        }
-                    }
-                }
-                query = searchGroupDynamicCriteria;
-            } else {
-                // First do non-synchronized check to avoid locking any threads that invoke the method simultaneously.
-                if (searchGroupCriteria == null) {
-                    // Then check-again-and-initialize-if-needed within the synchronized block to ensure check-and-initialization consistency.
-                    synchronized (this) {
-                        if (searchGroupCriteria == null) {
-                            searchGroupCriteria = buildGroupQuery(searchCriteria, isDynamic);
-                        }
-                    }
-                }
-                query = searchGroupCriteria;
-            }
-        } else {
-            query = buildGroupQuery(searchCriteria, isDynamic);
+        if (!searchCriteria.isEmpty()) {
+            return buildGroupQuery(searchCriteria, isDynamic);
         }
-        return query;
+
+        if (isDynamic) {
+            return getSearchGroupDynamicCriteria(searchCriteria);
+        } else {
+            return getSearchGroupCriteria(searchCriteria);
+        }
     }
 
     private void flushGroupQuery() {
@@ -1547,6 +1526,35 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
         return "LDAPUserGroupProvider{" + "getKey()='" + getKey() + '\'' + '}';
     }
 
+    private ContainerCriteria getSearchGroupCriteria(Properties searchCriteria) {
+        // Thread-safe lazy loading, using double-checked locking pattern
+        // see https://en.wikipedia.org/wiki/Double-checked_locking#Usage_in_Java
+        ContainerCriteria criteria = searchGroupCriteria;
+        if (criteria == null) {
+            synchronized (this) {
+                criteria = searchGroupCriteria;
+                if (criteria == null) {
+                    searchGroupCriteria = criteria = buildGroupQuery(searchCriteria, false);
+                }
+            }
+        }
+        return criteria;
+    }
+
+    private ContainerCriteria getSearchGroupDynamicCriteria(Properties searchCriteria) {
+        // Thread-safe lazy loading, using double-checked locking pattern
+        // see https://en.wikipedia.org/wiki/Double-checked_locking#Usage_in_Java
+        ContainerCriteria criteria = searchGroupDynamicCriteria;
+        if (criteria == null) {
+            synchronized (this) {
+                criteria = searchGroupDynamicCriteria;
+                if (criteria == null) {
+                    searchGroupDynamicCriteria = criteria = buildGroupQuery(searchCriteria, true);
+                }
+            }
+        }
+        return criteria;
+    }
 
     /**
      * Base LDAP template action callback that unmounts the LDAP provider in case of communication issue with the LDAP server
