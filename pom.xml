@@ -49,7 +49,7 @@
     <parent>
         <groupId>org.jahia.modules</groupId>
         <artifactId>jahia-modules</artifactId>
-        <version>7.2.0.0</version>
+        <version>7.5.0.0-SNAPSHOT</version>
         <relativePath />
     </parent>
     <artifactId>ldap</artifactId>
@@ -68,6 +68,7 @@
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
+        <jahia-module-signature>MCwCFAZROrqUDkRb+PSwOPHw0RjTCEBCAhR7xptktVbxN+BRyBjFS3b3SWAWyA==</jahia-module-signature>
     </properties>
 
     <repositories>
