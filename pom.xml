@@ -68,6 +68,7 @@
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
+        <jahia.modules.importPackage>org.jahia.modules.external.users</jahia.modules.importPackage>
         <jahia-module-signature>MCwCFA8KtEz/Tt/Jt3/7YA52YnIcQGaVAhRhJermqGw6TQ6qu0HTxPF9xOmJrQ==</jahia-module-signature>
     </properties>
 
