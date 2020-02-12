@@ -88,15 +88,37 @@
     </repositories>
     <dependencies>
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>*</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.ldap</groupId>
             <artifactId>spring-ldap-core</artifactId>
             <version>2.0.2.RELEASE</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>*</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-commons</artifactId>
             <version>1.13.17.RELEASE</version>
             <exclusions>
+                <exclusion>
+                    <artifactId>*</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
@@ -160,7 +182,7 @@
                 <configuration>
                     <instructions>
                         <_dsannotations>*</_dsannotations>
-                        <Export-Package>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core</Export-Package>
+                        <_exportcontents>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core;version=2.0.2.RELEASE</_exportcontents>
                     </instructions>
                 </configuration>
             </plugin>
