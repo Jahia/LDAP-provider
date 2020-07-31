@@ -69,7 +69,7 @@
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
         <jahia.modules.importPackage>org.jahia.modules.external.users</jahia.modules.importPackage>
-        <jahia-module-signature>MCwCFA8KtEz/Tt/Jt3/7YA52YnIcQGaVAhRhJermqGw6TQ6qu0HTxPF9xOmJrQ==</jahia-module-signature>
+        <jahia-module-signature>MCwCFDwoDVoCr2jzhxSpZs5bXH0No3aZAhR98pQRQOo4WfdheUPyCvOYGkvIfw==</jahia-module-signature>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
     </properties>
 

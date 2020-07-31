@@ -17,14 +17,16 @@
         }
     </script>
 </template:addResources>
-
+<c:set var="documentationLink">
+    https://academy.jahia.com/documentation/system-administrator/jahia/8/installing-and-configuring-jahia/installing-configuring-and-troubleshooting-jahia/connecting-to-an-ldap-server
+</c:set>
 <div class="row">
     <div class="col-md-12">
         <fieldset title="local">
             <div>
                 <div class="form-group">
                     <a class="btn btn-link pull-right"
-                       href="<c:url value='https://academy.jahia.com/documentation/techwiki/admin/users-and-groups#LDAP_Connector_7_1'/>"
+                       href="<c:url value='${documentationLink}'/>"
                        target="_blank">
                         <i class="material-icons">open_in_new</i>
                         <fmt:message bundle="${bundle}" key="ldap.provider.documentation"/>
