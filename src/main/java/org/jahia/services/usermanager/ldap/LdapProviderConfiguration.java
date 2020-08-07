@@ -150,8 +150,12 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
             throw new Exception("An LDAP provider with key '" + providerKey + "' already exists");
         }
 
-        if (!testConnection(properties)) {
-            throw new Exception("Connection to the LDAP server impossible");
+        try {
+            if (!testConnection(properties)) {
+                throw new Exception("Connection to the LDAP server impossible");
+            }
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
         }
 
         File folder = new File(SettingsBean.getInstance().getJahiaVarDiskPath(), "karaf/etc");
@@ -184,8 +188,12 @@ public class LdapProviderConfiguration implements UserGroupProviderConfiguration
     public void edit(String providerKey, Map<String, Object> parameters, Map<String, Object> flashScope) throws Exception {
         Properties properties = getProperties(parameters);
         flashScope.put("ldapProperties", properties);
-        if (!testConnection(properties)) {
-            throw new Exception("Connection to the LDAP server impossible");
+        try {
+            if (!testConnection(properties)) {
+                throw new Exception("Connection to the LDAP server impossible");
+            }
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
         }
         String configName;
         if (providerKey.equals("ldap")) {
