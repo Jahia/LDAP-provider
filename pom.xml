@@ -53,7 +53,7 @@
         <relativePath />
     </parent>
     <artifactId>ldap</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Jahia LDAP connector</name>
     <description>This is a custom module for running on a Jahia server that provides support for LDAP user and group providers.</description>
