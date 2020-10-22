@@ -151,6 +151,7 @@ workflows:
                 - master
                 - /feature-.*/
                 - /[0-9]_[0-9]_x/
+                - /[0-9]_x/
       - build:
           is_pull_request: false
           context: QA_ENVIRONMENT
