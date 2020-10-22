@@ -33,7 +33,6 @@
     pageContext.setAttribute("bundle", ctx);
     String providerKey = (String) pageContext.findAttribute("providerKey");
     Map<String, String> previousProperties = (Map<String, String>) pageContext.findAttribute("ldapProperties");
-    System.out.println(previousProperties);
     pageContext.setAttribute("defaultProperties", defaultProperties);
 
     JahiaLDAPConfigFactory jahiaLDAPConfigFactory = BundleUtils.getOsgiService(JahiaLDAPConfigFactory.class, null);
