@@ -92,6 +92,10 @@ import javax.naming.ldap.Rdn;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jahia.registries.ServicesRegistry;
+import org.jahia.services.content.JCRCallback;
+import org.jahia.services.content.JCRSessionWrapper;
+import org.jahia.services.content.JCRTemplate;
 import org.springframework.ldap.filter.AndFilter;
 import org.springframework.ldap.filter.HardcodedFilter;
 
@@ -384,6 +388,19 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 // that needs to be removed from the user DN for the lookup to succeed.
                 ctx.lookup(LdapUtils.newLdapName(userCacheEntry.getDn()));
                 logger.debug("Password verified for {} in {} ms", userName, System.currentTimeMillis() - startTime);
+           
+                try {
+                    JCRTemplate.getInstance().doExecuteWithSystemSession((JCRSessionWrapper session) -> {
+                        final String userRelativePath = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getRelativePathForUsername(userName);
+                        final String providerKey = getKey();
+                        JahiaGroupManagerService.getInstance().flushMembershipCache("/users/providers/" + providerKey + userRelativePath, session);
+                        ldapCacheManager.clearUserCacheEntryByName(providerKey, userName);
+                        return Boolean.TRUE;
+                    });
+                } catch (RepositoryException ex) {
+                    logger.warn("Impossible to flush membership cache for {}", userName, ex);
+                }
+
                 return true;
             }
         } catch (NamingException | org.springframework.ldap.NamingException e) {
