@@ -393,7 +393,13 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     JCRTemplate.getInstance().doExecuteWithSystemSession((JCRSessionWrapper session) -> {
                         final String userRelativePath = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getRelativePathForUsername(userName);
                         final String providerKey = getKey();
-                        JahiaGroupManagerService.getInstance().flushMembershipCache("/users/providers/" + providerKey + userRelativePath, session);
+                        final String siteKey = getSiteKey();
+                        final StringBuilder memberPath = new StringBuilder();
+                        if (siteKey != null) {
+                            memberPath.append("/sites/").append(siteKey);
+                        }
+                        memberPath.append("/users/providers/").append(providerKey).append(userRelativePath);
+                        JahiaGroupManagerService.getInstance().flushMembershipCache(memberPath.toString(), session);
                         ldapCacheManager.clearUserCacheEntryByName(providerKey, userName);
                         return Boolean.TRUE;
                     });
