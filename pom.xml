@@ -69,7 +69,7 @@
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
         <jahia.modules.importPackage>org.jahia.modules.external.users</jahia.modules.importPackage>
-        <jahia-module-signature>MC0CFQCEe97U/SRnhY1f5JtvC8ZO2fH4QgIUDFDp4Uqlo2RcVI2dpShWLL9SXw0=</jahia-module-signature>
+        <jahia-module-signature>MCwCFAPhQjDbNn2iOGOTwMAKcwwYMBTtAhQsIAFWmF8+5CfXOu5FDXd/DWCAzQ==</jahia-module-signature>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
     </properties>
 
@@ -103,39 +103,7 @@
         <dependency>
             <groupId>org.springframework.ldap</groupId>
             <artifactId>spring-ldap-core</artifactId>
-            <version>2.0.2.RELEASE</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>*</artifactId>
-                    <groupId>org.springframework</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-commons</artifactId>
-            <version>1.13.17.RELEASE</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>*</artifactId>
-                    <groupId>org.springframework</groupId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-web</artifactId>
-            <version>3.2.5.RELEASE</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>*</artifactId>
-                    <groupId>org.springframework</groupId>
-                </exclusion>
-            </exclusions>
+            <version>2.3.4.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.jahia.modules</groupId>
@@ -183,7 +151,7 @@
                 <configuration>
                     <instructions>
                         <_dsannotations>*</_dsannotations>
-                        <_exportcontents>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core;version=2.0.2.RELEASE</_exportcontents>
+                        <_exportcontents>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core;version=2.3.4.RELEASE</_exportcontents>
                     </instructions>
                 </configuration>
             </plugin>
