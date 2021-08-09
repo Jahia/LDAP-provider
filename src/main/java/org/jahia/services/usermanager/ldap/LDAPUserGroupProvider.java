@@ -93,7 +93,6 @@ import javax.naming.ldap.Rdn;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jahia.registries.ServicesRegistry;
-import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
 import org.springframework.ldap.filter.AndFilter;
@@ -403,11 +402,11 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                         ldapCacheManager.clearUserCacheEntryByName(providerKey, userName);
                         return Boolean.TRUE;
                     });
-                } catch (RepositoryException ex) {
+                } catch (Exception ex) {
                     logger.warn("Impossible to flush membership cache for {}", userName, ex);
+                } finally {
+                    return true;
                 }
-
-                return true;
             }
         } catch (NamingException | org.springframework.ldap.NamingException e) {
             // Context creation failed - authentication did not succeed
