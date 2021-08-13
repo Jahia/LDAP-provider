@@ -49,7 +49,7 @@
     <parent>
         <groupId>org.jahia.modules</groupId>
         <artifactId>jahia-modules</artifactId>
-        <version>8.0.0.0</version>
+        <version>8.1.0.0-SNAPSHOT</version>
         <relativePath />
     </parent>
     <artifactId>ldap</artifactId>
@@ -140,11 +140,6 @@
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>30.1.1-jre</version>
         </dependency>
     </dependencies>
     <build>
