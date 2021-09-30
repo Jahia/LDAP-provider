@@ -51,7 +51,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.reflect.FieldUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jahia.modules.external.users.*;
-import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.decorator.JCRMountPointNode;
 import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
@@ -376,7 +375,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     @Override
-    public boolean verifyPassword(final String userName, String userPassword) {
+    public boolean verifyPassword(String userName, String userPassword) {
         logger.debug("Verifying password for {}...", userName);
         DirContext ctx = null;
         try {
@@ -390,21 +389,18 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 logger.debug("Password verified for {} in {} ms", userName, System.currentTimeMillis() - startTime);
            
                 try {
-                    JCRTemplate.getInstance().doExecuteWithSystemSession(new JCRCallback<Object>() {
-                        @Override
-                        public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                            final String userRelativePath = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getRelativePathForUsername(userName);
-                            final String providerKey = LDAPUserGroupProvider.this.getKey();
-                            final String siteKey = LDAPUserGroupProvider.this.getSiteKey();
-                            final StringBuilder memberPath = new StringBuilder();
-                            if (siteKey != null) {
-                                memberPath.append("/sites/").append(siteKey);
-                            }
-                            memberPath.append("/users/providers/").append(providerKey).append(userRelativePath);
-                            JahiaGroupManagerService.getInstance().flushMembershipCache(memberPath.toString(), session);
-                            ldapCacheManager.clearUserCacheEntryByName(providerKey, userName);
-                            return Boolean.TRUE;
+                    JCRTemplate.getInstance().doExecuteWithSystemSession((JCRSessionWrapper session) -> {
+                        final String userRelativePath = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getRelativePathForUsername(userName);
+                        final String providerKey = getKey();
+                        final String siteKey = getSiteKey();
+                        final StringBuilder memberPath = new StringBuilder();
+                        if (siteKey != null) {
+                            memberPath.append("/sites/").append(siteKey);
                         }
+                        memberPath.append("/users/providers/").append(providerKey).append(userRelativePath);
+                        JahiaGroupManagerService.getInstance().flushMembershipCache(memberPath.toString(), session);
+                        ldapCacheManager.clearUserCacheEntryByName(providerKey, userName);
+                        return Boolean.TRUE;
                     });
                 } catch (Exception ex) {
                     logger.warn("Impossible to flush membership cache for {}", userName, ex);
