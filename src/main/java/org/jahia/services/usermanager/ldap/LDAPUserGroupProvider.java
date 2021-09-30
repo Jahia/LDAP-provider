@@ -51,7 +51,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.reflect.FieldUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jahia.modules.external.users.*;
-import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.decorator.JCRMountPointNode;
 import org.jahia.services.usermanager.*;
 import org.jahia.services.usermanager.ldap.cache.LDAPAbstractCacheEntry;
@@ -93,9 +92,6 @@ import javax.naming.ldap.Rdn;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.jahia.registries.ServicesRegistry;
-import org.jahia.services.content.JCRSessionWrapper;
-import org.jahia.services.content.JCRTemplate;
 import org.springframework.ldap.filter.AndFilter;
 import org.springframework.ldap.filter.HardcodedFilter;
 
@@ -376,7 +372,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     @Override
-    public boolean verifyPassword(final String userName, String userPassword) {
+    public boolean verifyPassword(String userName, String userPassword) {
         logger.debug("Verifying password for {}...", userName);
         DirContext ctx = null;
         try {
@@ -388,29 +384,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                 // that needs to be removed from the user DN for the lookup to succeed.
                 ctx.lookup(LdapUtils.newLdapName(userCacheEntry.getDn()));
                 logger.debug("Password verified for {} in {} ms", userName, System.currentTimeMillis() - startTime);
-           
-                try {
-                    JCRTemplate.getInstance().doExecuteWithSystemSession(new JCRCallback<Object>() {
-                        @Override
-                        public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                            final String userRelativePath = ServicesRegistry.getInstance().getJahiaUserManagerService().getUserSplittingRule().getRelativePathForUsername(userName);
-                            final String providerKey = LDAPUserGroupProvider.this.getKey();
-                            final String siteKey = LDAPUserGroupProvider.this.getSiteKey();
-                            final StringBuilder memberPath = new StringBuilder();
-                            if (siteKey != null) {
-                                memberPath.append("/sites/").append(siteKey);
-                            }
-                            memberPath.append("/users/providers/").append(providerKey).append(userRelativePath);
-                            JahiaGroupManagerService.getInstance().flushMembershipCache(memberPath.toString(), session);
-                            ldapCacheManager.clearUserCacheEntryByName(providerKey, userName);
-                            return Boolean.TRUE;
-                        }
-                    });
-                } catch (Exception ex) {
-                    logger.warn("Impossible to flush membership cache for {}", userName, ex);
-                } finally {
-                    return true;
-                }
+                return true;
             }
         } catch (NamingException | org.springframework.ldap.NamingException e) {
             // Context creation failed - authentication did not succeed
