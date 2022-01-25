@@ -45,6 +45,7 @@ package org.jahia.services.usermanager.ldap;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.pool.impl.GenericKeyedObjectPool;
@@ -130,8 +131,8 @@ public class JahiaLDAPConfig {
         }
         try {
             // populate config beans
-            BeanUtils.populate(userConfig, userLdapProperties);
-            BeanUtils.populate(groupConfig, groupLdapProperties);
+            BeanUtils.populate(userConfig, Maps.fromProperties(userLdapProperties));
+            BeanUtils.populate(groupConfig, Maps.fromProperties(groupLdapProperties));
 
             // handle defaults values
             userConfig.handleDefaults();
@@ -234,7 +235,7 @@ public class JahiaLDAPConfig {
                 }
 
                 ldap = new LdapTemplate(poolingContextSource);
-                
+
                 logger.info(
                         "Using LDAP connection pooling based on Apache Commons Pool with {} maximum active connections",
                         poolingContextSource.getMaxActive());
@@ -288,8 +289,8 @@ public class JahiaLDAPConfig {
 
     public LDAPUserGroupProvider getLdapUserGroupProvider() {
         return ldapUserGroupProvider;
-    }    
-    
+    }
+
     public void unregister() {
         if (ldapUserGroupProvider != null) {
             unregisterUserProvider();
