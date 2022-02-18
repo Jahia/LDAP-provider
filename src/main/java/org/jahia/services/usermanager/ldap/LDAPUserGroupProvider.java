@@ -1203,25 +1203,25 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     /**
-     * build a user query, that use the searchCriteria from jahia forms
+     * Build a user query, that use the searchCriteria from jahia forms
+     *
+     * If any of the searchCriteria doesn't map to LDAP properties,
+     * then it returns an empty query (query that returns 0 results)
      *
      * @param searchCriteria
      * @return
      */
     private ContainerCriteria buildUserQuery(Properties searchCriteria) {
-
-        List<String> attributesToRetrieve = getUserAttributes();
-        ContainerCriteria query = query().base(userConfig.getUidSearchName())
-                .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
-                .countLimit((int) userConfig.getSearchCountlimit())
-                .where(OBJECTCLASS_ATTRIBUTE).is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
-
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, userConfig.getAttributesMapper());
 
-        if (ldapfilters == null) {
-            return null;
-        }
+        // if no jnt:user props map to ldap props, then return an empty query i.e. limit results to 0
+        int searchCountLimit = (ldapfilters == null) ? 0 : (int) userConfig.getSearchCountlimit();
+        List<String> attributesToRetrieve = getUserAttributes();
+        ContainerCriteria query = query().base(userConfig.getUidSearchName())
+                .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
+                .countLimit(searchCountLimit)
+                .where(OBJECTCLASS_ATTRIBUTE).is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
 
         applyPredefinedUserFilter(query);
 
@@ -1302,15 +1302,17 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             attributesToRetrieve.add(groupConfig.getDynamicMembersAttribute());
         }
 
+        // transform jnt:group props to ldap props
+        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());
+
+        // if no jnt:user props map to ldap props, then return an empty query i.e. limit results to 0
+        int searchCountLimit = (ldapfilters == null) ? 0 : (int) groupConfig.getSearchCountlimit();
         ContainerCriteria query = query().base(groupConfig.getSearchName())
                 .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
-                .countLimit((int) groupConfig.getSearchCountlimit())
+                .countLimit(searchCountLimit)
                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass());
 
         applyPredefinedGroupFilter(query);
-
-        // transform jnt:user props to ldap props
-        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());
 
         // define and / or operator
         boolean orOp = isOrOperator(ldapfilters, searchCriteria);
@@ -1326,7 +1328,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     private static boolean isOrOperator(Properties ldapfilters, Properties searchCriteria) {
-        if (ldapfilters.size() > 1) {
+        if (ldapfilters != null && ldapfilters.size() > 1) {
             if (searchCriteria.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
                 if (((String) searchCriteria.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
                     return false;
@@ -1346,6 +1348,10 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      */
     private ContainerCriteria getQueryFilters(Properties ldapfilters, AbstractConfig config, boolean isOrOperator) {
         ContainerCriteria filterQuery = null;
+        if (ldapfilters == null) {
+            return filterQuery;
+        }
+
         if (ldapfilters.containsKey("*")) {
             // Search on all wildcards attributes
             String filterValue = ldapfilters.getProperty("*");
@@ -1408,7 +1414,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             if (configProperties.containsKey(entry.getKey())) {
                 p.setProperty(configProperties.get(entry.getKey()), (String) entry.getValue());
             } else if (!entry.getKey().equals("*") && !entry.getKey().equals(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
-                break;
+                return null;
             }
         }
 
