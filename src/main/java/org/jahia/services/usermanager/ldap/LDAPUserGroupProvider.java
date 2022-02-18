@@ -1408,7 +1408,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
             if (configProperties.containsKey(entry.getKey())) {
                 p.setProperty(configProperties.get(entry.getKey()), (String) entry.getValue());
             } else if (!entry.getKey().equals("*") && !entry.getKey().equals(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
-                break;
+                return null;
             }
         }
 
