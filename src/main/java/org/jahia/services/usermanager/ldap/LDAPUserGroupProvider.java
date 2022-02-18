@@ -1328,7 +1328,7 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     }
 
     private static boolean isOrOperator(Properties ldapfilters, Properties searchCriteria) {
-        if (ldapfilters == null && ldapfilters.size() > 1) {
+        if (ldapfilters != null && ldapfilters.size() > 1) {
             if (searchCriteria.containsKey(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)) {
                 if (((String) searchCriteria.get(JahiaUserManagerService.MULTI_CRITERIA_SEARCH_OPERATION)).trim().toLowerCase().equals("and")) {
                     return false;
