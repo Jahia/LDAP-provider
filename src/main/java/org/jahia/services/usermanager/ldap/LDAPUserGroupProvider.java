@@ -437,6 +437,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     private List<String> searchGroups(final Properties searchCriteria, boolean isDynamics) {
 
         final ContainerCriteria query = getGroupQuery(searchCriteria, isDynamics);
+        if (query == null) {
+            return Collections.emptyList();
+        }
         final GroupsNameClassPairCallbackHandler searchNameClassPairCallbackHandler = new GroupsNameClassPairCallbackHandler(isDynamics);
         long startTime = System.currentTimeMillis();
         final List<String> names = ldapTemplateWrapper.execute(new BaseLdapActionCallback<List<String>>(getExternalUserGroupService(), getKey()) {
@@ -1214,13 +1217,14 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     private ContainerCriteria buildUserQuery(Properties searchCriteria) {
         // transform jnt:user props to ldap props
         Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, userConfig.getAttributesMapper());
+        if (ldapfilters == null) {
+            return null;
+        }
 
-        // if no jnt:user props map to ldap props, then return an empty query i.e. limit results to 0
-        int searchCountLimit = (ldapfilters == null) ? 0 : (int) userConfig.getSearchCountlimit();
         List<String> attributesToRetrieve = getUserAttributes();
         ContainerCriteria query = query().base(userConfig.getUidSearchName())
                 .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
-                .countLimit(searchCountLimit)
+                .countLimit((int) userConfig.getSearchCountlimit())
                 .where(OBJECTCLASS_ATTRIBUTE).is(StringUtils.defaultString(userConfig.getSearchObjectclass(), "*"));
 
         applyPredefinedUserFilter(query);
@@ -1296,20 +1300,20 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
      * @return
      */
     private ContainerCriteria buildGroupQuery(Properties searchCriteria, boolean isDynamic) {
+        // transform jnt:group props to ldap props
+        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());
+        if (ldapfilters == null) {
+            return null;
+        }
 
         List<String> attributesToRetrieve = getGroupAttributes(isDynamic);
         if (isDynamic) {
             attributesToRetrieve.add(groupConfig.getDynamicMembersAttribute());
         }
 
-        // transform jnt:group props to ldap props
-        Properties ldapfilters = mapJahiaPropertiesToLDAP(searchCriteria, groupConfig.getAttributesMapper());
-
-        // if no jnt:user props map to ldap props, then return an empty query i.e. limit results to 0
-        int searchCountLimit = (ldapfilters == null) ? 0 : (int) groupConfig.getSearchCountlimit();
         ContainerCriteria query = query().base(groupConfig.getSearchName())
                 .attributes(attributesToRetrieve.toArray(new String[attributesToRetrieve.size()]))
-                .countLimit(searchCountLimit)
+                .countLimit((int) groupConfig.getSearchCountlimit())
                 .where(OBJECTCLASS_ATTRIBUTE).is(isDynamic ? groupConfig.getDynamicSearchObjectclass() : groupConfig.getSearchObjectclass());
 
         applyPredefinedGroupFilter(query);
