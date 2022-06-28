@@ -6,6 +6,11 @@ name: On Code Change (PR)
 on:
   pull_request:
     types: [opened, reopened, synchronize]
+    branches:
+      - master
+      - /feature-.*/
+      - /[0-9]_[0-9]_x/
+      - /[0-9]_x/
 
 jobs:
   update-signature:
