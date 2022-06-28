@@ -5,9 +5,17 @@
             <id>jahia-internal-repository</id>
             <repositories>
                 <repository>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <id>central</id>
+                    <name>Central Repository</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+                <repository>
                     <id>jahia-internal</id>
                     <name>Jahia Internal Repository</name>
-                    <url>${env.NEXUS_INTERNAL_URL}</url>
+                    <url>https://devtools.jahia.com/nexus/content/groups/internal/</url>
                     <releases>
                         <enabled>true</enabled>
                         <updatePolicy>never</updatePolicy>
