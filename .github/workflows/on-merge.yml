@@ -1,11 +1,16 @@
-# This workflow is triggered every time a change is pushed to any branches 
+# This workflow is triggered every time a change is pushed to any branches
 # Github actions command reference: https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
-name: On Code Change (PR)
+name: On merge to master
 
-# The workflow could also be triggered on PRs
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
+  push:
+    branches:
+      - master
+      - /feature-.*/
+      - /[0-9]_[0-9]_x/
+      - /[0-9]_x/
+    tags-ignore:
+      - '**'
 
 jobs:
   update-signature:
@@ -35,18 +40,20 @@ jobs:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           module_id: ldap
-          mvn_settings_filepath: '.github/maven.settings.xml'
 
-  sonar-analysis:
-    name: Sonar Analysis
+  publish:
+    name: Publish module
     needs: build
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    container:
+      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
     steps:
       - uses: actions/checkout@v2
-      - uses: jahia/jahia-modules-action/sonar-analysis@v2
+      - uses: jahia/jahia-modules-action/publish@v2
         with:
-          primary_release_branch: master
-          github_pr_id: ${{github.event.number}}
-          sonar_url: ${{ secrets.SONAR_URL }}
-          sonar_token: ${{ secrets.SONAR_TOKEN }}
-          mvn_settings_filepath: '.github/maven.settings.xml'
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
