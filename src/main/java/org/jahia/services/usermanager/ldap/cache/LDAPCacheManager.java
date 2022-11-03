@@ -75,10 +75,12 @@ public class LDAPCacheManager {
     }
 
     private Ehcache createLDAPCache(CacheManager cacheManager, String cacheName) {
-        CacheConfiguration cacheConfiguration = new CacheConfiguration();
+        CacheConfiguration cacheConfiguration = cacheManager.getConfiguration().getDefaultCacheConfiguration() != null ?
+                cacheManager.getConfiguration().getDefaultCacheConfiguration().clone() :
+                new CacheConfiguration();
         cacheConfiguration.setName(cacheName);
-        cacheConfiguration.setTimeToIdleSeconds(3600);
         cacheConfiguration.setEternal(false);
+        cacheConfiguration.setTimeToIdleSeconds(3600);
         // Create a new cache with the configuration
         Ehcache cache = new Cache(cacheConfiguration);
         cache.setName(cacheName);
