@@ -76,7 +76,7 @@
         <dependency>
             <groupId>org.springframework.ldap</groupId>
             <artifactId>spring-ldap-core</artifactId>
-            <version>2.3.8.RELEASE</version>
+            <version>3.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.jahia.modules</groupId>
