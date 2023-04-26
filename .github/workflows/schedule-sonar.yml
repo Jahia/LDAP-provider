@@ -1,0 +1,43 @@
+# This workflow trigger a full Sonar analysis at regular interval
+# Github actions command reference: https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
+name: Sonar Analysis - Scheduled
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1,3,5' # At 4AM, on Monday, Wednesday and Friday
+
+env:
+  MODULE_ID: ldap
+
+jobs:
+  sonar-analysis:
+    name: Sonar Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+         supported_branches: ["${{ github.event.repository.default_branch }}"]
+    container:
+      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ matrix.supported_branches }}
+      - uses: jahia/jahia-modules-action/build@v2
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          module_id: ${{ env.MODULE_ID }}
+          mvn_settings_filepath: '.github/maven.settings.xml'
+      - uses: jahia/jahia-modules-action/sonar-analysis@v2
+        with:
+          primary_release_branch: ${{ matrix.supported_branches }}
+          build_artifacts: ''
+          github_pr_id: ${{github.event.number}}
+          sonar_url: ${{ secrets.SONAR_URL }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          mvn_settings_filepath: '.github/maven.settings.xml'
