@@ -47,6 +47,6 @@ jobs:
         with:
           primary_release_branch: master
           github_pr_id: ${{github.event.number}}
-          sonar_url: ${{ secrets.SONAR_URL }}
-          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          sonar_url: ${{ secrets.SONAR_URL_DEVTEST }}
+          sonar_token: ${{ secrets.SONAR_TOKEN_DEVTEST }}
           mvn_settings_filepath: '.github/maven.settings.xml'
