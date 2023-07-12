@@ -67,3 +67,15 @@ jobs:
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 15
+
+  sbom:
+    name: SBOM processing
+    needs: on-release
+    runs-on: ubuntu-latest
+    container:
+      image: cyclonedx/cyclonedx-cli:0.24.2   
+    steps:
+      - uses: jahia/jahia-modules-action/sbom-processing@v2
+        with:
+          dependencytrack_hostname: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
+          dependencytrack_apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
