@@ -1,0 +1,69 @@
+# This workflow is triggered when someone create a new release in GitHub
+# and checks the "This is a pre-relase" box.
+name: Trigger Release creation
+
+on:
+  release:
+    types: [prereleased]
+
+jobs:
+  on-release:
+    runs-on: ubuntu-latest
+
+    # The cimg-mvn-cache is an image containing a .m2 folder warmed-up
+    # with common Jahia dependencies. Using this prevents maven from
+    # downloading the entire world when building.
+    # More on https://github.com/Jahia/cimg-mvn-cache
+    container:
+      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    steps:
+      # Providing the SSH PRIVATE of a user part of an admin group
+      # is necessary to bypass PR checks
+      - uses: actions/checkout@v3
+        with:
+          ssh-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
+
+      # Setting up the SSH agent to be able to commit back to the repository
+      # https://github.com/webfactory/ssh-agent
+      - uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
+
+      - uses: jahia/jahia-modules-action/release@v2
+        name: Release Module
+        with:
+          github_slug: Jahia/ldap
+          primary_release_branch: master
+          release_id: ${{ github.event.release.id }}
+          release_version: ${{ github.event.release.tag_name }}
+          github_api_token: ${{ secrets.GH_API_TOKEN }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          slack-webhook-qa: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
+
+      - uses: jahia/jahia-modules-action/update-signature@v2
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          nexus_enterprise_releases_url: ${{ secrets.NEXUS_ENTERPRISE_RELEASES_URL }}
+          force_signature: true
+
+      - uses: jahia/jahia-modules-action/release-publication@v2
+        name: Publish Module
+        with:
+          module_id: ldap
+          release_version: ${{ github.event.release.tag_name }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+      # Tmate only starts if any of the previous steps fails.
+      # Be careful since it also means that if a step fails the workflow will
+      # keep running until it reaches the timeout
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 15
