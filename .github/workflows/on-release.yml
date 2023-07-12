@@ -36,7 +36,7 @@ jobs:
       - uses: jahia/jahia-modules-action/release@v2
         name: Release Module
         with:
-          github_slug: Jahia/ldap
+          github_slug: Jahia/LDAP-provider
           primary_release_branch: master
           release_id: ${{ github.event.release.id }}
           release_version: ${{ github.event.release.tag_name }}
