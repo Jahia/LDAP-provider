@@ -40,10 +40,9 @@
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
-        <jahia.modules.importPackage>org.jahia.modules.external.users</jahia.modules.importPackage>
         <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
-        <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>	
+        <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
     </properties>
 
     <repositories>
@@ -123,6 +122,15 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <Import-Package>
+                            org.jahia.modules.external.users,
+                            org.springframework.beans.*;version="[3.2,4)";resolution:=optional,
+                            org.springframework.transaction.*;version="[3.2,4)";resolution:=optional,
+                            org.springframework.orm.*;version="[3.2,4)";resolution:=optional,
+                            org.springframework.dao.*;version="[3.2,4)";resolution:=optional,
+                            ${jahia.plugin.projectPackageImport},
+                            *
+                        </Import-Package>
                         <_dsannotations>*</_dsannotations>
                         <_exportcontents>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core;version=2.3.4.RELEASE</_exportcontents>
                     </instructions>
