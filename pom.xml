@@ -40,10 +40,22 @@
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
-        <jahia.modules.importPackage>org.jahia.modules.external.users</jahia.modules.importPackage>
+        <import-package>
+            org.jahia.modules.external.users,
+            org.springframework.beans;version="[3.2,4)";resolution:=optional,
+            org.springframework.beans.factory;version="[3.2,4)";resolution:=optional,
+            org.springframework.beans.factory.xml;version="[3.2,4)";resolution:=optional,
+            org.springframework.beans.factory.config;version="[3.2,4)";resolution:=optional,
+            org.springframework.beans.factory.parsing;version="[3.2,4)";resolution:=optional,
+            org.springframework.beans.factory.support;version="[3.2,4)";resolution:=optional,
+            org.springframework.transaction;version="[3.2,4)";resolution:=optional,
+            org.springframework.transaction.support;version="[3.2,4)";resolution:=optional,
+            org.springframework.orm.hibernate5;version="[3.2,4)";resolution:=optional,
+            org.springframework.dao;version="[3.2,4)";resolution:=optional
+        </import-package>
         <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
-        <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>	
+        <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
     </properties>
 
     <repositories>
