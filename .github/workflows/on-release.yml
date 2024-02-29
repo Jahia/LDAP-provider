@@ -15,7 +15,7 @@ jobs:
     # downloading the entire world when building.
     # More on https://github.com/Jahia/cimg-mvn-cache
     container:
-      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node
+      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node
       credentials:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
