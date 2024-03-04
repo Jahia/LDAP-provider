@@ -40,20 +40,6 @@
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
-        <import-package>
-            org.jahia.modules.external.users,
-            org.springframework.beans;version="[3.2,4)";resolution:=optional,
-            org.springframework.beans.factory;version="[3.2,4)";resolution:=optional,
-            org.springframework.beans.factory.xml;version="[3.2,4)";resolution:=optional,
-            org.springframework.beans.factory.config;version="[3.2,4)";resolution:=optional,
-            org.springframework.beans.factory.parsing;version="[3.2,4)";resolution:=optional,
-            org.springframework.beans.factory.support;version="[3.2,4)";resolution:=optional,
-            org.springframework.transaction;version="[3.2,4)";resolution:=optional,
-            org.springframework.transaction.support;version="[3.2,4)";resolution:=optional,
-            org.springframework.orm.hibernate5;version="[3.2,4)";resolution:=optional,
-            org.springframework.dao;version="[3.2,4)";resolution:=optional
-        </import-package>
-        <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
         <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
     </properties>
@@ -135,7 +121,27 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <!--
+                            com.google.common extends range
+                            Jahia 8.1.0.0 exposes Guave 30.1.x
+                            Jahia 8.2.0.0 use a Guava Bundle in version 33.x
+                        -->
                         <_dsannotations>*</_dsannotations>
+                        <Import-Package>
+                            org.jahia.modules.external.users,
+                            org.springframework.beans;version="[3.2,4)";resolution:=optional,
+                            org.springframework.beans.factory;version="[3.2,4)";resolution:=optional,
+                            org.springframework.beans.factory.xml;version="[3.2,4)";resolution:=optional,
+                            org.springframework.beans.factory.config;version="[3.2,4)";resolution:=optional,
+                            org.springframework.beans.factory.parsing;version="[3.2,4)";resolution:=optional,
+                            org.springframework.beans.factory.support;version="[3.2,4)";resolution:=optional,
+                            org.springframework.transaction;version="[3.2,4)";resolution:=optional,
+                            org.springframework.transaction.support;version="[3.2,4)";resolution:=optional,
+                            org.springframework.orm.hibernate5;version="[3.2,4)";resolution:=optional,
+                            org.springframework.dao;version="[3.2,4)";resolution:=optional,
+                            com.google.common.base;version="[30.1,34)",
+                            com.google.common.collect;version="[30.1,34)"
+                        </Import-Package>
                         <_exportcontents>org.jahia.services.usermanager.ldap, org.jahia.services.usermanager.ldap.*, org.springframework.ldap.core;version=2.3.4.RELEASE</_exportcontents>
                     </instructions>
                 </configuration>
