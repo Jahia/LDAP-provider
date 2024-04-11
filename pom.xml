@@ -37,6 +37,7 @@
     </scm>
 
     <properties>
+        <jahia.plugin.version>6.9</jahia.plugin.version>
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups</jahia-depends>
