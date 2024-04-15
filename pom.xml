@@ -40,9 +40,10 @@
         <jahia.plugin.version>6.9</jahia.plugin.version>
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
-        <jahia-depends>default,external-provider-users-groups</jahia-depends>
+        <jahia-depends>default,external-provider-users-groups, external-provider</jahia-depends>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
         <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
+        <jahia.plugin.version>6.9</jahia.plugin.version>
     </properties>
 
     <repositories>
@@ -138,7 +139,8 @@
                         <_dsannotations>*</_dsannotations>
                         <Import-Package>
                             ${jahia.plugin.projectPackageImport},
-                            org.jahia.modules.external.users,
+                            org.jahia.modules.external.users;version="[2.0,3)",
+                            org.jahia.modules.external;version="[4.0,5)",
                             org.springframework.beans;version="[3.2,4)";resolution:=optional,
                             org.springframework.beans.factory;version="[3.2,4)";resolution:=optional,
                             org.springframework.beans.factory.xml;version="[3.2,4)";resolution:=optional,
