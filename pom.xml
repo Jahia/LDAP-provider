@@ -37,13 +37,12 @@
     </scm>
 
     <properties>
-        <jahia.plugin.version>6.9</jahia.plugin.version>
+        <jahia.plugin.version>6.10</jahia.plugin.version>
         <embed-dependency>*;groupId=org.springframework.ldap|org.springframework.data|commons-pool;scope=compile; type=!pom; inline=false</embed-dependency>
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups, external-provider</jahia-depends>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
         <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
-        <jahia.plugin.version>6.9</jahia.plugin.version>
     </properties>
 
     <repositories>
