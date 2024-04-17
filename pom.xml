@@ -42,7 +42,7 @@
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider-users-groups, external-provider</jahia-depends>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
-        <jahia-module-signature>MCwCFCbEjooYjZShbBXBcZECla/lN+WbAhRaHjyMGEkT3s67dIwtuqkH7yNEaA==</jahia-module-signature>
+        <jahia-module-signature>MCwCFAnsHFEwfqbu6Dy9MP9zbwtZpngvAhRxYDVfXcPm+Xey+oj2d3oMEiq5Mw==</jahia-module-signature>
     </properties>
 
     <repositories>
