@@ -12,7 +12,7 @@ jobs:
     name: Update module signature
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
@@ -29,7 +29,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: jahia/jahia-modules-action/build@v2
         with:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
@@ -42,7 +42,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
           primary_release_branch: master
