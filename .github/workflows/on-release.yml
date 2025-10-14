@@ -15,10 +15,10 @@ jobs:
     # downloading the entire world when building.
     # More on https://github.com/Jahia/cimg-mvn-cache
     container:
-      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node
+      image: ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded
       credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }}
 
     steps:
       # Providing the SSH PRIVATE of a user part of an admin group
