@@ -47,7 +47,7 @@ public class LDAPCacheManager {
 
     @Activate
     protected void start(){
-        EhCacheProvider cacheProvider = (EhCacheProvider) SpringContextSingleton.getInstance().getContext().getBean("ehCacheProvider");
+        EhCacheProvider cacheProvider = (EhCacheProvider) SpringContextSingleton.getInstance().getBean("ehCacheProvider");
         final CacheManager cacheManager = cacheProvider.getCacheManager();
         userCache = cacheManager.getCache(LDAP_USER_CACHE);
         if (userCache == null) {

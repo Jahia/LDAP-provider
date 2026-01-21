@@ -74,7 +74,7 @@ import static org.springframework.ldap.query.LdapQueryBuilder.query;
  *
  * @author david
  */
-public class LDAPUserGroupProvider extends BaseUserGroupProvider {
+public class LDAPUserGroupProvider extends LDAPBaseUserGroupProvider {
 
     public static final int CONNECTION_ERROR_CACHE_TTL = 5;
     protected static final String OBJECTCLASS_ATTRIBUTE = "objectclass";
