@@ -37,7 +37,7 @@ jobs:
         name: Release Module
         with:
           github_slug: Jahia/LDAP-provider
-          primary_release_branch: master
+          primary_release_branch: main
           release_id: ${{ github.event.release.id }}
           release_version: ${{ github.event.release.tag_name }}
           github_api_token: ${{ secrets.GH_API_TOKEN }}
@@ -49,7 +49,6 @@ jobs:
         with:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          nexus_enterprise_releases_url: ${{ secrets.NEXUS_ENTERPRISE_RELEASES_URL }}
           force_signature: true
 
       - uses: jahia/jahia-modules-action/release-publication@v2
