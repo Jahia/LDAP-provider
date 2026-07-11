@@ -65,6 +65,7 @@ import javax.naming.ldap.Rdn;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.ldap.filter.AndFilter;
+import org.springframework.ldap.filter.EqualsFilter;
 import org.springframework.ldap.filter.HardcodedFilter;
 
 import static org.springframework.ldap.query.LdapQueryBuilder.query;
@@ -196,7 +197,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
                     final String ldapFilter = ldapURL.getFilter();
                     final Filter dynamicFilter = (new AndFilter())
                             .and(new HardcodedFilter(ldapFilter))
-                            .and(new HardcodedFilter(String.format("(%s=%s)", userConfig.getUidSearchAttribute(), userId)));
+                            // build the identifier clause with EqualsFilter so the value is escaped
+                            // consistently with the module's other typed LDAP queries
+                            .and(new EqualsFilter(userConfig.getUidSearchAttribute(), userId));
                     final String url = dynamicMembersURL.replace(ldapFilter, dynamicFilter.toString());
 
                     members.addAll(loadMembersFromUrl(url));
