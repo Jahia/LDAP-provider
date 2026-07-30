@@ -5,3 +5,4 @@
 /src/main/webapp/META-INF/MANIFEST.MF
 /.idea
 *.iml
+.DS_Store
