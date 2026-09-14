@@ -80,16 +80,24 @@ public class JahiaLDAPConfigFactory implements ManagedServiceFactory {
 
     @Override
     public void updated(String pid, Dictionary<String, ?> dictionary) throws ConfigurationException {
-        JahiaLDAPConfig ldapConfig;
-        if (ldapConfigs.containsKey(pid)) {
-            ldapConfig = ldapConfigs.get(pid);
-        } else {
-            ldapConfig = new JahiaLDAPConfig(dictionary);
-            ldapConfigs.put(pid, ldapConfig);
-            deleteConfig(pidsByProviderKey.put(ldapConfig.getProviderKey(), pid));
+        // This class loader gymnastic is required, since Spring library is embedded we need to make sure Spring ldap is using
+        // the current bundle class loader to load its classes
+        ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(JahiaLDAPConfigFactory.class.getClassLoader());
+        try {
+            JahiaLDAPConfig ldapConfig;
+            if (ldapConfigs.containsKey(pid)) {
+                ldapConfig = ldapConfigs.get(pid);
+            } else {
+                ldapConfig = new JahiaLDAPConfig(dictionary);
+                ldapConfigs.put(pid, ldapConfig);
+                deleteConfig(pidsByProviderKey.put(ldapConfig.getProviderKey(), pid));
+            }
+            ldapConfig.setContext(externalUserGroupService, ldapCacheManager, bundleContext, dictionary);
+            flushRelatedCaches();
+        } finally {
+            Thread.currentThread().setContextClassLoader(oldClassLoader);
         }
-        ldapConfig.setContext(externalUserGroupService, ldapCacheManager, bundleContext, dictionary);
-        flushRelatedCaches();
     }
 
     private void deleteConfig(String pid) {
