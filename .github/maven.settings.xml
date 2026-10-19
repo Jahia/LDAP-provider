@@ -5,6 +5,17 @@
             <id>jahia-internal-repository</id>
             <repositories>
                 <repository>
+                    <id>jahia-maven-central</id>
+                    <name>Jahia Maven Central Repository</name>
+                    <url>https://maven.jahia.com/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
                     <snapshots>
                         <enabled>false</enabled>
                     </snapshots>
