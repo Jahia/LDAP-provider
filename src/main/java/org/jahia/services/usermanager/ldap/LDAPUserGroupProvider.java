@@ -349,6 +349,13 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     @Override
     public boolean verifyPassword(String userName, String userPassword) {
         logger.debug("Verifying password for {}...", userName);
+        // A simple bind with a DN and an empty password is an unauthenticated bind (RFC 4513), which many directories
+        // answer with success, and Spring LDAP does not refuse it (CVE-2026-41720): it would authenticate the user
+        // without its password
+        if (StringUtils.isEmpty(userPassword)) {
+            logger.debug("Password refused for {}: it is empty", userName);
+            return false;
+        }
         DirContext ctx = null;
         try {
             LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
