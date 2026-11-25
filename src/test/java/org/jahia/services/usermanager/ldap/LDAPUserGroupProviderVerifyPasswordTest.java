@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class LDAPUserGroupProviderVerifyPasswordTest {
@@ -26,6 +27,7 @@ public class LDAPUserGroupProviderVerifyPasswordTest {
     private static final String USER_DN = "uid=jdoe,ou=people,dc=example,dc=org";
     private static final String PASSWORD = "s3cret";
 
+    private LDAPCacheManager cacheManager;
     private LdapContextSource contextSource;
     private DirContext dirContext;
     private LDAPUserGroupProvider provider;
@@ -37,7 +39,7 @@ public class LDAPUserGroupProviderVerifyPasswordTest {
         userCacheEntry.setDn(USER_DN);
         userCacheEntry.setUser(mock(JahiaUser.class));
 
-        LDAPCacheManager cacheManager = mock(LDAPCacheManager.class);
+        cacheManager = mock(LDAPCacheManager.class);
         when(cacheManager.getUserCacheEntryByName(any(), anyString())).thenReturn(userCacheEntry);
 
         dirContext = mock(DirContext.class);
@@ -62,9 +64,15 @@ public class LDAPUserGroupProviderVerifyPasswordTest {
     }
 
     @Test
-    public void blankPasswordIsRefusedWithoutContactingTheDirectory() {
+    public void whitespacePasswordIsCheckedByTheDirectory() {
+        assertTrue(provider.verifyPassword(USER_NAME, " "));
+        verify(contextSource).getContext(USER_DN, " ");
+    }
+
+    @Test
+    public void emptyOrNullPasswordIsRefusedWithoutContactingTheDirectory() {
         assertFalse(provider.verifyPassword(USER_NAME, ""));
         assertFalse(provider.verifyPassword(USER_NAME, null));
-        verify(contextSource, never()).getContext(anyString(), any());
+        verifyNoInteractions(cacheManager, contextSource);
     }
 }
