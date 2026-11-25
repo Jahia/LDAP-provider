@@ -349,6 +349,9 @@ public class LDAPUserGroupProvider extends BaseUserGroupProvider {
     @Override
     public boolean verifyPassword(String userName, String userPassword) {
         logger.debug("Verifying password for {}...", userName);
+        if (StringUtils.isEmpty(userPassword)) {
+            return false;
+        }
         DirContext ctx = null;
         try {
             LDAPUserCacheEntry userCacheEntry = getUserCacheEntry(userName, true);
